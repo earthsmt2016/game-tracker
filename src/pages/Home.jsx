@@ -137,15 +137,27 @@ const Home = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {games.map((game) => (
-            <GameCard
-              key={game.id}
-              game={game}
-              onStatusChange={handleStatusChange}
-              onViewDetails={handleViewDetails}
-              onDeleteGame={handleDeleteGame}
-            />
-          ))}
+          {games
+            .sort((a, b) => {
+              // First sort by status: playing games first, then completed
+              if (a.status !== b.status) {
+                if (a.status === 'playing') return -1;
+                if (b.status === 'playing') return 1;
+                if (a.status === 'completed') return -1;
+                if (b.status === 'completed') return 1;
+              }
+              // Then sort alphabetically by title within each status
+              return a.title.localeCompare(b.title);
+            })
+            .map((game) => (
+              <GameCard
+                key={game.id}
+                game={game}
+                onStatusChange={handleStatusChange}
+                onViewDetails={handleViewDetails}
+                onDeleteGame={handleDeleteGame}
+              />
+            ))}
         </div>
 
         {games.length === safeNumber(0) && (

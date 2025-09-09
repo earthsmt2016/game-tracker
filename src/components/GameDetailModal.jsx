@@ -27,12 +27,15 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [showAllNotes, setShowAllNotes] = useState(false);
   const [hoursPlayed, setHoursPlayed] = useState('');
   const [minutesPlayed, setMinutesPlayed] = useState('');
+  const [isEditingCover, setIsEditingCover] = useState(false);
+  const [newCoverUrl, setNewCoverUrl] = useState('');
 
   useEffect(() => {
     if (game) {
       setMilestones(game.milestones || []);
       setReport(game.report || null);
       setReportScreenshots(game.reportScreenshots || []);
+      setNewCoverUrl(game.image || '');
       
       // Analyze notes and milestones
       const notes = game.notes || [];
@@ -43,6 +46,27 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       setMilestoneInsights(insights);
     }
   }, [game]);
+
+  const handleCoverUpdate = () => {
+    if (!newCoverUrl.trim()) {
+      toast.error('Please enter a valid image URL');
+      return;
+    }
+
+    const updatedGame = {
+      ...game,
+      image: newCoverUrl.trim()
+    };
+
+    onGameUpdate(updatedGame);
+    setIsEditingCover(false);
+    toast.success('Game cover updated successfully!');
+  };
+
+  const handleCancelCoverEdit = () => {
+    setNewCoverUrl(game.image || '');
+    setIsEditingCover(false);
+  };
 
   const completedMilestones = milestones.filter(m => m.completed).length;
   const totalMilestones = milestones.length;
@@ -498,13 +522,55 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                 <div className="px-4 pb-4 pt-5 sm:p-6">
                   {/* Game Header */}
                   <div className="mb-6">
-                    <div className="aspect-video bg-gradient-to-br from-violet-600 to-indigo-500 rounded-lg overflow-hidden mb-4">
+                    <div className="aspect-video bg-gradient-to-br from-violet-600 to-indigo-500 rounded-lg overflow-hidden mb-4 relative group">
                       <img
-                        src={game.image || `https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=338&fit=crop&crop=center`}
+                        src={newCoverUrl || `https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=338&fit=crop&crop=center`}
                         alt={game.title}
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          e.target.src = `https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=338&fit=crop&crop=center`;
+                        }}
                       />
+                      {!isEditingCover && (
+                        <button
+                          onClick={() => setIsEditingCover(true)}
+                          className="absolute top-2 right-2 p-2 bg-black/50 hover:bg-black/70 text-white rounded-lg opacity-0 group-hover:opacity-100 transition-opacity"
+                          title="Change cover image"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </button>
+                      )}
                     </div>
+
+                    {isEditingCover && (
+                      <div className="mb-4 p-4 bg-slate-50 dark:bg-slate-800 rounded-lg border">
+                        <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100 mb-2">Update Cover Image</h4>
+                        <div className="flex space-x-2">
+                          <input
+                            type="url"
+                            value={newCoverUrl}
+                            onChange={(e) => setNewCoverUrl(e.target.value)}
+                            placeholder="Enter image URL..."
+                            className="flex-1 px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-lg bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-sm"
+                          />
+                          <button
+                            onClick={handleCoverUpdate}
+                            className="px-3 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg text-sm font-medium"
+                          >
+                            Save
+                          </button>
+                          <button
+                            onClick={handleCancelCoverEdit}
+                            className="px-3 py-2 bg-slate-500 hover:bg-slate-600 text-white rounded-lg text-sm font-medium"
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                          Enter a direct link to an image (jpg, png, gif, etc.)
+                        </p>
+                      </div>
+                    )}
 
                     <div className="flex justify-between items-start">
                       <div>
