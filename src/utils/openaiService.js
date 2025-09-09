@@ -306,16 +306,20 @@ export const generateWeeklyReport = async (games, weekStart, weekEnd) => {
 
   try {
     const weekGames = Array.isArray(games) ? games.filter(game => {
-      if (!game.lastPlayed) return false;
-      try {
-        const gameDate = new Date(game.lastPlayed);
-        if (isNaN(gameDate.getTime())) return false;
-        const weekStartDate = new Date(weekStart);
-        const weekEndDate = new Date(weekEnd);
-        return gameDate >= weekStartDate && gameDate <= weekEndDate;
-      } catch {
-        return false;
-      }
+      if (!Array.isArray(game.notes) || game.notes.length === 0) return false;
+      
+      // Check if any notes were created during this week
+      return game.notes.some(note => {
+        try {
+          const noteDate = new Date(note.date);
+          if (isNaN(noteDate.getTime())) return false;
+          const weekStartDate = new Date(weekStart);
+          const weekEndDate = new Date(weekEnd);
+          return noteDate >= weekStartDate && noteDate <= weekEndDate;
+        } catch {
+          return false;
+        }
+      });
     }) : [];
 
     // Enhanced weekly analysis with milestone and note insights

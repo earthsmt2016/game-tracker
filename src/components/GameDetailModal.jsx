@@ -636,7 +636,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         </button>
                       </div>
 
-                      <div className={`space-y-3 overflow-y-auto ${showAllMilestones ? 'max-h-[600px]' : 'max-h-96'}`}>
+                      <div className={`space-y-3 overflow-y-auto ${showAllMilestones ? 'max-h-[70vh]' : 'max-h-96'}`}>
                         {milestones.length > safeNumber(0) ? (
                           milestones.map((milestone, index) => (
                             <motion.div
@@ -765,7 +765,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         </button>
                       </div>
 
-                      <div className={`space-y-2 overflow-y-auto ${showAllNotes ? 'max-h-96' : 'max-h-64'}`}>
+                      <div className={`space-y-2 overflow-y-auto ${showAllNotes ? 'max-h-[70vh]' : 'max-h-64'}`}>
                         {/* Categorized Notes with Related Milestones */}
                         {categorizedNotes.categorized.map((noteData, index) => (
                           <div key={`cat-${index}`} className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800">
