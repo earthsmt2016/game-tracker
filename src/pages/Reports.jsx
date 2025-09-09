@@ -61,29 +61,44 @@ const Reports = () => {
     }
   }) : [];
 
-  // Generate weekly activity data
+  // Generate weekly activity data based on actual time played from notes
   const generateWeeklyData = () => {
     try {
       const days = eachDayOfInterval({ start: weekStart, end: weekEnd });
       return Array.isArray(days) ? days.map(day => {
         const dayName = format(day, 'EEE');
-        // Filter games played on this day
-        const gamesOnDay = gamesThisWeek.filter(game => {
-          if (!game.lastPlayed) return false;
-          try {
-            const gameDate = new Date(game.lastPlayed);
-            if (isNaN(gameDate.getTime())) return false;
-            return format(gameDate, 'yyyy-MM-dd') === format(day, 'yyyy-MM-dd');
-          } catch {
-            return false;
+        const dayString = format(day, 'yyyy-MM-dd');
+        
+        // Calculate total hours from notes for this day
+        let totalHours = 0;
+        let notesCount = 0;
+        
+        gamesThisWeek.forEach(game => {
+          if (Array.isArray(game.notes)) {
+            game.notes.forEach(note => {
+              try {
+                const noteDate = new Date(note.date);
+                if (!isNaN(noteDate.getTime()) && format(noteDate, 'yyyy-MM-dd') === dayString) {
+                  notesCount++;
+                  if (note.hoursPlayed && Number.isFinite(note.hoursPlayed) && !isNaN(note.hoursPlayed)) {
+                    totalHours += safeNumber(note.hoursPlayed);
+                  }
+                  if (note.minutesPlayed && Number.isFinite(note.minutesPlayed) && !isNaN(note.minutesPlayed)) {
+                    totalHours += safeNumber(note.minutesPlayed) / 60;
+                  }
+                }
+              } catch {
+                // Skip invalid dates
+              }
+            });
           }
         });
-        const activity = safeNumber(gamesOnDay.length * safeNumber(2));
-        const safeActivity = (Number.isFinite(activity) && !isNaN(activity)) ? activity : safeNumber(0);
+        
+        const safeHours = (Number.isFinite(totalHours) && !isNaN(totalHours)) ? totalHours : safeNumber(0);
         return {
           day: dayName,
-          hours: safeActivity,
-          games: safeNumber(gamesOnDay.length) || safeNumber(0)
+          hours: Math.round(safeHours * 100) / 100, // Round to 2 decimal places
+          notes: safeNumber(notesCount) || safeNumber(0)
         };
       }) : [];
     } catch (error) {
@@ -464,7 +479,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
     const avg = safeDivision(safeSum, playingCount);
     const safeAvg = (Number.isFinite(avg) && !isNaN(avg)) ? avg : safeNumber(0);
     
-    return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg)));
+    return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg * 100) / 100));
   })();
 
   const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
@@ -545,7 +560,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
         </div>
 
         {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -574,42 +589,8 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                 <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Completed This Week</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{completedGamesThisWeek}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: safeNumber(0.4) }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-blue-100 dark:bg-blue-900/20 rounded-lg">
-                <Clock className="h-6 w-6 text-blue-600 dark:text-blue-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">In Progress This Week</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{playingGamesThisWeek.length}</p>
-              </div>
-            </div>
-          </motion.div>
-
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: safeNumber(0.5) }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-indigo-100 dark:bg-indigo-900/20 rounded-lg">
-                <TrendingUp className="h-6 w-6 text-indigo-600 dark:text-indigo-400" />
-              </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Avg Progress This Week</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{safeAverage}%</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Milestones Completed</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{milestonesCompleted}</p>
               </div>
             </div>
           </motion.div>
@@ -631,7 +612,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyData.filter(item => Number.isFinite(item.hours) && !isNaN(item.hours) && Number.isFinite(item.games) && !isNaN(item.games))}>
+                  <BarChart data={weeklyData.filter(item => Number.isFinite(item.hours) && !isNaN(item.hours) && Number.isFinite(item.notes) && !isNaN(item.notes))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="day" stroke="#64748b" />
                     <YAxis stroke="#64748b" />
@@ -641,7 +622,12 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                         border: 'none', 
                         borderRadius: '8px',
                         color: '#f1f5f9'
-                      }} 
+                      }}
+                      formatter={(value, name) => {
+                        if (name === 'hours') return [`${value}h`, 'Hours Played'];
+                        if (name === 'notes') return [`${value}`, 'Notes Added'];
+                        return [value, name];
+                      }}
                     />
                     <Bar dataKey="hours" fill="#8b5cf6" radius={[safeNumber(4), safeNumber(4), safeNumber(0), safeNumber(0)]} />
                   </BarChart>

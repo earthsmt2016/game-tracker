@@ -25,6 +25,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [milestoneInsights, setMilestoneInsights] = useState({});
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
+  const [hoursPlayed, setHoursPlayed] = useState('');
+  const [minutesPlayed, setMinutesPlayed] = useState('');
 
   useEffect(() => {
     if (game) {
@@ -155,7 +157,9 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     if (newNote.trim()) {
       const note = {
         text: newNote,
-        date: new Date().toISOString()
+        date: new Date().toISOString(),
+        hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
+        minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
       };
       
       // Use enhanced milestone analysis
@@ -169,6 +173,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         const updatedNotes = [...(game.notes || []), note];
         onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
         setNewNote('');
+        setHoursPlayed('');
+        setMinutesPlayed('');
         toast.success('Note added successfully!');
         
         // Update categorized notes
@@ -202,11 +208,15 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const confirmAddNote = () => {
     const note = {
       text: newNote,
-      date: new Date().toISOString()
+      date: new Date().toISOString(),
+      hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
+      minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
     };
     const updatedNotes = [...(game.notes || []), note];
     onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
     setNewNote('');
+    setHoursPlayed('');
+    setMinutesPlayed('');
     setShowConfirmationModal(false);
     setPendingMilestoneUpdates([]);
     toast.success('Note added successfully!');
@@ -703,6 +713,40 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                           rows={3}
                           className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                         />
+                        
+                        {/* Time Played Inputs */}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                              Hours Played
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.1"
+                              value={hoursPlayed}
+                              onChange={(e) => setHoursPlayed(e.target.value)}
+                              placeholder="0"
+                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100 text-sm"
+                            />
+                          </div>
+                          <div>
+                            <label className="block text-xs font-medium text-slate-600 dark:text-slate-400 mb-1">
+                              Minutes Played
+                            </label>
+                            <input
+                              type="number"
+                              min="0"
+                              max="59"
+                              step="1"
+                              value={minutesPlayed}
+                              onChange={(e) => setMinutesPlayed(e.target.value)}
+                              placeholder="0"
+                              className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100 text-sm"
+                            />
+                          </div>
+                        </div>
+                        
                         <button
                           onClick={handleAddNote}
                           className="inline-flex items-center space-x-2 px-3 py-1 bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium rounded-md transition-colors"
