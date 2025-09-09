@@ -2,7 +2,7 @@ import OpenAI from 'openai';
 import { safeNumber, safeDivision } from './helpers';
 
 const openai = new OpenAI({
-  apiKey: process.env.VITE_OPENAI_API_KEY,
+  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true // Note: For production, use a backend proxy for security
 });
 
