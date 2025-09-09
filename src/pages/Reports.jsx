@@ -95,9 +95,12 @@ const Reports = () => {
         });
         
         const safeHours = (Number.isFinite(totalHours) && !isNaN(totalHours)) ? totalHours : safeNumber(0);
+        const roundedHours = Math.round(safeHours * 100) / 100;
+        const finalHours = (Number.isFinite(roundedHours) && !isNaN(roundedHours)) ? roundedHours : safeNumber(0);
+        
         return {
           day: dayName,
-          hours: Math.round(safeHours * 100) / 100, // Round to 2 decimal places
+          hours: finalHours,
           notes: safeNumber(notesCount) || safeNumber(0)
         };
       }) : [];
@@ -599,7 +602,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Weekly Activity */}
-          {weeklyData && weeklyData.length > 0 ? (
+          {weeklyData && weeklyData.length > 0 && weeklyData.some(item => item && typeof item.hours === 'number' && item.hours > 0) ? (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -612,7 +615,17 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyData.filter(item => Number.isFinite(item.hours) && !isNaN(item.hours) && Number.isFinite(item.notes) && !isNaN(item.notes))}>
+                  <BarChart data={weeklyData.filter(item => 
+                  item && 
+                  typeof item.hours === 'number' && 
+                  Number.isFinite(item.hours) && 
+                  !isNaN(item.hours) && 
+                  item.hours >= 0 &&
+                  typeof item.notes === 'number' && 
+                  Number.isFinite(item.notes) && 
+                  !isNaN(item.notes) && 
+                  item.notes >= 0
+                )}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="day" stroke="#64748b" />
                     <YAxis stroke="#64748b" />

@@ -774,19 +774,26 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               {safeFormat(noteData.note.date, 'MMM d, yyyy')}
                             </p>
                             
-                            {/* Related Milestones */}
-                            <div className="mt-2 space-y-1">
-                              <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
-                                <AlertCircle className="h-3 w-3 mr-1" />
-                                Potential Milestones Cleared:
-                              </p>
-                              {noteData.relatedMilestones.slice(0, 2).map((milestone) => (
-                                <div key={milestone.id} className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 rounded px-2 py-1 border">
-                                  <span className="font-medium">{milestone.title}</span>
-                                  <span className="ml-2 text-green-600">({Math.round(milestone.matchScore * 20)}% match)</span>
+                            {/* Actually Cleared Milestones */}
+                            {(() => {
+                              const clearedMilestones = milestones.filter(m => 
+                                m.completed && m.triggeredByNote === noteData.note.text
+                              );
+                              return clearedMilestones.length > 0 ? (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
+                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                    Milestones Cleared by This Note:
+                                  </p>
+                                  {clearedMilestones.slice(0, 3).map((milestone) => (
+                                    <div key={milestone.id} className="text-xs text-slate-600 dark:text-slate-400 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800">
+                                      <span className="font-medium text-green-800 dark:text-green-300">{milestone.title}</span>
+                                      <span className="ml-2 text-green-600 dark:text-green-400">✓ Completed</span>
+                                    </div>
+                                  ))}
                                 </div>
-                              ))}
-                            </div>
+                              ) : null;
+                            })()}
                             
                             <button
                               onClick={() => deleteNote(categorizedNotes.categorized.length + index)}
