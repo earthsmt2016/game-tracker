@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { safeNumber, safeDivision } from './helpers';
+import { safeNumber, safeDivision, safePercentage, safeArrayFilter } from './helpers';
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -62,7 +62,7 @@ export const generateMilestones = async (gameTitle) => {
   }
 };
 
-export const generateGameReport = async (gameTitle, milestones, notes) => {
+export const generateGameReport = async (gameTitle, milestones, notes, gamesThisWeek) => {
   try {
     const notesText = Array.isArray(notes) ? notes.map(note => note.text).join(' ') : '';
     const totalMilestones = Array.isArray(milestones) ? milestones.length : safeNumber(0);
@@ -72,6 +72,12 @@ export const generateGameReport = async (gameTitle, milestones, notes) => {
 
 Milestones:
 ${Array.isArray(milestones) ? milestones.map(m => `${m.id}: ${m.title} - ${m.description}`).join('\n') : ''}
+
+Screenshots: ${gamesThisWeek.reduce((total, game) => {
+  const noteScreenshots = Array.isArray(game.notes) ? safeArrayFilter(game.notes, n => n.screenshot).length : 0;
+  const reportScreenshots = Array.isArray(game.reportScreenshots) ? game.reportScreenshots.length : 0;
+  return total + noteScreenshots + reportScreenshots;
+}, 0)} screenshots from notes and reports attached milestones
 
 Notes:
 ${notesText || 'No notes provided'}
@@ -205,9 +211,18 @@ export const generateWeeklyReport = async (games, selectedWeek) => {
 
     const completedThisWeek = weekGames.filter(game => game.status === 'completed');
     const progressThisWeek = weekGames.filter(game => game.status === 'playing');
-    const milestonesCompleted = weekGames.reduce((total, game) => total + (Array.isArray(game.milestones) ? game.milestones.filter(m => m.completed).length : safeNumber(0)), safeNumber(0));
+    const milestonesCompleted = weekGames.reduce((total, game) => {
+      const milestones = Array.isArray(game.milestones) ? game.milestones : [];
+      const completed = safeArrayFilter(milestones, m => m.completed);
+      return total + completed.length;
+    }, 0);
 
-    const averageProgress = progressThisWeek.length > safeNumber(0) ? safeDivision(progressThisWeek.reduce((sum, g) => sum + ((Number.isFinite(safeNumber(g.progress)) && !isNaN(safeNumber(g.progress))) ? safeNumber(g.progress) : safeNumber(0)), safeNumber(0)), safeNumber(progressThisWeek.length)) : safeNumber(0);
+    const averageProgress = progressThisWeek.length > 0 ? 
+      safePercentage(
+        progressThisWeek.reduce((sum, g) => sum + safeNumber(g.progress, 0), 0),
+        progressThisWeek.length * 100,
+        0
+      ) : 0;
 
     const prompt = `Generate a personalized weekly gaming report based on the following data for the week starting ${selectedWeek}. Use first-person language as if I wrote it myself, reflecting on my gaming achievements, progress, and insights.
 
@@ -219,9 +234,9 @@ Average progress on in-progress games: ${averageProgress}%
 
 Game details:
 ${weekGames.map(game => {
-  const progress = (Number.isFinite(safeNumber(game.progress)) && !isNaN(safeNumber(game.progress))) ? game.progress : safeNumber(0);
+  const progress = safeNumber(game.progress, 0);
   const milestones = Array.isArray(game.milestones) ? game.milestones : [];
-  const completed = milestones.filter(m => m.completed).length;
+  const completed = safeArrayFilter(milestones, m => m.completed).length;
   const total = milestones.length;
   return `- ${game.title} (${game.platform}): ${game.status}, Progress: ${progress}%, Milestones: ${completed}/${total}`;
 }).join('\n')}
@@ -255,7 +270,7 @@ Return only the JSON object, no additional text.`;
     };
   } catch (error) {
     // Fallback report
-    if (!Array.isArray(games) || games.length === safeNumber(0)) {
+    if (!Array.isArray(games) || games.length === 0) {
       return {
         summary: 'This week, I didn\'t play any games. Time to start a new adventure!',
         highlights: ['No games played this week'],

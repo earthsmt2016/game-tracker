@@ -8,7 +8,7 @@ import Footer from '../components/Footer';
 import jsPDF from 'jspdf';
 import { generateWeeklyReport } from '../utils/openaiService';
 import { toast } from 'react-toastify';
-import { safeNumber, safeDivision } from '../utils/helpers';
+import { safeNumber, safeDivision, safePercentage, safeArrayLength, safeArrayFilter } from '../utils/helpers';
 
 const Reports = () => {
   const [games, setGames] = useState([]);
@@ -29,16 +29,19 @@ const Reports = () => {
           return;
         }
         // Sanitize data to prevent NaN errors
-        const sanitizedGames = parsed.map(game => ({
-          ...game,
-          progress: (() => {
-            const p = Number(game.progress);
-            return (Number.isFinite(p) && !isNaN(p)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(p))) : safeNumber(0);
-          })(),
-          milestones: Array.isArray(game.milestones) ? game.milestones : [],
-          notes: Array.isArray(game.notes) ? game.notes : [],
-          reportScreenshots: Array.isArray(game.reportScreenshots) ? game.reportScreenshots : []
-        }));
+        const sanitizedGames = parsed.map(game => {
+          const milestones = Array.isArray(game.milestones) ? game.milestones : [];
+          const completedMilestones = safeArrayFilter(milestones, m => m.completed);
+          const calculatedProgress = safePercentage(completedMilestones.length, milestones.length, 0);
+          
+          return {
+            ...game,
+            progress: safeNumber(calculatedProgress, 0),
+            milestones: milestones,
+            notes: Array.isArray(game.notes) ? game.notes : [],
+            reportScreenshots: Array.isArray(game.reportScreenshots) ? game.reportScreenshots : []
+          };
+        });
         setGames(sanitizedGames);
       }
     } catch (error) {
@@ -446,18 +449,23 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
   const completedGamesThisWeek = gamesThisWeek.filter(game => game.status === 'completed').length;
   const playingGamesThisWeek = gamesThisWeek.filter(game => game.status === 'playing').length;
   const averageProgressThisWeek = (() => {
-    if (playingGamesThisWeek.length === safeNumber(0)) return safeNumber(0);
-    const sum = (Array.isArray(playingGamesThisWeek) ? playingGamesThisWeek : []).reduce((acc, g) => {
-      const p = safeNumber(g.progress);
-      return acc + ((Number.isFinite(p) && !isNaN(p)) ? safeNumber(p) : safeNumber(0));
-    }, safeNumber(0));
-    const avg = safeDivision(sum, safeNumber(playingGamesThisWeek.length));
-    return (Number.isFinite(avg) && !isNaN(avg)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(avg)))) : safeNumber(0);
+    const playingGames = safeArrayFilter(playingGamesThisWeek, g => g.status === 'playing');
+    if (playingGames.length === 0) return 0;
+    
+    const sum = playingGames.reduce((acc, game) => {
+      return acc + safeNumber(game.progress, 0);
+    }, 0);
+    
+    return safePercentage(sum, playingGames.length * 100, 0);
   })();
 
   const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
 
-  const milestonesCompleted = (Array.isArray(gamesThisWeek) ? gamesThisWeek : []).reduce((total, game) => total + (game.milestones?.filter(m => m.completed).length || safeNumber(0)), safeNumber(0));
+  const milestonesCompleted = gamesThisWeek.reduce((total, game) => {
+    const milestones = Array.isArray(game.milestones) ? game.milestones : [];
+    const completed = safeArrayFilter(milestones, m => m.completed);
+    return total + completed.length;
+  }, 0);
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">

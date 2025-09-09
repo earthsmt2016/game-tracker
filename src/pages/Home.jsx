@@ -4,7 +4,7 @@ import Footer from '../components/Footer.jsx';
 import GameCard from '../components/GameCard.jsx';
 import AddGameModal from '../components/AddGameModal.jsx';
 import GameDetailModal from '../components/GameDetailModal.jsx';
-import { safeNumber, safeDivision } from '../utils/helpers';
+import { safeNumber, safeDivision, safePercentage, safeArrayFilter } from '../utils/helpers';
 
 const Home = () => {
   const [games, setGames] = useState([]);
@@ -22,16 +22,19 @@ const Home = () => {
           return;
         }
         // Sanitize data to prevent NaN errors
-        const sanitizedGames = parsed.map(game => ({
-          ...game,
-          progress: (() => {
-            const p = Number(game.progress);
-            return (Number.isFinite(p) && !isNaN(p)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(p))) : safeNumber(0);
-          })(),
-          milestones: Array.isArray(game.milestones) ? game.milestones : [],
-          notes: Array.isArray(game.notes) ? game.notes : [],
-          reportScreenshots: Array.isArray(game.reportScreenshots) ? game.reportScreenshots : []
-        }));
+        const sanitizedGames = parsed.map(game => {
+          const milestones = Array.isArray(game.milestones) ? game.milestones : [];
+          const completedMilestones = safeArrayFilter(milestones, m => m.completed);
+          const calculatedProgress = safePercentage(completedMilestones.length, milestones.length, 0);
+          
+          return {
+            ...game,
+            progress: safeNumber(calculatedProgress, 0),
+            milestones: milestones,
+            notes: Array.isArray(game.notes) ? game.notes : [],
+            reportScreenshots: Array.isArray(game.reportScreenshots) ? game.reportScreenshots : []
+          };
+        });
         setGames(sanitizedGames);
       }
     } catch (error) {
@@ -58,13 +61,15 @@ const Home = () => {
     }
   };
 
-  // Fix: Calculate average progress instead of sum
-  const totalScore = (Array.isArray(games) && games.length > safeNumber(0)) ? safeDivision(games.reduce((acc, game) => {
-    const p = Number(game.progress);
-    return acc + ((Number.isFinite(p) && !isNaN(p)) ? safeNumber(p) : safeNumber(0));
-  }, safeNumber(0)), games.length) : safeNumber(0);
+  // Calculate average progress across all games
+  const totalScore = games.length > 0 ? 
+    safePercentage(
+      games.reduce((acc, game) => acc + safeNumber(game.progress, 0), 0),
+      games.length * 100,
+      0
+    ) : 0;
 
-  const safeTotalScore = Number.isFinite(totalScore) && !isNaN(totalScore) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(totalScore)))) : safeNumber(0);
+  const safeTotalScore = safeNumber(totalScore, 0);
 
   const handleAddGame = (newGame) => {
     const updatedGames = [...games, newGame];
