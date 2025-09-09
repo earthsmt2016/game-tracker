@@ -181,7 +181,21 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const handleMilestoneDecision = (milestoneId, agree) => {
     setPendingMilestoneUpdates(prev => prev.filter(m => m.id !== milestoneId));
     if (agree) {
-      toggleMilestone(milestoneId);
+      const updatedMilestones = milestones.map(milestone =>
+        milestone.id === milestoneId
+          ? { ...milestone, completed: true, dateCompleted: new Date().toISOString(), triggeredByNote: newNote }
+          : milestone
+      );
+      setMilestones(updatedMilestones);
+      
+      const completedCount = updatedMilestones.filter(m => m.completed).length;
+      const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
+      onUpdateProgress(game.id, progress, updatedMilestones);
+    }
+    
+    // If no more pending updates, proceed with adding the note
+    if (pendingMilestoneUpdates.filter(m => m.id !== milestoneId).length === 0) {
+      confirmAddNote();
     }
   };
 
@@ -731,7 +745,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                             </div>
                             
                             <button
-                              onClick={() => deleteNote(index)}
+                              onClick={() => deleteNote(categorizedNotes.categorized.length + index)}
                               className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
                               title="Delete Note"
                             >
@@ -959,7 +973,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
       {/* Confirmation Modal for Pending Milestones */}
       <AnimatePresence>
         {showConfirmationModal && (
-          <div className="fixed inset-0 z-60 overflow-y-auto">
+          <div className="fixed inset-0 z-[70] overflow-y-auto">
             <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
               <motion.div
                 initial={{ opacity: 0 }}

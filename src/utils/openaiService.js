@@ -8,7 +8,18 @@ const openai = new OpenAI({
   dangerouslyAllowBrowser: true // Note: For production, use a backend proxy for security
 });
 
+// Validate API key on initialization
+if (!import.meta.env.VITE_OPENAI_API_KEY) {
+  console.error('OpenAI API key is not set. Please add VITE_OPENAI_API_KEY to your .env file');
+}
+
 export const generateMilestones = async (gameTitle) => {
+  // Validate API key before making request
+  if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    console.error('OpenAI API key is missing or not configured properly');
+    throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file with a valid OpenAI API key.');
+  }
+
   try {
     const prompt = `Generate 50+ comprehensive and highly specific milestones for the video game "${gameTitle}". Research the actual game content and create detailed, game-specific milestones that cover every aspect of gameplay:
 
@@ -42,6 +53,7 @@ Zelda BOTW: {"title": "Obtain Hylian Shield from Hyrule Castle", "description": 
 
 Return only the JSON array with no additional text or formatting.`;
 
+    console.log('Attempting OpenAI API call for milestones...');
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: prompt }],
@@ -49,6 +61,7 @@ Return only the JSON array with no additional text or formatting.`;
       temperature: safeNumber(0.7),
     });
 
+    console.log('OpenAI API response received successfully');
     const content = response.choices[safeNumber(0)].message.content.trim();
     
     // Parse the JSON response
@@ -67,6 +80,26 @@ Return only the JSON array with no additional text or formatting.`;
       triggeredByNote: null
     }));
   } catch (error) {
+    console.error('OpenAI API Error in generateMilestones:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      type: error.type,
+      code: error.code
+    });
+    
+    // Provide specific error messages for common issues
+    if (error.status === 401) {
+      console.error('Authentication failed: Invalid API key or insufficient permissions');
+      throw new Error('OpenAI API authentication failed. Please check your API key in the .env file and ensure it has sufficient credits and permissions.');
+    } else if (error.status === 429) {
+      console.error('Rate limit exceeded or quota reached');
+      throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again, or check your API usage quota.');
+    } else if (error.status === 500) {
+      console.error('OpenAI server error');
+      throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
+    }
+    
     // Fallback to basic milestones if API fails
     const fallbackMilestones = [
       'Complete tutorial',
@@ -93,6 +126,12 @@ Return only the JSON array with no additional text or formatting.`;
 };
 
 export const generateGameReport = async (gameTitle, milestones, notes, gamesThisWeek) => {
+  // Validate API key before making request
+  if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    console.error('OpenAI API key is missing or not configured properly');
+    throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file with a valid OpenAI API key.');
+  }
+
   try {
     const notesText = Array.isArray(notes) ? notes.map(note => note.text).join(' ') : '';
     const totalMilestones = Array.isArray(milestones) ? milestones.length : safeNumber(0);
@@ -134,12 +173,14 @@ ${notesText || 'No notes provided'}
 
 Return only a JSON array of numbers (milestone IDs), no additional text.`;
 
+    console.log('Attempting OpenAI API call for milestone completion analysis...');
     const completionResponse = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: promptForCompletion }],
       max_tokens: safeNumber(500),
       temperature: safeNumber(0.3),
     });
+    console.log('Milestone completion analysis successful');
 
     const completionContent = completionResponse.choices[safeNumber(0)].message.content.trim();
     const completedIds = JSON.parse(completionContent);
@@ -256,17 +297,22 @@ Return only the JSON object, no additional text.`;
   }
 };
 
-export const generateWeeklyReport = async (games, selectedWeek) => {
+export const generateWeeklyReport = async (games, weekStart, weekEnd) => {
+  // Validate API key before making request
+  if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    console.error('OpenAI API key is missing or not configured properly');
+    throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file with a valid OpenAI API key.');
+  }
+
   try {
     const weekGames = Array.isArray(games) ? games.filter(game => {
       if (!game.lastPlayed) return false;
       try {
         const gameDate = new Date(game.lastPlayed);
         if (isNaN(gameDate.getTime())) return false;
-        const weekStart = new Date(selectedWeek);
-        const weekEnd = new Date(weekStart);
-        weekEnd.setDate(weekStart.getDate() + safeNumber(6));
-        return gameDate >= weekStart && gameDate <= weekEnd;
+        const weekStartDate = new Date(weekStart);
+        const weekEndDate = new Date(weekEnd);
+        return gameDate >= weekStartDate && gameDate <= weekEndDate;
       } catch {
         return false;
       }
@@ -398,6 +444,26 @@ Return only the JSON object, no additional text.`;
       }
     };
   } catch (error) {
+    console.error('OpenAI API Error in generateWeeklyReport:', error);
+    console.error('Error details:', {
+      message: error.message,
+      status: error.status,
+      type: error.type,
+      code: error.code
+    });
+    
+    // Provide specific error messages for common issues
+    if (error.status === 401) {
+      console.error('Authentication failed: Invalid API key or insufficient permissions');
+      throw new Error('OpenAI API authentication failed. Please check your API key in the .env file and ensure it has sufficient credits and permissions.');
+    } else if (error.status === 429) {
+      console.error('Rate limit exceeded or quota reached');
+      throw new Error('OpenAI API rate limit exceeded. Please wait a moment and try again, or check your API usage quota.');
+    } else if (error.status === 500) {
+      console.error('OpenAI server error');
+      throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
+    }
+    
     // Fallback report
     if (!Array.isArray(games) || games.length === 0) {
       return {
