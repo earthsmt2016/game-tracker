@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, TrendingUp, Trophy, Clock, BarChart3, Download, FileText, Edit, Save } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from 'recharts';
-import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, subWeeks, addWeeks } from 'date-fns';
+import { format, subDays, startOfWeek, endOfWeek, eachDayOfInterval, subWeeks, addWeeks, isWithinInterval } from 'date-fns';
 import Header from '../components/Header';
 import Footer from '../components/Footer';
 import jsPDF from 'jspdf';
