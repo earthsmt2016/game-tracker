@@ -370,38 +370,53 @@ export const generateWeeklyReport = async (games, weekStart, weekEnd) => {
         0
       ) : 0;
 
-    const prompt = `Generate a comprehensive personalized weekly gaming report based on the following detailed data for the week starting ${selectedWeek}. Use first-person language as if I wrote it myself, reflecting on my gaming achievements, progress, insights, and strategic thinking.
+    const gameDetails = weekGames.map(game => {
+      const completedMilestones = Array.isArray(game.milestones) ? game.milestones.filter(m => m.completed) : [];
+      const recentNotes = Array.isArray(game.notes) ? game.notes.slice(-3) : [];
+      return {
+        title: game.title,
+        status: game.status,
+        progress: game.progress || 0,
+        platform: game.platform,
+        completedMilestones: completedMilestones.map(m => ({ title: m.title, category: m.category, difficulty: m.difficulty })),
+        recentNotes: recentNotes.map(n => ({ text: n.text, date: n.date, hoursPlayed: n.hoursPlayed, minutesPlayed: n.minutesPlayed }))
+      };
+    });
 
-Weekly Gaming Statistics:
+    const prompt = `Generate a comprehensive and detailed weekly gaming report based on my gaming activity. Write in first-person as if I'm reflecting on my week. Focus heavily on specific games played, milestones achieved, and detailed analysis.
+
+WEEKLY GAMING DATA:
 - Games played this week: ${weekGames.length}
-- Games completed this week: ${completedThisWeek.length}
+- Games completed: ${completedThisWeek.length}
 - Games in progress: ${progressThisWeek.length}
 - Total milestones completed: ${milestonesCompleted}
-- Total milestones available: ${totalMilestonesThisWeek}
-- Milestone completion rate: ${totalMilestonesThisWeek > 0 ? Math.round((completedMilestonesThisWeek/totalMilestonesThisWeek)*100) : 0}%
-- Total notes written: ${totalNotesThisWeek}
-- Average progress on in-progress games: ${averageProgress}%
+- Average progress on active games: ${averageProgress.toFixed(1)}%
 
-Milestone Progress by Category:
-${Object.entries(categoryProgress).map(([cat, data]) => `- ${cat.toUpperCase()}: ${data.completed}/${data.total} completed (${Math.round((data.completed/data.total)*100)}%)`).join('\n')}
+DETAILED GAME ANALYSIS:
+${gameDetails.map(game => `
+Game: ${game.title} (${game.platform})
+Status: ${game.status} - ${game.progress}% complete
+Milestones completed this week: ${game.completedMilestones.length}
+${game.completedMilestones.map(m => `  • ${m.title} (${m.category}, ${m.difficulty})`).join('\n')}
+Recent notes/activities:
+${game.recentNotes.map(n => `  • ${n.text} ${n.hoursPlayed ? `(${n.hoursPlayed}h ${n.minutesPlayed || 0}m played)` : ''}`).join('\n')}
+`).join('\n')}
 
-Milestone Progress by Difficulty:
-${Object.entries(difficultyProgress).map(([diff, data]) => `- ${diff.toUpperCase()}: ${data.completed}/${data.total} completed (${Math.round((data.completed/data.total)*100)}%)`).join('\n')}
+MILESTONE BREAKDOWN BY CATEGORY:
+${Object.entries(categoryProgress).map(([cat, data]) => `${cat}: ${data.completed}/${data.total} completed`).join('\n')}
 
-Detailed Game Analysis:
-${weekGames.map(game => {
-  const progress = safeNumber(game.progress, 0);
-  const milestones = Array.isArray(game.milestones) ? game.milestones : [];
-  const completed = milestones.filter(m => m.completed).length;
-  const total = milestones.length;
-  const notes = Array.isArray(game.notes) ? game.notes.length : 0;
-  const categoryBreakdown = milestones.reduce((acc, m) => {
-    const cat = m.category || 'other';
-    acc[cat] = (acc[cat] || 0) + (m.completed ? 1 : 0);
-    return acc;
-  }, {});
-  return `- ${game.title} (${game.platform}):\n  Status: ${game.status}, Progress: ${progress}%\n  Milestones: ${completed}/${total} (${Object.entries(categoryBreakdown).map(([cat, count]) => `${cat}: ${count}`).join(', ')})\n  Notes written: ${notes}`;
-}).join('\n\n')}
+MILESTONE BREAKDOWN BY DIFFICULTY:
+${Object.entries(difficultyProgress).map(([diff, data]) => `${diff}: ${data.completed}/${data.total} completed`).join('\n')}
+
+Generate a detailed report with these sections:
+1. WEEKLY SUMMARY: Overall reflection on my gaming week
+2. GAME HIGHLIGHTS: Detailed discussion of each game I played, including specific milestones achieved and what they mean for my progress
+3. MILESTONE ANALYSIS: Deep dive into the types of milestones I completed and what they reveal about my gaming patterns
+4. PROGRESS INSIGHTS: Analysis of my progress across different games and genres
+5. CHALLENGES & ACHIEVEMENTS: Specific challenges I overcame and notable achievements
+6. NEXT WEEK GOALS: Strategic goals for the upcoming week based on current progress
+
+Make it personal, detailed, and insightful. Discuss specific games by name and analyze the significance of milestones achieved.
 
 Format the response as a JSON object with:
 - summary: A personal summary of my weekly gaming activity (max 400 characters, first-person, include specific numbers)

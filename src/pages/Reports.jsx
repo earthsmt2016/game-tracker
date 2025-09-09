@@ -18,6 +18,12 @@ const Reports = () => {
   const [isGeneratingWeeklyReport, setIsGeneratingWeeklyReport] = useState(false);
   const [isEditingWeeklyReport, setIsEditingWeeklyReport] = useState(false);
   const [editedWeeklyReport, setEditedWeeklyReport] = useState(null);
+  const [hiddenSections, setHiddenSections] = useState({
+    gamesThisWeek: false,
+    completedGames: false,
+    weeklyActivity: false,
+    platformDistribution: false
+  });
 
   useEffect(() => {
     try {
@@ -47,18 +53,22 @@ const Reports = () => {
     }
   }, []);
 
-  // Filter games for the selected week
+  // Filter games for the selected week based on notes
   const weekStart = selectedWeek;
   const weekEnd = endOfWeek(selectedWeek);
   const gamesThisWeek = Array.isArray(games) ? games.filter(game => {
-    if (!game.lastPlayed) return false;
-    try {
-      const gameDate = new Date(game.lastPlayed);
-      if (isNaN(gameDate.getTime())) return false;
-      return gameDate >= weekStart && gameDate <= weekEnd;
-    } catch {
-      return false;
-    }
+    if (!Array.isArray(game.notes) || game.notes.length === 0) return false;
+    
+    // Check if any notes were created during this week
+    return game.notes.some(note => {
+      try {
+        const noteDate = new Date(note.date);
+        if (isNaN(noteDate.getTime())) return false;
+        return isWithinInterval(noteDate, { start: weekStart, end: weekEnd });
+      } catch {
+        return false;
+      }
+    });
   }) : [];
 
   // Generate weekly activity data based on actual time played from notes
@@ -499,6 +509,13 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
     setEditedWeeklyReport(null);
   };
 
+  const toggleSection = (sectionKey) => {
+    setHiddenSections(prev => ({
+      ...prev,
+      [sectionKey]: !prev[sectionKey]
+    }));
+  };
+
   const weeklyData = generateWeeklyData() || [];
   const platformData = getPlatformData() || [];
   const progressData = getProgressData() || [];
@@ -610,51 +627,73 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
         {/* Stats Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: safeNumber(0.2) }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
-                <BarChart3 className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+          {!hiddenSections.gamesThisWeek && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: safeNumber(0.2) }}
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 relative"
+            >
+              <button
+                onClick={() => toggleSection('gamesThisWeek')}
+                className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                ✕
+              </button>
+              <div className="flex items-center">
+                <div className="p-3 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
+                  <BarChart3 className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Games This Week</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalGamesThisWeek}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Games This Week</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{totalGamesThisWeek}</p>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
 
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: safeNumber(0.3) }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
-          >
-            <div className="flex items-center">
-              <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
-                <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
+          {!hiddenSections.completedGames && (
+            <motion.div 
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: safeNumber(0.3) }}
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 relative"
+            >
+              <button
+                onClick={() => toggleSection('completedGames')}
+                className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                ✕
+              </button>
+              <div className="flex items-center">
+                <div className="p-3 bg-green-100 dark:bg-green-900/20 rounded-lg">
+                  <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Games Completed This Week</p>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{completedGamesThisWeek}</p>
+                </div>
               </div>
-              <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Games Completed This Week</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{completedGamesThisWeek}</p>
-              </div>
-            </div>
-          </motion.div>
+            </motion.div>
+          )}
         </div>
 
         {/* Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Weekly Activity */}
-          {weeklyData && weeklyData.length > 0 && weeklyData.some(item => item && typeof item.hours === 'number' && item.hours > 0) ? (
+          {!hiddenSections.weeklyActivity && weeklyData && weeklyData.length > 0 && weeklyData.some(item => item && typeof item.hours === 'number' && item.hours > 0) ? (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: safeNumber(0.6) }}
-              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 relative"
             >
+              <button
+                onClick={() => toggleSection('weeklyActivity')}
+                className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                ✕
+              </button>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center">
                 <Calendar className="h-5 w-5 mr-2 text-violet-600" />
                 Weekly Activity
@@ -709,13 +748,19 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
           )}
 
           {/* Platform Distribution */}
-          {platformData && platformData.length > 0 ? (
+          {!hiddenSections.platformDistribution && platformData && platformData.length > 0 ? (
             <motion.div 
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: safeNumber(0.7) }}
-              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
+              className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700 relative"
             >
+              <button
+                onClick={() => toggleSection('platformDistribution')}
+                className="absolute top-2 right-2 p-1 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+              >
+                ✕
+              </button>
               <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
                 Platform Distribution This Week
               </h3>
