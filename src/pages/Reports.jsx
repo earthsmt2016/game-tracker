@@ -112,38 +112,76 @@ const Reports = () => {
 
   // Platform distribution data for this week
   const getPlatformData = () => {
-    const platformCounts = (Array.isArray(gamesThisWeek) ? gamesThisWeek : []).reduce((acc, game) => {
-      if (typeof game.platform === 'string' && game.platform.trim()) {
-        acc[game.platform] = (acc[game.platform] || safeNumber(0)) + safeNumber(1);
+    try {
+      if (!Array.isArray(gamesThisWeek) || gamesThisWeek.length === 0) {
+        return [];
       }
-      return acc;
-    }, {});
 
-    const colors = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+      const platformCounts = gamesThisWeek.reduce((acc, game) => {
+        if (game && typeof game === 'object' && typeof game.platform === 'string' && game.platform.trim()) {
+          acc[game.platform] = (acc[game.platform] || safeNumber(0)) + safeNumber(1);
+        }
+        return acc;
+      }, {});
 
-    return Object.entries(platformCounts).map(([platform, count], index) => {
-      const safeCount = safeNumber(count);
-      const finalCount = (Number.isFinite(safeCount) && !isNaN(safeCount)) ? safeCount : safeNumber(0);
-      return {
-        name: platform,
-        value: finalCount,
-        color: colors[index % colors.length]
-      };
-    });
+      const colors = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
+
+      return Object.entries(platformCounts).map(([platform, count], index) => {
+        const safeCount = safeNumber(count);
+        const finalCount = (Number.isFinite(safeCount) && !isNaN(safeCount) && safeCount > 0) ? safeCount : safeNumber(1);
+        return {
+          name: platform || 'Unknown',
+          value: finalCount,
+          color: colors[index % colors.length]
+        };
+      }).filter(item => item.value > 0);
+    } catch (error) {
+      console.error('Error generating platform data:', error);
+      return [];
+    }
   };
 
   // Progress data for this week
   const getProgressData = () => {
-    return (Array.isArray(gamesThisWeek) ? gamesThisWeek : [])
-      .filter(game => game.status === 'playing' && typeof game.title === 'string' && game.title.trim() && typeof game.progress === 'number' && Number.isFinite(game.progress) && !isNaN(game.progress))
-      .map(game => ({
-        name: (game.title.length > safeNumber(15)) ? game.title.substring(safeNumber(0), safeNumber(15)) + '...' : game.title,
-        progress: (() => {
+    try {
+      if (!Array.isArray(gamesThisWeek) || gamesThisWeek.length === 0) {
+        return [];
+      }
+
+      return gamesThisWeek
+        .filter(game => {
+          return game && 
+                 typeof game === 'object' && 
+                 game.status === 'playing' && 
+                 typeof game.title === 'string' && 
+                 game.title.trim() && 
+                 typeof game.progress === 'number' && 
+                 Number.isFinite(game.progress) && 
+                 !isNaN(game.progress);
+        })
+        .map(game => {
+          const safeTitle = game.title || 'Untitled Game';
+          const truncatedTitle = (safeTitle.length > safeNumber(15)) ? 
+            safeTitle.substring(safeNumber(0), safeNumber(15)) + '...' : safeTitle;
+          
           const p = safeNumber(game.progress);
-          return (Number.isFinite(p) && !isNaN(p)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(p))) : safeNumber(0);
-        })()
-      }))
-      .sort((a, b) => b.progress - a.progress);
+          const safeProgress = (Number.isFinite(p) && !isNaN(p)) ? 
+            Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(p))) : safeNumber(0);
+          
+          return {
+            name: truncatedTitle,
+            progress: safeProgress
+          };
+        })
+        .sort((a, b) => {
+          const aProgress = safeNumber(a.progress) || safeNumber(0);
+          const bProgress = safeNumber(b.progress) || safeNumber(0);
+          return bProgress - aProgress;
+        });
+    } catch (error) {
+      console.error('Error generating progress data:', error);
+      return [];
+    }
   };
 
   const safeFormat = (dateStr, formatStr) => {
@@ -461,13 +499,13 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
     setEditedWeeklyReport(null);
   };
 
-  const weeklyData = generateWeeklyData();
-  const platformData = getPlatformData();
-  const progressData = getProgressData();
+  const weeklyData = generateWeeklyData() || [];
+  const platformData = getPlatformData() || [];
+  const progressData = getProgressData() || [];
 
-  const totalGamesThisWeek = gamesThisWeek.length;
-  const completedGamesThisWeek = gamesThisWeek.filter(game => game.status === 'completed').length;
-  const playingGamesThisWeek = gamesThisWeek.filter(game => game.status === 'playing').length;
+  const totalGamesThisWeek = safeNumber(gamesThisWeek.length) || safeNumber(0);
+  const completedGamesThisWeek = safeNumber(gamesThisWeek.filter(game => game.status === 'completed').length) || safeNumber(0);
+  const playingGamesThisWeek = gamesThisWeek.filter(game => game.status === 'playing');
   const averageProgressThisWeek = (() => {
     const playingCount = safeNumber(playingGamesThisWeek.length);
     if (playingCount === safeNumber(0)) return safeNumber(0);
@@ -487,11 +525,19 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
   const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
 
-  const milestonesCompleted = (Array.isArray(gamesThisWeek) ? gamesThisWeek : []).reduce((total, game) => {
-    const milestoneCount = game.milestones?.filter(m => m.completed).length || safeNumber(0);
-    const safeMilestoneCount = (Number.isFinite(milestoneCount) && !isNaN(milestoneCount)) ? milestoneCount : safeNumber(0);
-    return safeNumber(total) + safeMilestoneCount;
-  }, safeNumber(0));
+  const milestonesCompleted = (() => {
+    try {
+      return (Array.isArray(gamesThisWeek) ? gamesThisWeek : []).reduce((total, game) => {
+        if (!game || typeof game !== 'object') return safeNumber(total);
+        const milestoneCount = Array.isArray(game.milestones) ? game.milestones.filter(m => m && m.completed).length : safeNumber(0);
+        const safeMilestoneCount = (Number.isFinite(milestoneCount) && !isNaN(milestoneCount)) ? milestoneCount : safeNumber(0);
+        return safeNumber(total) + safeMilestoneCount;
+      }, safeNumber(0));
+    } catch (error) {
+      console.error('Error calculating milestones completed:', error);
+      return safeNumber(0);
+    }
+  })();
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -514,7 +560,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               transition={{ delay: safeNumber(0.1) }}
               className="text-slate-600 dark:text-slate-400"
             >
-              Analyze your gaming habits and track your progress over time.
+              Analyze my gaming habits and track my progress over time.
             </motion.p>
           </div>
           <button
@@ -592,8 +638,8 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                 <Trophy className="h-6 w-6 text-green-600 dark:text-green-400" />
               </div>
               <div className="ml-4">
-                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Milestones Completed</p>
-                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{milestonesCompleted}</p>
+                <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Games Completed This Week</p>
+                <p className="text-2xl font-bold text-slate-900 dark:text-slate-100">{completedGamesThisWeek}</p>
               </div>
             </div>
           </motion.div>
@@ -703,38 +749,6 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
           )}
         </div>
 
-        {/* Game Progress */}
-        {progressData.length > safeNumber(0) && (
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: safeNumber(0.8) }}
-            className="bg-white dark:bg-slate-800 rounded-xl p-6 shadow-sm border border-slate-200 dark:border-slate-700"
-          >
-            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
-              Current Game Progress This Week
-            </h3>
-            <div className="h-80">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={progressData.filter(item => Number.isFinite(item.progress) && !isNaN(item.progress))} layout="horizontal">
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis type="number" domain={[safeNumber(0), safeNumber(100)]} stroke="#64748b" />
-                  <YAxis dataKey="name" type="category" width={safeNumber(120)} stroke="#64748b" />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: '#1e293b', 
-                      border: 'none', 
-                      borderRadius: '8px',
-                      color: '#f1f5f9'
-                    }}
-                    formatter={(value) => [`${value}%`, 'Progress']}
-                  />
-                  <Bar dataKey="progress" fill="#6366f1" radius={[safeNumber(0), safeNumber(4), safeNumber(4), safeNumber(0)]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </motion.div>
-        )}
 
         {/* AI Weekly Report */}
         {weeklyReport && (
