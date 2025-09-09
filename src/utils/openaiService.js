@@ -1,8 +1,8 @@
 import OpenAI from 'openai';
-import { safeNumber, safeDivision, safePercentage, safeArrayFilter } from './helpers';
+import { safeNumber, safePercentage, safeArrayFilter } from './helpers';
 
 const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+  apiKey: process.env.VITE_OPENAI_API_KEY,
   dangerouslyAllowBrowser: true // Note: For production, use a backend proxy for security
 });
 
