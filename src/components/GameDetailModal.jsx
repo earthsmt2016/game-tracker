@@ -770,9 +770,16 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         {categorizedNotes.categorized.map((noteData, index) => (
                           <div key={`cat-${index}`} className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800">
                             <p className="text-sm text-slate-900 dark:text-slate-100 mb-2">{noteData.note.text}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
-                              {safeFormat(noteData.note.date, 'MMM d, yyyy')}
-                            </p>
+                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
+                              <span>{safeFormat(noteData.note.date, 'MMM d, yyyy')}</span>
+                              {(noteData.note.hoursPlayed || noteData.note.minutesPlayed) && (
+                                <span className="text-violet-600 dark:text-violet-400 font-medium">
+                                  {noteData.note.hoursPlayed ? `${noteData.note.hoursPlayed}h` : ''}
+                                  {noteData.note.hoursPlayed && noteData.note.minutesPlayed ? ' ' : ''}
+                                  {noteData.note.minutesPlayed ? `${noteData.note.minutesPlayed}m` : ''}
+                                </span>
+                              )}
+                            </div>
                             
                             {/* Actually Cleared Milestones */}
                             {(() => {
@@ -809,9 +816,16 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         {categorizedNotes.uncategorized.map((note, index) => (
                           <div key={`uncat-${index}`} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative">
                             <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                              {safeFormat(note.date, 'MMM d, yyyy')}
-                            </p>
+                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              <span>{safeFormat(note.date, 'MMM d, yyyy')}</span>
+                              {(note.hoursPlayed || note.minutesPlayed) && (
+                                <span className="text-violet-600 dark:text-violet-400 font-medium">
+                                  {note.hoursPlayed ? `${note.hoursPlayed}h` : ''}
+                                  {note.hoursPlayed && note.minutesPlayed ? ' ' : ''}
+                                  {note.minutesPlayed ? `${note.minutesPlayed}m` : ''}
+                                </span>
+                              )}
+                            </div>
                             <button
                               onClick={() => deleteNote(categorizedNotes.categorized.length + index)}
                               className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"

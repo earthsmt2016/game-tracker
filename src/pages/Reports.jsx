@@ -615,17 +615,22 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyData.filter(item => 
-                  item && 
-                  typeof item.hours === 'number' && 
-                  Number.isFinite(item.hours) && 
-                  !isNaN(item.hours) && 
-                  item.hours >= 0 &&
-                  typeof item.notes === 'number' && 
-                  Number.isFinite(item.notes) && 
-                  !isNaN(item.notes) && 
-                  item.notes >= 0
-                )}>
+                  <BarChart data={(() => {
+                    const filteredData = weeklyData.filter(item => 
+                      item && 
+                      typeof item.hours === 'number' && 
+                      Number.isFinite(item.hours) && 
+                      !isNaN(item.hours) && 
+                      item.hours >= 0 &&
+                      typeof item.notes === 'number' && 
+                      Number.isFinite(item.notes) && 
+                      !isNaN(item.notes) && 
+                      item.notes >= 0
+                    );
+                    return filteredData.length === 0 ? 
+                      [{day: 'Mon', hours: 0, notes: 0}, {day: 'Tue', hours: 0, notes: 0}, {day: 'Wed', hours: 0, notes: 0}, {day: 'Thu', hours: 0, notes: 0}, {day: 'Fri', hours: 0, notes: 0}, {day: 'Sat', hours: 0, notes: 0}, {day: 'Sun', hours: 0, notes: 0}] : 
+                      filteredData;
+                  })()}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="day" stroke="#64748b" />
                     <YAxis stroke="#64748b" />
