@@ -1,5 +1,7 @@
 import OpenAI from 'openai';
-import { safeNumber, safeDivision } from './helpers';
+import { safeNumber, safeDivision, safeArrayFilter, safePercentage } from './helpers';
+
+console.log("VITE_OPENAI_API_KEY:", import.meta.env.VITE_OPENAI_API_KEY);
 
 const openai = new OpenAI({
   apiKey: import.meta.env.VITE_OPENAI_API_KEY,
@@ -8,19 +10,42 @@ const openai = new OpenAI({
 
 export const generateMilestones = async (gameTitle) => {
   try {
-    const prompt = `Generate 12 brief and tailored milestones for the video game "${gameTitle}". 
-    Each milestone should be a concise checkpoint that players typically encounter in this specific game.
-    Format the response as a JSON array of objects, where each object has:
-    - title: A short milestone title (max 40 characters)
-    - description: A brief description of what the milestone involves (max 80 characters)
-    
-    Make them logical progression from early game to completion. Ensure they are specific to "${gameTitle}" and not generic.
-    Return only the JSON array, no additional text.`;
+    const prompt = `Generate 50+ comprehensive and highly specific milestones for the video game "${gameTitle}". Research the actual game content and create detailed, game-specific milestones that cover every aspect of gameplay:
+
+STORY MILESTONES (18): Main quest progression, key plot points, boss defeats, character encounters, story revelations, cutscenes
+EXPLORATION MILESTONES (15): Specific areas, regions, dungeons, hidden locations, secrets, collectibles, easter eggs with exact names
+GAMEPLAY MILESTONES (15): Specific mechanics, abilities, weapons, upgrades, combat techniques, skill unlocks, crafting systems
+COMPLETION MILESTONES (8): Side quests, achievements, 100% completion goals, optional content, challenges, mini-games
+
+Requirements for each milestone:
+- Use EXACT names from "${gameTitle}" (characters, locations, items, abilities, NPCs)
+- Include specific numbers/quantities where relevant (e.g., "Collect 50 Star Bits", "Reach Level 25")
+- Progressive difficulty from tutorial to endgame content
+- Mix of major story beats and smaller accomplishments
+- Avoid generic terms - use actual names from the game
+- Include both mandatory and optional content
+- Cover early, mid, and late game progression
+- Include collectibles, upgrades, and skill progression
+- Add specific boss names, area names, and item names
+- Include social/multiplayer elements if applicable
+
+Format as JSON array with objects containing:
+- title: Specific milestone with exact game terminology (max 65 characters)
+- description: Detailed description with specific game context (max 150 characters)
+- category: "story", "exploration", "gameplay", or "completion"
+- difficulty: "easy", "medium", "hard", or "expert"
+- estimatedTime: rough time estimate in minutes
+
+Example format for specific games:
+Super Mario Odyssey: {"title": "Defeat Bowser in Cloud Kingdom", "description": "Battle Bowser atop the airship in Nimbus Arena using Cappy mechanics and environmental hazards", "category": "story", "difficulty": "medium", "estimatedTime": 45}
+Zelda BOTW: {"title": "Obtain Hylian Shield from Hyrule Castle", "description": "Defeat Stalnox in Hyrule Castle lockup to claim the legendary unbreakable shield", "category": "exploration", "difficulty": "hard", "estimatedTime": 90}
+
+Return only the JSON array with no additional text or formatting.`;
 
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [{ role: 'user', content: prompt }],
-      max_tokens: safeNumber(1000),
+      max_tokens: safeNumber(3000),
       temperature: safeNumber(0.7),
     });
 
@@ -34,7 +59,12 @@ export const generateMilestones = async (gameTitle) => {
       id: index + safeNumber(1),
       title: typeof milestone.title === 'string' ? milestone.title : `Milestone ${index + safeNumber(1)}`,
       completed: false,
-      description: typeof milestone.description === 'string' ? milestone.description : `Brief milestone for ${gameTitle}`
+      description: typeof milestone.description === 'string' ? milestone.description : `Brief milestone for ${gameTitle}`,
+      category: typeof milestone.category === 'string' ? milestone.category : 'gameplay',
+      difficulty: typeof milestone.difficulty === 'string' ? milestone.difficulty : 'medium',
+      estimatedTime: typeof milestone.estimatedTime === 'number' ? milestone.estimatedTime : 30,
+      dateCompleted: null,
+      triggeredByNote: null
     }));
   } catch (error) {
     // Fallback to basic milestones if API fails
@@ -67,17 +97,37 @@ export const generateGameReport = async (gameTitle, milestones, notes, gamesThis
     const notesText = Array.isArray(notes) ? notes.map(note => note.text).join(' ') : '';
     const totalMilestones = Array.isArray(milestones) ? milestones.length : safeNumber(0);
     
+    // Enhanced milestone analysis with categories and difficulty
+    const categoryBreakdown = Array.isArray(milestones) ? milestones.reduce((acc, m) => {
+      const cat = m.category || 'other';
+      if (!acc[cat]) acc[cat] = { total: 0, completed: 0 };
+      acc[cat].total++;
+      if (m.completed) acc[cat].completed++;
+      return acc;
+    }, {}) : {};
+    
+    const difficultyBreakdown = Array.isArray(milestones) ? milestones.reduce((acc, m) => {
+      const diff = m.difficulty || 'medium';
+      if (!acc[diff]) acc[diff] = { total: 0, completed: 0 };
+      acc[diff].total++;
+      if (m.completed) acc[diff].completed++;
+      return acc;
+    }, {}) : {};
+    
     // Analyze notes to determine completed milestones
-    const promptForCompletion = `Based on the following notes for "${gameTitle}", determine which of these milestones might be completed. Return a JSON array of milestone IDs that appear completed based on the notes.
+    const promptForCompletion = `Based on the following notes for "${gameTitle}", determine which of these milestones might be completed. Consider the milestone categories, difficulty levels, and specific game terminology. Return a JSON array of milestone IDs that appear completed based on the notes.
 
-Milestones:
-${Array.isArray(milestones) ? milestones.map(m => `${m.id}: ${m.title} - ${m.description}`).join('\n') : ''}
+Milestones with Categories & Difficulty:
+${Array.isArray(milestones) ? milestones.map(m => `${m.id}: [${m.category || 'other'}] [${m.difficulty || 'medium'}] ${m.title} - ${m.description}`).join('\n') : ''}
 
-Screenshots: ${gamesThisWeek.reduce((total, game) => {
-  const noteScreenshots = Array.isArray(game.notes) ? safeArrayFilter(game.notes, n => n.screenshot).length : 0;
+Category Progress: ${Object.entries(categoryBreakdown).map(([cat, data]) => `${cat}: ${data.completed}/${data.total}`).join(', ')}
+Difficulty Progress: ${Object.entries(difficultyBreakdown).map(([diff, data]) => `${diff}: ${data.completed}/${data.total}`).join(', ')}
+
+Screenshots: ${gamesThisWeek ? gamesThisWeek.reduce((total, game) => {
+  const noteScreenshots = Array.isArray(game.notes) ? game.notes.filter(n => n.screenshot).length : 0;
   const reportScreenshots = Array.isArray(game.reportScreenshots) ? game.reportScreenshots.length : 0;
   return total + noteScreenshots + reportScreenshots;
-}, 0)} screenshots from notes and reports attached milestones
+}, 0) : 0} screenshots from notes and reports attached milestones
 
 Notes:
 ${notesText || 'No notes provided'}
@@ -101,24 +151,33 @@ Return only a JSON array of numbers (milestone IDs), no additional text.`;
     const completedMilestones = updatedMilestones.filter(m => m.completed);
     const completedCount = completedMilestones.length;
     
-    const prompt = `Based on the following completed milestones and personal notes for the game "${gameTitle}", generate a super detailed personalized progress report as if I wrote it myself. Use first-person language and make it sound like my own reflections on what I've achieved so far, including deep insights, emotional responses, and strategic thinking.
+    const prompt = `Based on the following completed milestones, personal notes, and detailed game analysis for "${gameTitle}", generate a comprehensive personalized progress report as if I wrote it myself. Use first-person language and make it sound like my own reflections, including deep insights, emotional responses, and strategic thinking.
 
-Completed Milestones:
-${completedMilestones.map(m => `- ${m.title}: ${m.description}`).join('\n')}
+Completed Milestones by Category:
+${Object.entries(categoryBreakdown).map(([cat, data]) => `${cat.toUpperCase()}: ${data.completed}/${data.total} completed\n${completedMilestones.filter(m => (m.category || 'other') === cat).map(m => `  - ${m.title}: ${m.description}`).join('\n')}`).join('\n\n')}
 
-My Notes:
+Completed Milestones by Difficulty:
+${Object.entries(difficultyBreakdown).map(([diff, data]) => `${diff.toUpperCase()}: ${data.completed}/${data.total} completed`).join('\n')}
+
+My Detailed Notes:
 ${notesText || 'No notes provided'}
 
-Total milestones: ${totalMilestones}, Completed: ${completedCount}
+Progress Statistics:
+- Total milestones: ${totalMilestones}
+- Completed: ${completedCount} (${Math.round((completedCount/totalMilestones)*100)}%)
+- Estimated time invested: ${completedMilestones.reduce((sum, m) => sum + (m.estimatedTime || 30), 0)} minutes
+- Remaining estimated time: ${updatedMilestones.filter(m => !m.completed).reduce((sum, m) => sum + (m.estimatedTime || 30), 0)} minutes
 
 Format the response as a JSON object with:
-- summary: A personal summary of my progress (max 300 characters, first-person, detailed)
-- highlights: An array of 5-7 key achievements I've made, phrased personally and with context
-- nextSteps: An array of 3-5 suggestions for what I should do next, phrased personally and detailed
-- detailedAnalysis: A deeper analysis of my gameplay style, strengths, and areas for improvement (max 500 characters)
-- achievements: An array of 4-6 specific achievements unlocked or completed, with personal reflections
-- challenges: An array of 3-5 challenges I faced and how I overcame them or plan to
-- futureGoals: An array of 3-5 long-term goals for completing the game, including specific targets
+- summary: A personal summary of my progress (max 400 characters, first-person, detailed with specific numbers)
+- highlights: An array of 6-8 key achievements I've made, phrased personally with category context
+- nextSteps: An array of 4-6 suggestions for what I should do next, phrased personally with specific milestone references
+- detailedAnalysis: A deeper analysis of my gameplay style, strengths, areas for improvement, and category preferences (max 600 characters)
+- achievements: An array of 5-8 specific achievements unlocked or completed, with personal reflections and difficulty context
+- challenges: An array of 4-6 challenges I faced and how I overcame them or plan to, with specific examples
+- futureGoals: An array of 4-6 long-term goals for completing the game, including specific targets and categories
+- categoryInsights: An object with insights for each category (story, exploration, gameplay, completion)
+- recommendedFocus: An array of 3-4 specific milestone recommendations based on my progress pattern
 
 Return only the JSON object, no additional text.`;
 
@@ -141,6 +200,10 @@ Return only the JSON object, no additional text.`;
       achievements: Array.isArray(report.achievements) ? report.achievements.map(a => typeof a === 'string' ? a : 'Achievement') : [],
       challenges: Array.isArray(report.challenges) ? report.challenges.map(c => typeof c === 'string' ? c : 'Challenge') : [],
       futureGoals: Array.isArray(report.futureGoals) ? report.futureGoals.map(g => typeof g === 'string' ? g : 'Future goal') : [],
+      categoryInsights: typeof report.categoryInsights === 'object' ? report.categoryInsights : {},
+      recommendedFocus: Array.isArray(report.recommendedFocus) ? report.recommendedFocus.map(r => typeof r === 'string' ? r : 'Recommendation') : [],
+      categoryBreakdown,
+      difficultyBreakdown,
       updatedMilestones
     };
   } catch (error) {
@@ -209,6 +272,43 @@ export const generateWeeklyReport = async (games, selectedWeek) => {
       }
     }) : [];
 
+    // Enhanced weekly analysis with milestone and note insights
+    const totalMilestonesThisWeek = weekGames.reduce((sum, game) => {
+      return sum + (Array.isArray(game.milestones) ? game.milestones.length : 0);
+    }, 0);
+    
+    const completedMilestonesThisWeek = weekGames.reduce((sum, game) => {
+      return sum + (Array.isArray(game.milestones) ? game.milestones.filter(m => m.completed).length : 0);
+    }, 0);
+    
+    const totalNotesThisWeek = weekGames.reduce((sum, game) => {
+      return sum + (Array.isArray(game.notes) ? game.notes.length : 0);
+    }, 0);
+    
+    const categoryProgress = weekGames.reduce((acc, game) => {
+      if (Array.isArray(game.milestones)) {
+        game.milestones.forEach(m => {
+          const cat = m.category || 'other';
+          if (!acc[cat]) acc[cat] = { total: 0, completed: 0 };
+          acc[cat].total++;
+          if (m.completed) acc[cat].completed++;
+        });
+      }
+      return acc;
+    }, {});
+    
+    const difficultyProgress = weekGames.reduce((acc, game) => {
+      if (Array.isArray(game.milestones)) {
+        game.milestones.forEach(m => {
+          const diff = m.difficulty || 'medium';
+          if (!acc[diff]) acc[diff] = { total: 0, completed: 0 };
+          acc[diff].total++;
+          if (m.completed) acc[diff].completed++;
+        });
+      }
+      return acc;
+    }, {});
+
     const completedThisWeek = weekGames.filter(game => game.status === 'completed');
     const progressThisWeek = weekGames.filter(game => game.status === 'playing');
     const milestonesCompleted = weekGames.reduce((total, game) => {
@@ -224,29 +324,48 @@ export const generateWeeklyReport = async (games, selectedWeek) => {
         0
       ) : 0;
 
-    const prompt = `Generate a personalized weekly gaming report based on the following data for the week starting ${selectedWeek}. Use first-person language as if I wrote it myself, reflecting on my gaming achievements, progress, and insights.
+    const prompt = `Generate a comprehensive personalized weekly gaming report based on the following detailed data for the week starting ${selectedWeek}. Use first-person language as if I wrote it myself, reflecting on my gaming achievements, progress, insights, and strategic thinking.
 
-Games played this week: ${weekGames.length}
-Games completed this week: ${completedThisWeek.length}
-Games in progress: ${progressThisWeek.length}
-Total milestones completed: ${milestonesCompleted}
-Average progress on in-progress games: ${averageProgress}%
+Weekly Gaming Statistics:
+- Games played this week: ${weekGames.length}
+- Games completed this week: ${completedThisWeek.length}
+- Games in progress: ${progressThisWeek.length}
+- Total milestones completed: ${milestonesCompleted}
+- Total milestones available: ${totalMilestonesThisWeek}
+- Milestone completion rate: ${totalMilestonesThisWeek > 0 ? Math.round((completedMilestonesThisWeek/totalMilestonesThisWeek)*100) : 0}%
+- Total notes written: ${totalNotesThisWeek}
+- Average progress on in-progress games: ${averageProgress}%
 
-Game details:
+Milestone Progress by Category:
+${Object.entries(categoryProgress).map(([cat, data]) => `- ${cat.toUpperCase()}: ${data.completed}/${data.total} completed (${Math.round((data.completed/data.total)*100)}%)`).join('\n')}
+
+Milestone Progress by Difficulty:
+${Object.entries(difficultyProgress).map(([diff, data]) => `- ${diff.toUpperCase()}: ${data.completed}/${data.total} completed (${Math.round((data.completed/data.total)*100)}%)`).join('\n')}
+
+Detailed Game Analysis:
 ${weekGames.map(game => {
   const progress = safeNumber(game.progress, 0);
   const milestones = Array.isArray(game.milestones) ? game.milestones : [];
-  const completed = safeArrayFilter(milestones, m => m.completed).length;
+  const completed = milestones.filter(m => m.completed).length;
   const total = milestones.length;
-  return `- ${game.title} (${game.platform}): ${game.status}, Progress: ${progress}%, Milestones: ${completed}/${total}`;
-}).join('\n')}
+  const notes = Array.isArray(game.notes) ? game.notes.length : 0;
+  const categoryBreakdown = milestones.reduce((acc, m) => {
+    const cat = m.category || 'other';
+    acc[cat] = (acc[cat] || 0) + (m.completed ? 1 : 0);
+    return acc;
+  }, {});
+  return `- ${game.title} (${game.platform}):\n  Status: ${game.status}, Progress: ${progress}%\n  Milestones: ${completed}/${total} (${Object.entries(categoryBreakdown).map(([cat, count]) => `${cat}: ${count}`).join(', ')})\n  Notes written: ${notes}`;
+}).join('\n\n')}
 
 Format the response as a JSON object with:
-- summary: A personal summary of my weekly gaming activity (max 300 characters, first-person)
-- highlights: An array of 4-6 key highlights from the week, phrased personally
-- progress: An array of 3-5 progress updates on specific games
-- insights: An array of 3-5 insights or lessons learned
-- nextWeekGoals: An array of 3-5 goals for the next week
+- summary: A personal summary of my weekly gaming activity (max 400 characters, first-person, include specific numbers)
+- highlights: An array of 5-8 key highlights from the week, phrased personally with specific achievements
+- progress: An array of 4-6 detailed progress updates on specific games with milestone context
+- insights: An array of 4-6 insights or lessons learned, including category and difficulty analysis
+- nextWeekGoals: An array of 4-6 specific goals for the next week with milestone targets
+- categoryAnalysis: An object with insights for each category I worked on this week
+- difficultyAnalysis: An object with insights about my performance on different difficulty levels
+- recommendedFocus: An array of 3-4 specific recommendations for next week based on my progress patterns
 
 Return only the JSON object, no additional text.`;
 
@@ -266,7 +385,17 @@ Return only the JSON object, no additional text.`;
       highlights: Array.isArray(report.highlights) ? report.highlights.map(h => typeof h === 'string' ? h : 'Highlight') : [],
       progress: Array.isArray(report.progress) ? report.progress.map(p => typeof p === 'string' ? p : 'Progress') : [],
       insights: Array.isArray(report.insights) ? report.insights.map(i => typeof i === 'string' ? i : 'Insight') : [],
-      nextWeekGoals: Array.isArray(report.nextWeekGoals) ? report.nextWeekGoals.map(g => typeof g === 'string' ? g : 'Goal') : []
+      nextWeekGoals: Array.isArray(report.nextWeekGoals) ? report.nextWeekGoals.map(g => typeof g === 'string' ? g : 'Goal') : [],
+      categoryAnalysis: typeof report.categoryAnalysis === 'object' ? report.categoryAnalysis : {},
+      difficultyAnalysis: typeof report.difficultyAnalysis === 'object' ? report.difficultyAnalysis : {},
+      recommendedFocus: Array.isArray(report.recommendedFocus) ? report.recommendedFocus.map(r => typeof r === 'string' ? r : 'Recommendation') : [],
+      weeklyStats: {
+        totalMilestones: totalMilestonesThisWeek,
+        completedMilestones: completedMilestonesThisWeek,
+        totalNotes: totalNotesThisWeek,
+        categoryProgress,
+        difficultyProgress
+      }
     };
   } catch (error) {
     // Fallback report

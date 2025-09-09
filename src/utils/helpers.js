@@ -15,3 +15,23 @@ export const safeDivision = (numerator, denominator, defaultValue = 0) => {
   if (den === 0) return defaultValue;
   return num / den;
 };
+
+// Safe array filtering to prevent errors
+export const safeArrayFilter = (array, predicate) => {
+  if (!Array.isArray(array)) return [];
+  try {
+    return array.filter(predicate);
+  } catch (error) {
+    console.warn('Error in array filtering:', error);
+    return [];
+  }
+};
+
+// Safe percentage calculation
+export const safePercentage = (value, total, defaultValue = 0) => {
+  const val = safeNumber(value);
+  const tot = safeNumber(total);
+  if (tot === 0) return defaultValue;
+  const result = (val / tot) * 100;
+  return Number.isFinite(result) && !isNaN(result) ? Math.max(0, Math.min(100, result)) : defaultValue;
+};

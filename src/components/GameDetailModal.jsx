@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Circle, Calendar, Trophy, Target, FileText, Plus, Edit, Save, Download, Image, Trash2, RefreshCw } from 'lucide-react';
+import { X, CheckCircle, Circle, Calendar, Trophy, Target, FileText, Plus, Edit, Save, Download, Image, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { generateGameReport, generateMilestones } from '../utils/openaiService';
+import { analyzeMilestoneFromNote, getTriggeredMilestones, categorizeNotesByMilestones, generateMilestoneInsights } from '../utils/milestoneAnalyzer';
 import { toast } from 'react-toastify';
 import { safeNumber, safeDivision } from '../utils/helpers';
 import jsPDF from 'jspdf';
@@ -20,12 +21,24 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [isRegeneratingMilestones, setIsRegeneratingMilestones] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingMilestoneUpdates, setPendingMilestoneUpdates] = useState([]);
+  const [categorizedNotes, setCategorizedNotes] = useState({ categorized: [], uncategorized: [] });
+  const [milestoneInsights, setMilestoneInsights] = useState({});
+  const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(false);
 
   useEffect(() => {
     if (game) {
       setMilestones(game.milestones || []);
       setReport(game.report || null);
       setReportScreenshots(game.reportScreenshots || []);
+      
+      // Analyze notes and milestones
+      const notes = game.notes || [];
+      const categorized = categorizeNotesByMilestones(notes, game.milestones || []);
+      setCategorizedNotes(categorized);
+      
+      const insights = generateMilestoneInsights(game.milestones || [], notes);
+      setMilestoneInsights(insights);
     }
   }, [game]);
 
@@ -140,28 +153,27 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
 
   const handleAddNote = () => {
     if (newNote.trim()) {
-      // Analyze the note to suggest milestones to mark as complete
-      const noteText = newNote.toLowerCase();
-      const suggestedMilestones = milestones.filter(milestone => {
-        if (milestone.completed) return false;
-        const titleMatch = milestone.title.toLowerCase().split(' ').some(word => noteText.includes(word));
-        const descMatch = milestone.description.toLowerCase().split(' ').some(word => noteText.includes(word));
-        return titleMatch || descMatch;
-      });
+      const note = {
+        text: newNote,
+        date: new Date().toISOString()
+      };
+      
+      // Use enhanced milestone analysis
+      const suggestedMilestones = analyzeMilestoneFromNote(note, milestones);
 
       if (suggestedMilestones.length > 0) {
         setPendingMilestoneUpdates(suggestedMilestones);
         setShowConfirmationModal(true);
       } else {
         // No milestones to suggest, add note directly
-        const note = {
-          text: newNote,
-          date: new Date().toISOString()
-        };
         const updatedNotes = [...(game.notes || []), note];
         onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
         setNewNote('');
         toast.success('Note added successfully!');
+        
+        // Update categorized notes
+        const categorized = categorizeNotesByMilestones(updatedNotes, milestones);
+        setCategorizedNotes(categorized);
       }
     }
   };
@@ -184,6 +196,10 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     setShowConfirmationModal(false);
     setPendingMilestoneUpdates([]);
     toast.success('Note added successfully!');
+    
+    // Update categorized notes
+    const categorized = categorizeNotesByMilestones(updatedNotes, milestones);
+    setCategorizedNotes(categorized);
   };
 
   const handleReportScreenshotUpload = (event) => {
@@ -587,7 +603,16 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         </button>
                       </div>
 
-                      <div className="space-y-3 max-h-96 overflow-y-auto">
+                      <div className="mb-4">
+                        <button
+                          onClick={() => setShowAllMilestones(!showAllMilestones)}
+                          className="text-sm text-violet-600 hover:text-violet-700 font-medium"
+                        >
+                          {showAllMilestones ? 'Show Less' : `Show All Milestones (${milestones.length})`}
+                        </button>
+                      </div>
+
+                      <div className={`space-y-3 overflow-y-auto ${showAllMilestones ? 'max-h-[600px]' : 'max-h-96'}`}>
                         {milestones.length > safeNumber(0) ? (
                           milestones.map((milestone, index) => (
                             <motion.div
@@ -673,13 +698,38 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         </button>
                       </div>
 
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {(game.notes || []).map((note, index) => (
-                          <div key={index} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative">
-                            <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
-                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
-                              {safeFormat(note.date, 'MMM d, yyyy')}
+                      <div className="mb-4">
+                        <button
+                          onClick={() => setShowAllNotes(!showAllNotes)}
+                          className="text-sm text-violet-600 hover:text-violet-700 font-medium"
+                        >
+                          {showAllNotes ? 'Show Less' : `Show All Notes (${(game.notes || []).length})`}
+                        </button>
+                      </div>
+
+                      <div className={`space-y-2 overflow-y-auto ${showAllNotes ? 'max-h-96' : 'max-h-64'}`}>
+                        {/* Categorized Notes with Related Milestones */}
+                        {categorizedNotes.categorized.map((noteData, index) => (
+                          <div key={`cat-${index}`} className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800">
+                            <p className="text-sm text-slate-900 dark:text-slate-100 mb-2">{noteData.note.text}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mb-2">
+                              {safeFormat(noteData.note.date, 'MMM d, yyyy')}
                             </p>
+                            
+                            {/* Related Milestones */}
+                            <div className="mt-2 space-y-1">
+                              <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
+                                <AlertCircle className="h-3 w-3 mr-1" />
+                                Potential Milestones Cleared:
+                              </p>
+                              {noteData.relatedMilestones.slice(0, 2).map((milestone) => (
+                                <div key={milestone.id} className="text-xs text-slate-600 dark:text-slate-400 bg-white dark:bg-slate-800 rounded px-2 py-1 border">
+                                  <span className="font-medium">{milestone.title}</span>
+                                  <span className="ml-2 text-green-600">({Math.round(milestone.matchScore * 20)}% match)</span>
+                                </div>
+                              ))}
+                            </div>
+                            
                             <button
                               onClick={() => deleteNote(index)}
                               className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
@@ -689,6 +739,29 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                             </button>
                           </div>
                         ))}
+                        
+                        {/* Uncategorized Notes */}
+                        {categorizedNotes.uncategorized.map((note, index) => (
+                          <div key={`uncat-${index}`} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative">
+                            <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
+                            <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                              {safeFormat(note.date, 'MMM d, yyyy')}
+                            </p>
+                            <button
+                              onClick={() => deleteNote(categorizedNotes.categorized.length + index)}
+                              className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
+                              title="Delete Note"
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </button>
+                          </div>
+                        ))}
+                        
+                        {(game.notes || []).length === 0 && (
+                          <p className="text-slate-500 dark:text-slate-400 text-center py-4">
+                            No notes yet. Add your first note above!
+                          </p>
+                        )}
                       </div>
                     </div>
 
