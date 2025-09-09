@@ -78,11 +78,12 @@ const Reports = () => {
             return false;
           }
         });
-        const activity = safeNumber(gamesOnDay.length * safeNumber(2)) || safeNumber(0); // Simulate hours based on games played
+        const activity = safeNumber(gamesOnDay.length * safeNumber(2));
+        const safeActivity = (Number.isFinite(activity) && !isNaN(activity)) ? activity : safeNumber(0);
         return {
           day: dayName,
-          hours: activity,
-          games: gamesOnDay.length
+          hours: safeActivity,
+          games: safeNumber(gamesOnDay.length) || safeNumber(0)
         };
       }) : [];
     } catch (error) {
@@ -102,11 +103,15 @@ const Reports = () => {
 
     const colors = ['#8b5cf6', '#6366f1', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b', '#ef4444'];
 
-    return Object.entries(platformCounts).map(([platform, count], index) => ({
-      name: platform,
-      value: safeNumber(count) || safeNumber(0),
-      color: colors[index % colors.length]
-    }));
+    return Object.entries(platformCounts).map(([platform, count], index) => {
+      const safeCount = safeNumber(count);
+      const finalCount = (Number.isFinite(safeCount) && !isNaN(safeCount)) ? safeCount : safeNumber(0);
+      return {
+        name: platform,
+        value: finalCount,
+        color: colors[index % colors.length]
+      };
+    });
   };
 
   // Progress data for this week
@@ -446,18 +451,29 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
   const completedGamesThisWeek = gamesThisWeek.filter(game => game.status === 'completed').length;
   const playingGamesThisWeek = gamesThisWeek.filter(game => game.status === 'playing').length;
   const averageProgressThisWeek = (() => {
-    if (playingGamesThisWeek.length === safeNumber(0)) return safeNumber(0);
+    const playingCount = safeNumber(playingGamesThisWeek.length);
+    if (playingCount === safeNumber(0)) return safeNumber(0);
+    
     const sum = (Array.isArray(playingGamesThisWeek) ? playingGamesThisWeek : []).reduce((acc, g) => {
       const p = safeNumber(g.progress);
-      return acc + ((Number.isFinite(p) && !isNaN(p)) ? safeNumber(p) : safeNumber(0));
+      const safeP = (Number.isFinite(p) && !isNaN(p)) ? p : safeNumber(0);
+      return safeNumber(acc) + safeP;
     }, safeNumber(0));
-    const avg = safeDivision(sum, safeNumber(playingGamesThisWeek.length));
-    return (Number.isFinite(avg) && !isNaN(avg)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(avg)))) : safeNumber(0);
+    
+    const safeSum = (Number.isFinite(sum) && !isNaN(sum)) ? sum : safeNumber(0);
+    const avg = safeDivision(safeSum, playingCount);
+    const safeAvg = (Number.isFinite(avg) && !isNaN(avg)) ? avg : safeNumber(0);
+    
+    return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg)));
   })();
 
   const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
 
-  const milestonesCompleted = (Array.isArray(gamesThisWeek) ? gamesThisWeek : []).reduce((total, game) => total + (game.milestones?.filter(m => m.completed).length || safeNumber(0)), safeNumber(0));
+  const milestonesCompleted = (Array.isArray(gamesThisWeek) ? gamesThisWeek : []).reduce((total, game) => {
+    const milestoneCount = game.milestones?.filter(m => m.completed).length || safeNumber(0);
+    const safeMilestoneCount = (Number.isFinite(milestoneCount) && !isNaN(milestoneCount)) ? milestoneCount : safeNumber(0);
+    return safeNumber(total) + safeMilestoneCount;
+  }, safeNumber(0));
 
   return (
     <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
@@ -615,7 +631,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               </h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={weeklyData}>
+                  <BarChart data={weeklyData.filter(item => Number.isFinite(item.hours) && !isNaN(item.hours) && Number.isFinite(item.games) && !isNaN(item.games))}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                     <XAxis dataKey="day" stroke="#64748b" />
                     <YAxis stroke="#64748b" />
@@ -657,14 +673,14 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                 <ResponsiveContainer width="100%" height="100%">
                   <PieChart>
                     <Pie
-                      data={platformData}
+                      data={platformData.filter(item => item.value > 0 && Number.isFinite(item.value) && !isNaN(item.value))}
                       cx="50%"
                       cy="50%"
                       outerRadius={safeNumber(80)}
                       dataKey="value"
                       label={({ name, value }) => `${name}: ${value}`}
                     >
-                      {platformData.map((entry, index) => (
+                      {platformData.filter(item => item.value > 0 && Number.isFinite(item.value) && !isNaN(item.value)).map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
                       ))}
                     </Pie>
@@ -696,7 +712,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
             </h3>
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={progressData} layout="horizontal">
+                <BarChart data={progressData.filter(item => Number.isFinite(item.progress) && !isNaN(item.progress))} layout="horizontal">
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis type="number" domain={[safeNumber(0), safeNumber(100)]} stroke="#64748b" />
                   <YAxis dataKey="name" type="category" width={safeNumber(120)} stroke="#64748b" />
