@@ -516,6 +516,80 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
     }));
   };
 
+  const exportBackup = () => {
+    try {
+      const backupData = {
+        games: JSON.parse(localStorage.getItem('gameTracker_games') || '[]'),
+        weeklyReports: JSON.parse(localStorage.getItem('gameTracker_weeklyReports') || '{}'),
+        gameReports: JSON.parse(localStorage.getItem('gameTracker_gameReports') || '{}'),
+        settings: JSON.parse(localStorage.getItem('gameTracker_settings') || '{}'),
+        hiddenSections: JSON.parse(localStorage.getItem('gameTracker_hiddenSections') || '{}'),
+        exportDate: new Date().toISOString(),
+        version: '1.0'
+      };
+
+      const dataStr = JSON.stringify(backupData, null, 2);
+      const dataBlob = new Blob([dataStr], { type: 'application/json' });
+      
+      const link = document.createElement('a');
+      link.href = URL.createObjectURL(dataBlob);
+      link.download = `gametracker-backup-${format(new Date(), 'yyyy-MM-dd-HHmm')}.json`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      toast.success('Backup exported successfully!');
+    } catch (error) {
+      console.error('Error exporting backup:', error);
+      toast.error('Failed to export backup. Please try again.');
+    }
+  };
+
+  const importBackup = (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const backupData = JSON.parse(e.target.result);
+        
+        // Validate backup structure
+        if (!backupData.version || !backupData.exportDate) {
+          throw new Error('Invalid backup file format');
+        }
+
+        // Restore data to localStorage
+        if (backupData.games) {
+          localStorage.setItem('gameTracker_games', JSON.stringify(backupData.games));
+        }
+        if (backupData.weeklyReports) {
+          localStorage.setItem('gameTracker_weeklyReports', JSON.stringify(backupData.weeklyReports));
+        }
+        if (backupData.gameReports) {
+          localStorage.setItem('gameTracker_gameReports', JSON.stringify(backupData.gameReports));
+        }
+        if (backupData.settings) {
+          localStorage.setItem('gameTracker_settings', JSON.stringify(backupData.settings));
+        }
+        if (backupData.hiddenSections) {
+          localStorage.setItem('gameTracker_hiddenSections', JSON.stringify(backupData.hiddenSections));
+        }
+
+        // Refresh the page to load new data
+        toast.success(`Backup imported successfully! Exported on ${format(new Date(backupData.exportDate), 'MMM d, yyyy HH:mm')}`);
+        setTimeout(() => window.location.reload(), 1500);
+        
+      } catch (error) {
+        console.error('Error importing backup:', error);
+        toast.error('Failed to import backup. Please check the file format.');
+      }
+    };
+    
+    reader.readAsText(file);
+    event.target.value = ''; // Reset file input
+  };
+
   const weeklyData = generateWeeklyData() || [];
   const platformData = getPlatformData() || [];
   const progressData = getProgressData() || [];
@@ -580,13 +654,34 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               Analyze my gaming habits and track my progress over time.
             </motion.p>
           </div>
-          <button
-            onClick={exportPDF}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
-          >
-            <Download className="h-4 w-4" />
-            <span>Export PDF</span>
-          </button>
+          <div className="flex items-center space-x-3">
+            <button
+              onClick={exportBackup}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export Backup</span>
+            </button>
+            
+            <label className="inline-flex items-center space-x-2 px-4 py-2 bg-green-600 hover:bg-green-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-green-500 cursor-pointer">
+              <input
+                type="file"
+                accept=".json"
+                onChange={importBackup}
+                className="hidden"
+              />
+              <FileText className="h-4 w-4" />
+              <span>Import Backup</span>
+            </label>
+            
+            <button
+              onClick={exportPDF}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-red-500"
+            >
+              <Download className="h-4 w-4" />
+              <span>Export PDF</span>
+            </button>
+          </div>
         </div>
 
         {/* Week Navigation */}
