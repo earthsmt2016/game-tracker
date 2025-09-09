@@ -405,7 +405,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
   const handleGenerateWeeklyReport = async () => {
     setIsGeneratingWeeklyReport(true);
     try {
-      const report = await generateWeeklyReport(gamesThisWeek, selectedWeek);
+      const report = await generateWeeklyReport(gamesThisWeek, weekStart, weekEnd);
       setWeeklyReport(report);
       setEditedWeeklyReport(report);
       toast.success('AI Weekly Report generated successfully!');
