@@ -1,5 +1,5 @@
 import OpenAI from 'openai';
-import { safeNumber, safePercentage, safeArrayFilter } from './helpers';
+import { safeNumber, safeDivision } from './helpers';
 
 const openai = new OpenAI({
   apiKey: process.env.VITE_OPENAI_API_KEY,

@@ -4,9 +4,8 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { generateGameReport, generateMilestones } from '../utils/openaiService';
 import { toast } from 'react-toastify';
-import { safeNumber, safeDivision, safePercentage, safeArrayFilter } from '../utils/helpers';
+import { safeNumber, safeDivision } from '../utils/helpers';
 import jsPDF from 'jspdf';
-import MilestoneConfirmationModal from './MilestoneConfirmationModal';
 
 const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNotes, onStatusChange }) => {
   const [milestones, setMilestones] = useState([]);
@@ -30,9 +29,10 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     }
   }, [game]);
 
-  const completedMilestones = safeArrayFilter(milestones, m => m.completed).length;
+  const completedMilestones = milestones.filter(m => m.completed).length;
   const totalMilestones = milestones.length;
-  const safeProgressPercentage = safePercentage(completedMilestones, totalMilestones, 0);
+  const progressPercentage = totalMilestones > safeNumber(0) ? safeDivision(safeNumber(completedMilestones), safeNumber(totalMilestones)) * safeNumber(100) : safeNumber(0);
+  const safeProgressPercentage = Number.isFinite(progressPercentage) && !isNaN(progressPercentage) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(progressPercentage)))) : safeNumber(0);
 
   const safeFormat = (dateStr, formatStr) => {
     try {
@@ -52,8 +52,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     );
     setMilestones(updatedMilestones);
 
-    const completedCount = safeArrayFilter(updatedMilestones, m => m.completed).length;
-    const progress = safePercentage(completedCount, updatedMilestones.length, 0);
+    const completedCount = updatedMilestones.filter(m => m.completed).length;
+    const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
 
     onUpdateProgress(game.id, progress, updatedMilestones);
   };
@@ -61,8 +61,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const deleteMilestone = (milestoneId) => {
     const updatedMilestones = milestones.filter(m => m.id !== milestoneId);
     setMilestones(updatedMilestones);
-    const completedCount = safeArrayFilter(updatedMilestones, m => m.completed).length;
-    const progress = safePercentage(completedCount, updatedMilestones.length, 0);
+    const completedCount = updatedMilestones.filter(m => m.completed).length;
+    const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
     onUpdateProgress(game.id, progress, updatedMilestones);
     toast.success('Milestone deleted!');
   };
@@ -77,8 +77,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       };
       const updatedMilestones = [...milestones, newMilestone];
       setMilestones(updatedMilestones);
-      const completedCount = safeArrayFilter(updatedMilestones, m => m.completed).length;
-      const progress = safePercentage(completedCount, updatedMilestones.length, 0);
+      const completedCount = updatedMilestones.filter(m => m.completed).length;
+      const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
       onUpdateProgress(game.id, progress, updatedMilestones);
       setNewMilestoneTitle('');
       setNewMilestoneDescription('');
@@ -91,8 +91,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     try {
       const newMilestones = await generateMilestones(game.title);
       setMilestones(newMilestones);
-      const completedCount = safeArrayFilter(newMilestones, m => m.completed).length;
-      const progress = safePercentage(completedCount, newMilestones.length, 0);
+      const completedCount = newMilestones.filter(m => m.completed).length;
+      const progress = newMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(newMilestones.length)) * safeNumber(100) : safeNumber(0);
       onUpdateProgress(game.id, progress, newMilestones);
       toast.success('Milestones regenerated successfully!');
     } catch (error) {
@@ -112,8 +112,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       // Update milestones based on notes analysis
       if (generatedReport.updatedMilestones) {
         setMilestones(generatedReport.updatedMilestones);
-        const completedCount = safeArrayFilter(generatedReport.updatedMilestones, m => m.completed).length;
-        const progress = safePercentage(completedCount, generatedReport.updatedMilestones.length, 0);
+        const completedCount = generatedReport.updatedMilestones.filter(m => m.completed).length;
+        const progress = generatedReport.updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(generatedReport.updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
         onUpdateProgress(game.id, progress, generatedReport.updatedMilestones);
       }
       onUpdateNotes(game.id, game.notes || [], generatedReport, reportScreenshots);
@@ -144,30 +144,9 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       const noteText = newNote.toLowerCase();
       const suggestedMilestones = milestones.filter(milestone => {
         if (milestone.completed) return false;
-        
-        // Enhanced matching logic
-        const titleWords = milestone.title.toLowerCase().split(/\s+/);
-        const descWords = milestone.description.toLowerCase().split(/\s+/);
-        const noteWords = noteText.split(/\s+/);
-        
-        // Check for exact word matches
-        const titleMatch = titleWords.some(word => 
-          word.length > 2 && noteWords.some(noteWord => 
-            noteWord.includes(word) || word.includes(noteWord)
-          )
-        );
-        
-        const descMatch = descWords.some(word => 
-          word.length > 2 && noteWords.some(noteWord => 
-            noteWord.includes(word) || word.includes(noteWord)
-          )
-        );
-        
-        // Check for common gaming keywords
-        const gameKeywords = ['completed', 'finished', 'beat', 'defeated', 'unlocked', 'achieved', 'reached', 'found', 'collected', 'obtained'];
-        const hasGameKeyword = gameKeywords.some(keyword => noteText.includes(keyword));
-        
-        return (titleMatch || descMatch) && hasGameKeyword;
+        const titleMatch = milestone.title.toLowerCase().split(' ').some(word => noteText.includes(word));
+        const descMatch = milestone.description.toLowerCase().split(' ').some(word => noteText.includes(word));
+        return titleMatch || descMatch;
       });
 
       if (suggestedMilestones.length > 0) {
@@ -175,12 +154,26 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         setShowConfirmationModal(true);
       } else {
         // No milestones to suggest, add note directly
-        addNoteDirectly();
+        const note = {
+          text: newNote,
+          date: new Date().toISOString()
+        };
+        const updatedNotes = [...(game.notes || []), note];
+        onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+        setNewNote('');
+        toast.success('Note added successfully!');
       }
     }
   };
-  
-  const addNoteDirectly = () => {
+
+  const handleMilestoneDecision = (milestoneId, agree) => {
+    setPendingMilestoneUpdates(prev => prev.filter(m => m.id !== milestoneId));
+    if (agree) {
+      toggleMilestone(milestoneId);
+    }
+  };
+
+  const confirmAddNote = () => {
     const note = {
       text: newNote,
       date: new Date().toISOString()
@@ -188,49 +181,9 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     const updatedNotes = [...(game.notes || []), note];
     onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
     setNewNote('');
+    setShowConfirmationModal(false);
+    setPendingMilestoneUpdates([]);
     toast.success('Note added successfully!');
-  };
-
-  const handleMilestoneConfirm = (milestoneId) => {
-    toggleMilestone(milestoneId);
-    setPendingMilestoneUpdates(prev => prev.filter(m => m.id !== milestoneId));
-    
-    if (pendingMilestoneUpdates.length === 1) {
-      // Last milestone, close modal and add note
-      setShowConfirmationModal(false);
-      addNoteDirectly();
-    }
-  };
-  
-  const handleMilestoneReject = (milestoneId) => {
-    setPendingMilestoneUpdates(prev => prev.filter(m => m.id !== milestoneId));
-    
-    if (pendingMilestoneUpdates.length === 1) {
-      // Last milestone, close modal and add note
-      setShowConfirmationModal(false);
-      addNoteDirectly();
-    }
-  };
-  
-  const handleConfirmAll = () => {
-    pendingMilestoneUpdates.forEach(milestone => {
-      toggleMilestone(milestone.id);
-    });
-    setShowConfirmationModal(false);
-    setPendingMilestoneUpdates([]);
-    addNoteDirectly();
-  };
-  
-  const handleRejectAll = () => {
-    setShowConfirmationModal(false);
-    setPendingMilestoneUpdates([]);
-    addNoteDirectly();
-  };
-  
-  const handleCloseConfirmationModal = () => {
-    setShowConfirmationModal(false);
-    setPendingMilestoneUpdates([]);
-    addNoteDirectly();
   };
 
   const handleReportScreenshotUpload = (event) => {
@@ -930,16 +883,79 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
         )}
       </AnimatePresence>
 
-      <MilestoneConfirmationModal
-        isOpen={showConfirmationModal}
-        onClose={handleCloseConfirmationModal}
-        pendingMilestones={pendingMilestoneUpdates}
-        noteText={newNote}
-        onConfirm={handleMilestoneConfirm}
-        onReject={handleMilestoneReject}
-        onConfirmAll={handleConfirmAll}
-        onRejectAll={handleRejectAll}
-      />
+      {/* Confirmation Modal for Pending Milestones */}
+      <AnimatePresence>
+        {showConfirmationModal && (
+          <div className="fixed inset-0 z-60 overflow-y-auto">
+            <div className="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="fixed inset-0 bg-slate-500 bg-opacity-75 transition-opacity"
+                onClick={() => setShowConfirmationModal(false)}
+              />
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative transform overflow-hidden rounded-lg bg-white dark:bg-slate-800 px-4 pb-4 pt-5 text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:p-6"
+              >
+                <div className="sm:flex sm:items-start">
+                  <div className="mt-3 text-center sm:mt-0 sm:text-left w-full">
+                    <h3 className="text-lg font-semibold leading-6 text-slate-900 dark:text-slate-100 mb-4">
+                      Suggested Milestones
+                    </h3>
+                    <p className="text-sm text-slate-600 dark:text-slate-400 mb-4">
+                      Based on your note, these milestones might be completed. Agree or disagree for each:
+                    </p>
+                    <div className="space-y-3 mb-4">
+                      {pendingMilestoneUpdates.map((milestone) => (
+                        <div key={milestone.id} className="flex items-center justify-between p-3 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                          <div>
+                            <h4 className="text-sm font-medium text-slate-900 dark:text-slate-100">{milestone.title}</h4>
+                            <p className="text-xs text-slate-500 dark:text-slate-400">{milestone.description}</p>
+                          </div>
+                          <div className="flex space-x-2">
+                            <button
+                              onClick={() => handleMilestoneDecision(milestone.id, true)}
+                              className="px-3 py-1 bg-green-600 hover:bg-green-700 text-white text-sm font-medium rounded-md transition-colors"
+                            >
+                              Agree
+                            </button>
+                            <button
+                              onClick={() => handleMilestoneDecision(milestone.id, false)}
+                              className="px-3 py-1 bg-red-600 hover:bg-red-700 text-white text-sm font-medium rounded-md transition-colors"
+                            >
+                              Disagree
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <div className="mt-5 sm:mt-4 sm:flex sm:flex-row-reverse">
+                      <button
+                        type="button"
+                        className="inline-flex w-full justify-center rounded-md bg-violet-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-violet-500 sm:ml-3 sm:w-auto"
+                        onClick={confirmAddNote}
+                      >
+                        Add Note
+                      </button>
+                      <button
+                        type="button"
+                        className="mt-3 inline-flex w-full justify-center rounded-md bg-white dark:bg-slate-700 px-3 py-2 text-sm font-semibold text-slate-900 dark:text-slate-100 shadow-sm ring-1 ring-inset ring-slate-300 dark:ring-slate-600 hover:bg-slate-50 dark:hover:bg-slate-600 sm:mt-0 sm:w-auto"
+                        onClick={() => setShowConfirmationModal(false)}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        )}
+      </AnimatePresence>
     </>
   );
 };
