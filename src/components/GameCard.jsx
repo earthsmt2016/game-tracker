@@ -5,7 +5,7 @@ import { format } from 'date-fns';
 import { safeNumber } from '../utils/helpers';
 
 function GameCard({ game, onStatusChange, onViewDetails, onDeleteGame }) {
-  const safeProgress = Number.isFinite(game.progress) && !isNaN(game.progress) ? Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(game.progress))) : safeNumber(0);
+  const safeProgress = Number.isFinite(game.progress) && !isNaN(game.progress) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(game.progress) * 100) / 100)) : safeNumber(0);
 
   const getStatusIcon = (status) => {
     switch (status) {

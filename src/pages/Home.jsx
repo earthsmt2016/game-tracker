@@ -64,7 +64,7 @@ const Home = () => {
     return acc + ((Number.isFinite(p) && !isNaN(p)) ? safeNumber(p) : safeNumber(0));
   }, safeNumber(0)), games.length) : safeNumber(0);
 
-  const safeTotalScore = Number.isFinite(totalScore) && !isNaN(totalScore) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(totalScore)))) : safeNumber(0);
+  const safeTotalScore = Number.isFinite(totalScore) && !isNaN(totalScore) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(totalScore) * 100) / 100)) : safeNumber(0);
 
   const handleAddGame = (newGame) => {
     const updatedGames = [...games, newGame];

@@ -887,30 +887,6 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
         )}
 
         {/* Weekly Summary */}
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: safeNumber(1.0) }}
-          className="bg-gradient-to-r from-violet-600 to-indigo-500 rounded-xl p-6 text-white mt-8"
-        >
-          <h3 className="text-xl font-semibold mb-4">This Week's Summary</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <p className="text-violet-100 text-sm">Games Played</p>
-              <p className="text-2xl font-bold">{playingGamesThisWeek.length}</p>
-            </div>
-            <div>
-              <p className="text-violet-100 text-sm">Total Progress</p>
-              <p className="text-2xl font-bold">{safeAverage}%</p>
-            </div>
-            <div>
-              <p className="text-violet-100 text-sm">Milestones Hit</p>
-              <p className="text-2xl font-bold">
-                {milestonesCompleted}
-              </p>
-            </div>
-          </div>
-        </motion.div>
       </main>
 
       <Footer />
