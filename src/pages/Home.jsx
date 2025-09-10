@@ -67,7 +67,12 @@ const Home = () => {
   const safeTotalScore = Number.isFinite(totalScore) && !isNaN(totalScore) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(totalScore) * 100) / 100)) : safeNumber(0);
 
   const handleAddGame = (newGame) => {
-    const updatedGames = [...games, newGame];
+    // Create a new game object without lastPlayed if it's the initial add
+    const gameToAdd = { ...newGame };
+    if (!gameToAdd.lastPlayed) {
+      delete gameToAdd.lastPlayed; // Don't set lastPlayed on initial add
+    }
+    const updatedGames = [...games, gameToAdd];
     setGames(updatedGames);
     saveGamesToLocalStorage(updatedGames);
     setIsModalOpen(false);

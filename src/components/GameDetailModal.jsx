@@ -704,49 +704,62 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               key={milestone.id}
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
-                              transition={{ delay: index * safeNumber(0.1) }}
-                              className={`flex items-start space-x-3 p-3 rounded-lg border transition-all cursor-pointer hover:shadow-sm ${
-                                milestone.completed
-                                  ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
-                                  : 'bg-white border-slate-200 dark:bg-slate-700 dark:border-slate-600 hover:border-violet-300 dark:hover:border-violet-600'
-                              }`}
-                              onClick={() => toggleMilestone(milestone.id)}
+                              transition={{ duration: 0.3, delay: index * 0.05 }}
+                              className={`p-4 rounded-lg border ${milestone.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} hover:shadow-sm transition-shadow`}
                             >
-                              <div className="flex-shrink-0 mt-0.5">
-                                {milestone.completed ? (
-                                  <CheckCircle className="h-5 w-5 text-green-500" />
-                                ) : (
-                                  <Circle className="h-5 w-5 text-slate-400 hover:text-violet-500 transition-colors" />
-                                )}
-                              </div>
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1">
+                                  <div className="flex flex-wrap items-center gap-2 mb-1">
+                                    <h3 className={`text-base font-medium ${milestone.completed ? 'text-gray-600 line-through' : 'text-gray-900'}`}>
+                                      {milestone.title}
+                                    </h3>
+                                    {milestone.team && (
+                                      <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
+                                        {milestone.team}
+                                      </span>
+                                    )}
+                                    {milestone.gamePercentage && (
+                                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                        ~{milestone.gamePercentage}%
+                                      </span>
+                                    )}
+                                    {milestone.difficulty && (
+                                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                        milestone.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
+                                        milestone.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                                        milestone.difficulty === 'hard' ? 'bg-orange-100 text-orange-800' :
+                                        'bg-red-100 text-red-800'
+                                      }`}>
+                                        {milestone.difficulty.charAt(0).toUpperCase() + milestone.difficulty.slice(1)}
+                                      </span>
+                                    )}
+                                  </div>
+                                  
+                                  {milestone.description && (
+                                    <p className="text-sm text-gray-600 mb-2">{milestone.description}</p>
+                                  )}
+                                  
+                                  {milestone.action && (
+                                    <div className="mt-2 p-3 bg-blue-50 rounded-md">
+                                      <div className="flex justify-between items-center mb-1">
+                                        <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wider">How to Achieve</h4>
+                                        {milestone.team && (
+                                          <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
+                                            Team: {milestone.team}
+                                          </span>
+                                        )}
+                                      </div>
+                                      <p className="text-sm text-gray-700">{milestone.action}</p>
+                                      {milestone.gamePercentage && (
+                                        <div className="mt-2 pt-2 border-t border-blue-100 text-xs text-blue-700">
+                                          Expected completion: ~{milestone.gamePercentage}% of game
+                                        </div>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
 
-                              <div className="flex-1 min-w-0">
-                                <h4 className={`text-sm font-medium ${
-                                  milestone.completed
-                                    ? 'text-green-800 dark:text-green-300 line-through'
-                                    : 'text-slate-900 dark:text-slate-100'
-                                }`}>
-                                  {milestone.title}
-                                </h4>
-                                <p className={`text-xs mt-1 ${
-                                  milestone.completed
-                                    ? 'text-green-600 dark:text-green-400'
-                                    : 'text-slate-500 dark:text-slate-400'
-                                }`}>
-                                  {milestone.description}
-                                </p>
-                                {milestone.action && (
-                                  <p className={`text-xs mt-1 font-medium ${
-                                    milestone.completed
-                                      ? 'text-green-700 dark:text-green-300'
-                                      : 'text-violet-600 dark:text-violet-400'
-                                  }`}>
-                                    <span className="font-semibold">How to achieve:</span> {milestone.action}
-                                  </p>
-                                )}
-                              </div>
-
-                              <div className="flex-shrink-0">
+                                <div className="flex-shrink-0">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();

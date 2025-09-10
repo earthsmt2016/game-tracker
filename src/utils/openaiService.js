@@ -54,53 +54,64 @@ For other games, research and include:
 - Story beats with specific character/location names
 - Side content that's significant to game completion
 
-MILESTONE DISTRIBUTION (25-30 total):
-1. Early Game (4-5 milestones): Tutorial areas, first major objectives, initial story setup
-   - Include team-specific introductions if applicable
-   - Cover basic mechanics and systems
+MILESTONE REQUIREMENTS:
+- MINIMUM 25 milestones, aim for 30-35 for comprehensive coverage
+- Each milestone must have a clear game percentage estimate (e.g., "~15%")
+- Team/group requirements must be clearly specified
+- Milestones should be evenly distributed across the game's progression
 
-2. Mid Game (7-9 milestones): Major story beats, key upgrades, important bosses
-   - Include team-specific milestones
-   - Branching story paths if they start here
-   - Major character developments
+MILESTONE DISTRIBUTION (25+ total):
+1. Early Game (6-8 milestones): 0-25% completion
+   - Tutorial areas and basic mechanics
+   - First major objectives
+   - Team-specific introductions
+   - First major upgrades/abilities
 
-3. Late Game (5-7 milestones): Climactic story moments, challenging bosses
-   - Team convergence points if applicable
+2. Mid Game (9-12 milestones): 25-60% completion
+   - Major story beats
+   - Key character developments
+   - Team-specific storylines
+   - Major boss battles
+   - Important upgrades and abilities
+
+3. Late Game (6-8 milestones): 60-85% completion
+   - Climactic story moments
+   - Challenging boss encounters
+   - Team convergence points
    - Major plot twists
-   - Path-specific milestones
 
-4. Endgame (3-4 milestones): Final story missions
-   - Team-specific finales
+4. Endgame (4-5 milestones): 85-100% completion
+   - Final story missions
    - True ending requirements
    - Ultimate challenges
+   - Team-specific finales
 
-5. 100% Completion (3-4 milestones):
-   - All collectibles (specify exact numbers)
-   - Max level/upgrades
-   - Secret areas and hidden content
+5. 100% Completion (4-6 milestones):
+   - All collectibles with exact numbers
+   - Max level/upgrades requirements
+   - Hidden areas and secret content
    - Team-specific achievements
+   - Special challenges and time trials
 
-6. Additional Story Paths (3-4 milestones per path):
-   - Alternative endings
-   - Character-specific routes
-   - Secret storylines
-   - Post-game content
+Each milestone must include:
+- Team/group requirement (if applicable)
+- Estimated game percentage when achieved
+- Specific conditions for completion
+- Any prerequisites or recommended preparations
 
-7. Post-Game (2-3 milestones):
-   - New Game+ exclusive content
-   - DLC expansions
-   - Ultimate challenges and super bosses
-
-Format requirements:
+FORMAT REQUIREMENTS:
 - title: Exact game terminology, character/location names (max 65 chars)
 - description: Specific context only players would know (max 150 chars)
 - action: Precise instructions using game-specific terms (max 200 chars)
 - category: "story", "exploration", "gameplay", or "completion"
 - difficulty: "easy", "medium", "hard", or "expert"
 - estimatedTime: realistic time in minutes from game start
-- progressionOrder: chronological sequence (1-30)
-- team: If applicable, specify team/group name (e.g., "Team Sonic", "Heroes", "Villains", etc.)
-- storyPath: If multiple storylines exist, specify which path this belongs to (e.g., "Main Story", "True Ending", "Bad Ending", "Character X Route")
+- progressionOrder: chronological sequence (1-35)
+- team: REQUIRED - specify team/group name (e.g., "Team Sonic", "Team Dark", "All Teams")
+- storyPath: REQUIRED - specify story path (e.g., "Main Story", "Team Story", "True Ending")
+- gamePercentage: REQUIRED - estimated game completion percentage (e.g., 15, 45, 80)
+- prerequisites: Any requirements or preparations needed
+- reward: What you get for completing this milestone
 
 For games with multiple teams/groups:
 - Include milestones for each major team/group
