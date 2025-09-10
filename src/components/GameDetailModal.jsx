@@ -960,7 +960,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                     {/* AI Report */}
                     <div>
                       <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4 flex items-center">
-                        <FileText className="h-5 w-5 mr-2 text-indigo-500" />
+                        <FileText className="h-5 w-5 mr-2 text-indigo-500" />//
                         AI Progress Report
                       </h3>
 
