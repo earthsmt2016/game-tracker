@@ -475,6 +475,9 @@ export const generateWeeklyReport = async (games, weekStart, weekEnd) => {
     console.error('OpenAI API key is missing or not configured properly');
     throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file with a valid OpenAI API key.');
   }
+  
+  // Initialize OpenAI client
+  const openai = getOpenAIClient();
 
   try {
     const weekGames = Array.isArray(games) ? games.filter(game => {
