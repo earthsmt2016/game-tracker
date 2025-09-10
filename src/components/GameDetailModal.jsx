@@ -999,34 +999,42 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         
                         {/* Uncategorized Notes */}
                         {categorizedNotes.uncategorized.map((note, index) => {
-                          const noteIndex = game.notes?.findIndex(n => n.text === note.text && n.date === note.date) ?? -1;
+                          const noteIndex =
+                            game.notes?.findIndex(
+                              (n) => n.text === note.text && n.date === note.date
+                            ) ?? -1;
+
                           return (
-                          <div key={`uncat-${index}`} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative hover:shadow-sm transition-shadow">
-                            <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
-                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                              <span>{safeFormat(note.date, 'MMM d, yyyy')}</span>
-                              {(note.hoursPlayed || note.minutesPlayed) && (
-                                <span className="text-violet-600 dark:text-violet-400 font-medium">
-                                  {note.hoursPlayed ? `${note.hoursPlayed}h` : ''}
-                                  {note.hoursPlayed && note.minutesPlayed ? ' ' : ''}
-                                  {note.minutesPlayed ? `${note.minutesPlayed}m` : ''}
-                                </span>
-                              )}
-                            </div>
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (noteIndex >= 0) {
-                                  deleteNote(noteIndex);
-                                }
-                              }}
-                              className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
-                              title="Delete Note"
+                            <div
+                              key={`uncat-${index}`}
+                              className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative hover:shadow-sm transition-shadow"
                             >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
+                              <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
+                              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                <span>{safeFormat(note.date, "MMM d, yyyy")}</span>
+                                {(note.hoursPlayed || note.minutesPlayed) && (
+                                  <span className="text-violet-600 dark:text-violet-400 font-medium">
+                                    {note.hoursPlayed ? `${note.hoursPlayed}h` : ""}
+                                    {note.hoursPlayed && note.minutesPlayed ? " " : ""}
+                                    {note.minutesPlayed ? `${note.minutesPlayed}m` : ""}
+                                  </span>
+                                )}
+                              </div>
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (noteIndex >= 0) {
+                                    deleteNote(noteIndex);
+                                  }
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
+                                title="Delete Note"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
                         
                         {(game.notes || []).length === 0 && (
                           <p className="text-slate-500 dark:text-slate-400 text-center py-4">
