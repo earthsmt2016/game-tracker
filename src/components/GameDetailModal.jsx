@@ -140,7 +140,27 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     }
   };
 
+  const clearAllMilestones = () => {
+    if (window.confirm('Are you sure you want to clear all milestones? This action cannot be undone.')) {
+      const emptyMilestones = [];
+      setLocalMilestones(emptyMilestones);
+      onUpdateProgress(game.id, 0, emptyMilestones);
+      toast.success('All milestones have been cleared!');
+      
+      // Re-categorize notes since we've cleared milestones
+      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+      const categorized = categorizeNotesByMilestones(notes, emptyMilestones);
+      setCategorizedNotes(categorized);
+    }
+  };
+
   const regenerateMilestones = async () => {
+    if (localMilestones.length > 0) {
+      if (!window.confirm('This will replace all existing milestones. Are you sure?')) {
+        return;
+      }
+    }
+    
     setIsRegeneratingMilestones(true);
     try {
       const newMilestones = await generateMilestones(game.title);
@@ -155,6 +175,12 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       
       // Update parent with the new milestones
       onUpdateProgress(game.id, progress, newMilestones);
+      
+      // Re-categorize notes with new milestones
+      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+      const categorized = categorizeNotesByMilestones(notes, newMilestones);
+      setCategorizedNotes(categorized);
+      
       toast.success('Milestones regenerated successfully!');
     } catch (error) {
       console.error('Error regenerating milestones:', error);
@@ -675,6 +701,15 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center">
                           <Trophy className="h-5 w-5 mr-2 text-indigo-500" />
                           AI-Generated Milestones
+                          {localMilestones.length > 0 && (
+                            <button
+                              onClick={clearAllMilestones}
+                              className="ml-3 text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-md transition-colors"
+                              title="Clear All Milestones"
+                            >
+                              Clear All
+                            </button>
+                          )}
                         </h3>
                         <button
                           onClick={regenerateMilestones}
