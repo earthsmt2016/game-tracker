@@ -57,7 +57,7 @@ export const generateMilestones = async (gameTitle) => {
 1. Team Rose (easiest)
 2. Team Sonic (standard difficulty)
 3. Team Dark (harder)
-4. Team Chaotix (hardest)
+4. Team Chaotix (hardest))
 
 Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`
       : '';
