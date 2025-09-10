@@ -759,27 +759,32 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                           localMilestones.map((milestone, index) => (
                             <motion.div
                               key={milestone.id}
-                              initial={{ opacity: 0, x: -20 }}
-                              animate={{ opacity: 1, x: 0 }}
-                              transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className={`p-4 rounded-lg border ${milestone.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} hover:shadow-sm transition-shadow cursor-pointer`}
+                              initial={{ opacity: 0, y: 10 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.2, delay: index * 0.03 }}
+                              className={`p-4 rounded-lg border ${milestone.completed ? 'bg-green-50/50 border-green-200' : 'bg-white border-gray-200'} hover:shadow-sm transition-all cursor-pointer`}
                               onClick={() => toggleMilestone(milestone.id)}
                             >
-                              <div className="flex items-start justify-between">
-                                <div className="flex items-start">
-                                  <div className="mr-3 mt-0.5">
-                                    {milestone.completed ? (
-                                      <CheckCircle className="h-5 w-5 text-green-500" />
-                                    ) : (
-                                      <Circle className="h-5 w-5 text-gray-300" />
-                                    )}
+                              <div className="flex items-start">
+                                <div className="mr-3 flex-shrink-0 mt-0.5">
+                                  {milestone.completed ? (
+                                    <CheckCircle className="h-5 w-5 text-green-500" />
+                                  ) : (
+                                    <Circle className="h-5 w-5 text-gray-300" />
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center flex-wrap gap-2 mb-1">
+                                    <h3 className={`text-base font-medium ${milestone.completed ? 'text-gray-600 line-through' : 'text-gray-900'}`}>
+                                      {milestone.title}
+                                    </h3>
                                     {milestone.gamePercentage && (
-                                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
+                                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full whitespace-nowrap">
                                         ~{milestone.gamePercentage}%
                                       </span>
                                     )}
                                     {milestone.difficulty && (
-                                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${
                                         milestone.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
                                         milestone.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
                                         milestone.difficulty === 'hard' ? 'bg-orange-100 text-orange-800' :
@@ -795,25 +800,17 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                   )}
                                   
                                   {milestone.action && (
-                                    <div className="mt-2 p-3 bg-blue-50 rounded-md">
-                                      <div className="space-y-2">
-                                        <div className="flex justify-between items-center">
-                                          <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wider">How to Achieve</h4>
+                                    <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800/50">
+                                      {milestone.team && (
+                                        <div className="mb-2">
+                                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
+                                            Team: {milestone.team}
+                                          </span>
                                         </div>
-                                        {milestone.team && (
-                                          <div className="flex items-center bg-blue-50 border border-blue-100 rounded px-3 py-1.5">
-                                            <span className="text-xs font-medium text-blue-700">
-                                              <span className="font-bold">Team: </span>
-                                              <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 ml-1">
-                                                {milestone.team}
-                                              </span>
-                                            </span>
-                                          </div>
-                                        )}
-                                      </div>
-                                      <p className="text-sm text-gray-700">{milestone.action}</p>
+                                      )}
+                                      <p className="text-sm text-gray-700 dark:text-gray-300">{milestone.action}</p>
                                       {milestone.gamePercentage && (
-                                        <div className="mt-2 pt-2 border-t border-blue-100 text-xs text-blue-700">
+                                        <div className="mt-2 pt-2 border-t border-blue-100 dark:border-blue-800/50 text-xs text-blue-700 dark:text-blue-400">
                                           Expected completion: ~{milestone.gamePercentage}% of game
                                         </div>
                                       )}
