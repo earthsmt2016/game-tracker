@@ -30,10 +30,13 @@ const cleanAndParseJson = (jsonString) => {
 
 console.log("VITE_OPENAI_API_KEY:", import.meta.env.VITE_OPENAI_API_KEY);
 
-const openai = new OpenAI({
-  apiKey: import.meta.env.VITE_OPENAI_API_KEY,
-  dangerouslyAllowBrowser: true // Note: For production, use a backend proxy for security
-});
+// Create a function to get a new OpenAI instance for each request
+const getOpenAIClient = () => {
+  return new OpenAI({
+    apiKey: import.meta.env.VITE_OPENAI_API_KEY,
+    dangerouslyAllowBrowser: true // Note: For production, use a backend proxy for security
+  });
+};
 
 // Validate API key on initialization
 if (!import.meta.env.VITE_OPENAI_API_KEY) {
@@ -120,7 +123,8 @@ EXAMPLE RESPONSE:
 
 Return ONLY the JSON array with 25-30 game-specific milestones, properly formatted and in exact chronological order. The response must be valid JSON and nothing else.`;
 
-    console.log('Attempting OpenAI API call for milestones...');
+    console.log(`Generating milestones for: ${gameTitle}`);
+    const openai = getOpenAIClient();
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
