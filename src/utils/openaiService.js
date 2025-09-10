@@ -221,6 +221,8 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
       difficulty: typeof milestone.difficulty === 'string' ? milestone.difficulty : 'medium',
       estimatedTime: typeof milestone.estimatedTime === 'number' ? milestone.estimatedTime : 30,
       progressionOrder: typeof milestone.progressionOrder === 'number' ? milestone.progressionOrder : index + 1,
+      team: milestone.team || null,
+      gamePercentage: milestone.gamePercentage || null,
       dateCompleted: null,
       triggeredByNote: null
     }));
