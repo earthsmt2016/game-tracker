@@ -21,43 +21,48 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
-    const prompt = `Generate 50+ comprehensive and highly specific milestones for the video game "${gameTitle}". Research the actual game content and create detailed, game-specific milestones that follow the EXACT progression order of the game:
+    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 50+ ultra-specific milestones that ONLY a player of this exact game would recognize. Research the actual game content thoroughly.
 
-CRITICAL REQUIREMENTS:
-- Order milestones by CHRONOLOGICAL GAME PROGRESSION (tutorial → early game → mid game → late game → endgame)
-- Use EXACT names from "${gameTitle}" (characters, locations, items, abilities, NPCs, levels, stages)
-- NO GENERIC TERMS - every milestone must be specific to this game
-- Include specific numbers/quantities where relevant
-- Progressive difficulty following natural game progression
-- Include clear ACTION INSTRUCTIONS on HOW to achieve each milestone
+ABSOLUTE REQUIREMENTS - ZERO GENERIC CONTENT:
+- Every milestone MUST use EXACT names, locations, characters, items from "${gameTitle}"
+- NO generic terms like "Complete tutorial", "Defeat first boss", "Unlock features"
+- Include SPECIFIC numbers, collectible names, character names, level names
+- Order by EXACT game progression (how the game actually flows)
+- Each milestone should be instantly recognizable to someone who has played this game
 
-MILESTONE CATEGORIES (in progression order):
-TUTORIAL/EARLY GAME (12): First levels, basic mechanics, initial characters, opening story
-STORY PROGRESSION (18): Main quest milestones in chronological order, boss defeats, key plot points
-EXPLORATION/LEVELS (15): Specific stages, areas, hidden locations in order of accessibility
-GAMEPLAY MASTERY (10): Abilities, techniques, upgrades in order of unlock/availability
-COMPLETION GOALS (8): Side content, collectibles, achievements, 100% completion
+GAME-SPECIFIC RESEARCH REQUIREMENTS:
+For Sonic Heroes: Seaside Hill, Ocean Palace, Grand Metropolis, Power Plant, Casino Park, BINGO Highway, Rail Canyon, Bullet Station, Frog Forest, Lost Jungle, Hang Castle, Mystic Mansion, Egg Fleet, Final Fortress, Team Blast abilities, Formation changes, Chaos Emeralds, Team Dark/Rose/Chaotix stories, Metal Overlord, Neo Metal Sonic
 
-For "${gameTitle}" specifically:
-- If it's Sonic Heroes: Include Team Sonic/Dark/Rose/Chaotix progression, specific stage names, Chaos Emeralds, Metal Overlord
-- If it's Mario: Include world progression, power-ups, specific castle/level names
-- If it's Zelda: Include Divine Beasts, shrines, regions in logical order
-- If it's Pokemon: Include gym order, Elite Four, specific Pokemon encounters
-- Research the actual game structure and follow it precisely
+For other games, research similarly deep content including:
+- Exact level/stage names in order
+- Specific boss names and locations  
+- Unique items, weapons, abilities by their real names
+- Character progression systems
+- Collectible systems with exact names and quantities
+- Story beats with specific character/location names
 
-Format as JSON array with objects containing:
-- title: Specific milestone with exact game terminology (max 65 characters)
-- description: Detailed description with specific game context (max 150 characters)  
-- action: Clear step-by-step instructions on HOW to achieve this milestone (max 200 characters)
+MILESTONE STRUCTURE (chronological order):
+1. Opening/Tutorial (5-8): First specific levels/areas with exact names
+2. Early Story (12-15): Specific progression through named locations
+3. Mid Game (15-18): Named bosses, areas, abilities in unlock order
+4. Late Game (10-12): Advanced areas, difficult bosses with exact names
+5. Completion (5-8): Specific collectibles, secret areas, final challenges
+
+Format requirements:
+- title: Exact game terminology, character/location names (max 65 chars)
+- description: Specific context only players would know (max 150 chars)
+- action: Precise instructions using game-specific terms (max 200 chars)
 - category: "story", "exploration", "gameplay", or "completion"
 - difficulty: "easy", "medium", "hard", or "expert"
-- estimatedTime: rough time estimate in minutes
-- progressionOrder: number indicating chronological order (1-50+)
+- estimatedTime: realistic time in minutes
+- progressionOrder: chronological sequence (1-50+)
 
-Example for Sonic Heroes:
-{"title": "Complete Seaside Hill (Team Sonic)", "description": "First stage with Team Sonic - learn basic team mechanics and speed formation", "action": "Select Team Sonic, use Speed formation to run through loops, switch to Power formation for enemies, reach goal ring", "category": "story", "difficulty": "easy", "estimatedTime": 15, "progressionOrder": 1}
+EXAMPLES OF GOOD SPECIFICITY:
+Sonic Heroes: {"title": "Defeat Egg Hawk in Ocean Palace", "description": "First boss battle against Dr. Eggman's flying mech using Team Sonic's Thunder Shoot formation attack", "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times", "category": "story", "difficulty": "easy", "estimatedTime": 8, "progressionOrder": 4}
 
-Return only the JSON array with no additional text or formatting.`;
+Mario Odyssey: {"title": "Capture T-Rex in Cascade Kingdom", "description": "Use Cappy to possess the sleeping T-Rex near the Odyssey landing site to break blocks", "action": "Throw Cappy at the sleeping T-Rex's head, press Y to capture, use roar button to break stone blocks", "category": "gameplay", "difficulty": "easy", "estimatedTime": 5, "progressionOrder": 3}
+
+Return ONLY the JSON array with game-specific milestones.`;
 
     console.log('Attempting OpenAI API call for milestones...');
     const response = await openai.chat.completions.create({

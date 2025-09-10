@@ -114,6 +114,16 @@ const Home = () => {
     saveGamesToLocalStorage(updatedGames);
   };
 
+  const handleUpdateGame = (updatedGame) => {
+    const updatedGames = games.map(game =>
+      game.id === updatedGame.id
+        ? { ...updatedGame, lastPlayed: new Date().toISOString() }
+        : game
+    );
+    setGames(updatedGames);
+    saveGamesToLocalStorage(updatedGames);
+  };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
       <Header />
@@ -180,6 +190,7 @@ const Home = () => {
         onUpdateProgress={handleUpdateProgress}
         onUpdateNotes={handleUpdateNotes}
         onStatusChange={handleStatusChange}
+        onUpdateGame={handleUpdateGame}
       />
 
       <Footer />

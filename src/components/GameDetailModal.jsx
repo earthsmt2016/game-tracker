@@ -8,7 +8,7 @@ import { toast } from 'react-toastify';
 import { safeNumber, safeDivision } from '../utils/helpers';
 import jsPDF from 'jspdf';
 
-const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNotes, onStatusChange }) => {
+const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNotes, onStatusChange, onUpdateGame }) => {
   const [milestones, setMilestones] = useState([]);
   const [report, setReport] = useState(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -58,7 +58,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       image: newCoverUrl.trim()
     };
 
-    onGameUpdate(updatedGame);
+    onUpdateGame(updatedGame);
     setIsEditingCover(false);
     toast.success('Game cover updated successfully!');
   };
