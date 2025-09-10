@@ -34,6 +34,14 @@ ABSOLUTE REQUIREMENTS - ZERO GENERIC CONTENT:
 - Include key story moments, major bosses, and significant gameplay milestones
 - For open-world games, include milestones for different regions/areas in the order they're typically explored
 
+FOR SONIC HEROES SPECIFICALLY:
+- Include specific team formations and abilities (e.g., "Use Team Sonic's Thunder Shoot")
+- Reference specific stage gimmicks (e.g., "Grind rails in Rail Canyon")
+- Include rank requirements for A ranks (e.g., "Get 100 rings in BINGO Highway")
+- Mention specific boss patterns (e.g., "Dodge Egg Emperor's laser sweep")
+- Include Chaos Emerald requirements for special stages
+- Reference specific team stories (Team Dark, Team Rose, Team Chaotix)
+
 GAME-SPECIFIC RESEARCH REQUIREMENTS:
 For Sonic Heroes: Seaside Hill, Ocean Palace, Grand Metropolis, Power Plant, Casino Park, BINGO Highway, Rail Canyon, Bullet Station, Frog Forest, Lost Jungle, Hang Castle, Mystic Mansion, Egg Fleet, Final Fortress, Team Blast abilities, Formation changes, Chaos Emeralds, Team Dark/Rose/Chaotix stories, Metal Overlord, Neo Metal Sonic
 
@@ -109,7 +117,41 @@ For completion milestones, include specific requirements like:
 - Story path requirements for different endings
 
 EXAMPLES OF GOOD SPECIFICITY:
-Sonic Heroes: {"title": "Defeat Egg Hawk in Ocean Palace", "description": "First boss battle against Dr. Eggman's flying mech using Team Sonic's Thunder Shoot formation attack", "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times", "category": "story", "difficulty": "easy", "estimatedTime": 45, "progressionOrder": 4}
+Sonic Heroes: [
+  {
+    "title": "Defeat Egg Hawk in Ocean Palace",
+    "description": "First boss battle against Dr. Eggman's flying mech in Ocean Palace using Team Sonic's Thunder Shoot formation attack",
+    "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times. Use Speed formation to dodge missiles.",
+    "category": "story",
+    "difficulty": "easy",
+    "estimatedTime": 45,
+    "progressionOrder": 4,
+    "team": "Team Sonic",
+    "storyPath": "Main Story"
+  },
+  {
+    "title": "Complete BINGO Highway with Team Dark",
+    "description": "Navigate the pinball-themed highway while collecting 100 rings to achieve A Rank with Team Dark",
+    "action": "Use Rouge's flight to collect rings in the air, and Omega's firepower to defeat enemies. Time your jumps on the flippers to reach high areas.",
+    "category": "gameplay",
+    "difficulty": "medium",
+    "estimatedTime": 20,
+    "progressionOrder": 12,
+    "team": "Team Dark",
+    "storyPath": "Dark Story"
+  },
+  {
+    "title": "Unlock Super Hard Mode in Final Fortress",
+    "description": "Complete all Team Stories and collect all 7 Chaos Emeralds to unlock the true final story and Super Hard mode",
+    "action": "Replay stages to collect all Chaos Emeralds by completing Special Stages with all teams. Requires completing all Team Stories first.",
+    "category": "completion",
+    "difficulty": "hard",
+    "estimatedTime": 1200,
+    "progressionOrder": 28,
+    "team": "All Teams",
+    "storyPath": "Last Story"
+  }
+]
 
 Mario Odyssey: {"title": "Capture T-Rex in Cascade Kingdom", "description": "Use Cappy to possess the sleeping T-Rex near the Odyssey landing site to break blocks", "action": "Throw Cappy at the sleeping T-Rex's head, press Y to capture, use roar button to break stone blocks", "category": "gameplay", "difficulty": "easy", "estimatedTime": 15, "progressionOrder": 3}
 
