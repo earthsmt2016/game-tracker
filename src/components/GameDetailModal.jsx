@@ -762,18 +762,16 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               initial={{ opacity: 0, x: -20 }}
                               animate={{ opacity: 1, x: 0 }}
                               transition={{ duration: 0.3, delay: index * 0.05 }}
-                              className={`p-4 rounded-lg border ${milestone.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} hover:shadow-sm transition-shadow`}
+                              className={`p-4 rounded-lg border ${milestone.completed ? 'bg-green-50 border-green-200' : 'bg-white border-gray-200'} hover:shadow-sm transition-shadow cursor-pointer`}
+                              onClick={() => toggleMilestone(milestone.id)}
                             >
                               <div className="flex items-start justify-between">
-                                <div className="flex-1">
-                                  <div className="flex flex-wrap items-center gap-2 mb-1">
-                                    <h3 className={`text-base font-medium ${milestone.completed ? 'text-gray-600 line-through' : 'text-gray-900'}`}>
-                                      {milestone.title}
-                                    </h3>
-                                    {milestone.team && (
-                                      <span className="px-2 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 rounded-full">
-                                        {milestone.team}
-                                      </span>
+                                <div className="flex items-start">
+                                  <div className="mr-3 mt-0.5">
+                                    {milestone.completed ? (
+                                      <CheckCircle className="h-5 w-5 text-green-500" />
+                                    ) : (
+                                      <Circle className="h-5 w-5 text-gray-300" />
                                     )}
                                     {milestone.gamePercentage && (
                                       <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full">
