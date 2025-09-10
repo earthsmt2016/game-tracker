@@ -47,10 +47,41 @@ For other games, research and include:
 - Side content that's significant to game completion
 
 MILESTONE DISTRIBUTION (25-30 total):
-1. Early Game (6-8 milestones): Tutorial areas, first major objectives, initial story setup
-2. Mid Game (10-12 milestones): Major story beats, key upgrades, important bosses
-3. Late Game (6-8 milestones): Climactic story moments, challenging bosses, final upgrades
-4. Completion (3-5 milestones): Post-game content, 100% completion, secret endings
+1. Early Game (4-5 milestones): Tutorial areas, first major objectives, initial story setup
+   - Include team-specific introductions if applicable
+   - Cover basic mechanics and systems
+
+2. Mid Game (7-9 milestones): Major story beats, key upgrades, important bosses
+   - Include team-specific milestones
+   - Branching story paths if they start here
+   - Major character developments
+
+3. Late Game (5-7 milestones): Climactic story moments, challenging bosses
+   - Team convergence points if applicable
+   - Major plot twists
+   - Path-specific milestones
+
+4. Endgame (3-4 milestones): Final story missions
+   - Team-specific finales
+   - True ending requirements
+   - Ultimate challenges
+
+5. 100% Completion (3-4 milestones):
+   - All collectibles (specify exact numbers)
+   - Max level/upgrades
+   - Secret areas and hidden content
+   - Team-specific achievements
+
+6. Additional Story Paths (3-4 milestones per path):
+   - Alternative endings
+   - Character-specific routes
+   - Secret storylines
+   - Post-game content
+
+7. Post-Game (2-3 milestones):
+   - New Game+ exclusive content
+   - DLC expansions
+   - Ultimate challenges and super bosses
 
 Format requirements:
 - title: Exact game terminology, character/location names (max 65 chars)
@@ -60,6 +91,22 @@ Format requirements:
 - difficulty: "easy", "medium", "hard", or "expert"
 - estimatedTime: realistic time in minutes from game start
 - progressionOrder: chronological sequence (1-30)
+- team: If applicable, specify team/group name (e.g., "Team Sonic", "Heroes", "Villains", etc.)
+- storyPath: If multiple storylines exist, specify which path this belongs to (e.g., "Main Story", "True Ending", "Bad Ending", "Character X Route")
+
+For games with multiple teams/groups:
+- Include milestones for each major team/group
+- Clearly mark which team each milestone belongs to
+- Include cross-team milestones where they intersect
+- For team-specific endings, create separate story paths
+
+For completion milestones, include specific requirements like:
+- Exact number of collectibles needed
+- Specific character levels or stats required
+- Hidden or missable content locations
+- Optimal strategies for challenging sections
+- Team composition requirements (if applicable)
+- Story path requirements for different endings
 
 EXAMPLES OF GOOD SPECIFICITY:
 Sonic Heroes: {"title": "Defeat Egg Hawk in Ocean Palace", "description": "First boss battle against Dr. Eggman's flying mech using Team Sonic's Thunder Shoot formation attack", "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times", "category": "story", "difficulty": "easy", "estimatedTime": 45, "progressionOrder": 4}
