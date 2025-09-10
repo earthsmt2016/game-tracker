@@ -589,14 +589,6 @@ Generate a detailed report with these sections:
 2. GAME HIGHLIGHTS: Detailed discussion of each game I played, including specific milestones achieved and what they mean for my progress
 3. MILESTONE ANALYSIS: Deep dive into the types of milestones I completed and what they reveal about my gaming patterns
 4. PROGRESS INSIGHTS: Analysis of my progress across different games and genres
-5. CHALLENGES & ACHIEVEMENTS: Specific challenges I overcame and notable achievements
-6. NEXT WEEK GOALS: Strategic goals for the upcoming week based on current progress
-
-Make it personal, detailed, and insightful. Discuss specific games by name and analyze the significance of milestones achieved.
-
-Format the response as a JSON object with:
-- summary: A personal summary of my weekly gaming activity (max 400 characters, first-person, include specific numbers)
-- highlights: An array of 5-8 key highlights from the week, phrased personally with specific achievements
 - progress: An array of 4-6 detailed progress updates on specific games with milestone context
 - insights: An array of 4-6 insights or lessons learned, including category and difficulty analysis
 - nextWeekGoals: An array of 4-6 specific goals for the next week with milestone targets
@@ -605,6 +597,9 @@ Format the response as a JSON object with:
 - recommendedFocus: An array of 3-4 specific recommendations for next week based on my progress patterns
 
 Return only the JSON object, no additional text.`;
+
+    // Initialize OpenAI client
+    const openai = getOpenAIClient();
 
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
