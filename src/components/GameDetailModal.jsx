@@ -38,35 +38,23 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [isEditingCover, setIsEditingCover] = useState(false);
   const [newCoverUrl, setNewCoverUrl] = useState('');
 
+  // Initialize state when component mounts or game changes
   useEffect(() => {
-    if (game) {
-      console.log('Game data:', game);
-      console.log('Milestones:', game.milestones);
-      
-      // Log each milestone to check for gamePercentage
-      if (game.milestones && game.milestones.length > 0) {
-        console.log('First milestone:', game.milestones[0]);
-        console.log('Milestone properties:', Object.keys(game.milestones[0]));
-      }
-      
-      setMilestones(game.milestones || []);
-      setReport(game.report || null);
-      setReportScreenshots(game.reportScreenshots || []);
-      setNewCoverUrl(game.image || '');
-      
-      // Analyze notes and milestones
-      const notes = game.notes || [];
-      const categorized = categorizeNotesByMilestones(notes, game.milestones || []);
-      setCategorizedNotes(categorized);
-      
-      const insights = generateMilestoneInsights(game.milestones || [], notes);
-      setMilestoneInsights(insights);
-    }
+    if (!game) return;
+    
+    // Safely initialize all state based on game prop
+    const safeMilestones = Array.isArray(game.milestones) ? [...game.milestones] : [];
+    setLocalMilestones(safeMilestones);
+    setNewCoverUrl(game.image || '');
+    
+    // Initialize notes and insights
+    const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+    const categorized = categorizeNotesByMilestones(notes, safeMilestones);
+    setCategorizedNotes(categorized);
+    
+    const insights = generateMilestoneInsights(safeMilestones, notes);
+    setMilestoneInsights(insights);
   }, [game]);
-
-  useEffect(() => {
-    setLocalMilestones([...game.milestones || []]);
-  }, [game.milestones]);
 
   const handleCoverUpdate = () => {
     if (!newCoverUrl.trim()) {
@@ -89,8 +77,9 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     setIsEditingCover(false);
   };
 
-  const completedMilestones = (localMilestones || []).filter(m => m.completed).length;
-  const totalMilestones = (localMilestones || []).length;
+  const safeMilestones = Array.isArray(localMilestones) ? localMilestones : [];
+  const completedMilestones = safeMilestones.filter(m => m && m.completed).length;
+  const totalMilestones = safeMilestones.length;
   const progressPercentage = totalMilestones > safeNumber(0) ? safeDivision(safeNumber(completedMilestones), safeNumber(totalMilestones)) * safeNumber(100) : safeNumber(0);
   const safeProgressPercentage = Number.isFinite(progressPercentage) && !isNaN(progressPercentage) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(progressPercentage)))) : safeNumber(0);
 
@@ -105,15 +94,20 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const toggleMilestone = (milestoneId) => {
-    const updatedMilestones = localMilestones.map(milestone =>
-      milestone.id === milestoneId
+    if (!game || !game.id) return;
+    
+    const updatedMilestones = (localMilestones || []).map(milestone =>
+      milestone && milestone.id === milestoneId
         ? { ...milestone, completed: !milestone.completed }
         : milestone
-    );
+    ).filter(Boolean); // Remove any null/undefined entries
+    
     setLocalMilestones(updatedMilestones);
 
     const completedCount = updatedMilestones.filter(m => m.completed).length;
-    const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
+    const progress = updatedMilestones.length > safeNumber(0) 
+      ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) 
+      : safeNumber(0);
 
     onUpdateProgress(game.id, progress, updatedMilestones);
   };
