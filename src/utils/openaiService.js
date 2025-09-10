@@ -21,32 +21,36 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
-    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 50+ ultra-specific milestones that ONLY a player of this exact game would recognize. Research the actual game content thoroughly.
+    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25-30 ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
 
 ABSOLUTE REQUIREMENTS - ZERO GENERIC CONTENT:
+- Generate EXACTLY 25-30 milestones that cover the full game progression
 - Every milestone MUST use EXACT names, locations, characters, items from "${gameTitle}"
 - NO generic terms like "Complete tutorial", "Defeat first boss", "Unlock features"
 - Include SPECIFIC numbers, collectible names, character names, level names
 - Order by EXACT game progression (how the game actually flows)
 - Each milestone should be instantly recognizable to someone who has played this game
+- Ensure milestones are evenly distributed throughout the entire game
+- Include key story moments, major bosses, and significant gameplay milestones
+- For open-world games, include milestones for different regions/areas in the order they're typically explored
 
 GAME-SPECIFIC RESEARCH REQUIREMENTS:
 For Sonic Heroes: Seaside Hill, Ocean Palace, Grand Metropolis, Power Plant, Casino Park, BINGO Highway, Rail Canyon, Bullet Station, Frog Forest, Lost Jungle, Hang Castle, Mystic Mansion, Egg Fleet, Final Fortress, Team Blast abilities, Formation changes, Chaos Emeralds, Team Dark/Rose/Chaotix stories, Metal Overlord, Neo Metal Sonic
 
-For other games, research similarly deep content including:
+For other games, research and include:
 - Exact level/stage names in order
 - Specific boss names and locations  
 - Unique items, weapons, abilities by their real names
 - Character progression systems
 - Collectible systems with exact names and quantities
 - Story beats with specific character/location names
+- Side content that's significant to game completion
 
-MILESTONE STRUCTURE (chronological order):
-1. Opening/Tutorial (5-8): First specific levels/areas with exact names
-2. Early Story (12-15): Specific progression through named locations
-3. Mid Game (15-18): Named bosses, areas, abilities in unlock order
-4. Late Game (10-12): Advanced areas, difficult bosses with exact names
-5. Completion (5-8): Specific collectibles, secret areas, final challenges
+MILESTONE DISTRIBUTION (25-30 total):
+1. Early Game (6-8 milestones): Tutorial areas, first major objectives, initial story setup
+2. Mid Game (10-12 milestones): Major story beats, key upgrades, important bosses
+3. Late Game (6-8 milestones): Climactic story moments, challenging bosses, final upgrades
+4. Completion (3-5 milestones): Post-game content, 100% completion, secret endings
 
 Format requirements:
 - title: Exact game terminology, character/location names (max 65 chars)
@@ -54,15 +58,15 @@ Format requirements:
 - action: Precise instructions using game-specific terms (max 200 chars)
 - category: "story", "exploration", "gameplay", or "completion"
 - difficulty: "easy", "medium", "hard", or "expert"
-- estimatedTime: realistic time in minutes
-- progressionOrder: chronological sequence (1-50+)
+- estimatedTime: realistic time in minutes from game start
+- progressionOrder: chronological sequence (1-30)
 
 EXAMPLES OF GOOD SPECIFICITY:
-Sonic Heroes: {"title": "Defeat Egg Hawk in Ocean Palace", "description": "First boss battle against Dr. Eggman's flying mech using Team Sonic's Thunder Shoot formation attack", "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times", "category": "story", "difficulty": "easy", "estimatedTime": 8, "progressionOrder": 4}
+Sonic Heroes: {"title": "Defeat Egg Hawk in Ocean Palace", "description": "First boss battle against Dr. Eggman's flying mech using Team Sonic's Thunder Shoot formation attack", "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times", "category": "story", "difficulty": "easy", "estimatedTime": 45, "progressionOrder": 4}
 
-Mario Odyssey: {"title": "Capture T-Rex in Cascade Kingdom", "description": "Use Cappy to possess the sleeping T-Rex near the Odyssey landing site to break blocks", "action": "Throw Cappy at the sleeping T-Rex's head, press Y to capture, use roar button to break stone blocks", "category": "gameplay", "difficulty": "easy", "estimatedTime": 5, "progressionOrder": 3}
+Mario Odyssey: {"title": "Capture T-Rex in Cascade Kingdom", "description": "Use Cappy to possess the sleeping T-Rex near the Odyssey landing site to break blocks", "action": "Throw Cappy at the sleeping T-Rex's head, press Y to capture, use roar button to break stone blocks", "category": "gameplay", "difficulty": "easy", "estimatedTime": 15, "progressionOrder": 3}
 
-Return ONLY the JSON array with game-specific milestones.`;
+Return ONLY the JSON array with 25-30 game-specific milestones, properly formatted and in exact chronological order.`;
 
     console.log('Attempting OpenAI API call for milestones...');
     const response = await openai.chat.completions.create({
