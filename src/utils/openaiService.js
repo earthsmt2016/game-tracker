@@ -23,7 +23,7 @@ export const generateMilestones = async (gameTitle) => {
   try {
     const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25+ ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
 
-RESPONSE FORMAT: You MUST respond with a valid JSON array of milestone objects. Do not include any markdown formatting, code blocks, or additional text. The response should be parseable with JSON.parse().
+RESPONSE FORMAT: You MUST respond with a valid JSON array of milestone objects. The response must start with [ and end with ]. Do not include any markdown formatting, code blocks, or additional text outside the JSON array. The response must be valid JSON that can be parsed with JSON.parse().
 
 EXAMPLE RESPONSE:
 [
@@ -189,7 +189,7 @@ Sonic Heroes: [
 
 Mario Odyssey: {"title": "Capture T-Rex in Cascade Kingdom", "description": "Use Cappy to possess the sleeping T-Rex near the Odyssey landing site to break blocks", "action": "Throw Cappy at the sleeping T-Rex's head, press Y to capture, use roar button to break stone blocks", "category": "gameplay", "difficulty": "easy", "estimatedTime": 15, "progressionOrder": 3}
 
-Return ONLY the JSON array with 25-30 game-specific milestones, properly formatted and in exact chronological order.`;
+Return ONLY the JSON array with 25-30 game-specific milestones, properly formatted and in exact chronological order. The response must be valid JSON and nothing else.`;
 
     console.log('Attempting OpenAI API call for milestones...');
     const response = await openai.chat.completions.create({
@@ -214,21 +214,32 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
       console.log('Raw OpenAI API response (truncated):', responseContent.substring(0, 500) + (responseContent.length > 500 ? '...' : ''));
       
       // Try to extract JSON from markdown code blocks if present
-      let jsonContent = responseContent;
-      const codeBlockMatch = responseContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
-      if (codeBlockMatch && codeBlockMatch[1]) {
-        jsonContent = codeBlockMatch[1];
-        console.log('Extracted JSON from code block');
+      let jsonContent = responseContent.trim();
+      
+      let parsed;
+      
+      // Try to parse directly first
+      try {
+        console.log('Attempting direct JSON parse...');
+        parsed = JSON.parse(jsonContent);
+      } catch (e) {
+        console.log('Direct parse failed, trying to extract from markdown...');
+        // Try to extract from markdown code blocks
+        const codeBlockMatch = jsonContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
+        if (codeBlockMatch && codeBlockMatch[1]) {
+          jsonContent = codeBlockMatch[1];
+          console.log('Extracted JSON from code block');
+        }
+        
+        // Clean up the JSON string
+        jsonContent = jsonContent
+          .replace(/^\s*```(?:json)?\s*/g, '')  // Remove leading ``` or ```json
+          .replace(/\s*```\s*$/g, '')           // Remove trailing ```
+          .trim();
+        
+        console.log('Processing JSON content...');
+        parsed = JSON.parse(jsonContent);
       }
-      
-      // Clean up the JSON string
-      jsonContent = jsonContent
-        .replace(/^\s*```json\s*/g, '')  // Remove leading ```json
-        .replace(/\s*```\s*$/g, '')       // Remove trailing ```
-        .trim();
-      
-      console.log('Processing JSON content...');
-      const parsed = JSON.parse(jsonContent);
       console.log('Successfully parsed JSON response');
       
       // Handle different response formats
