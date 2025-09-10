@@ -39,17 +39,19 @@ Requirements for each milestone:
 - Include collectibles, upgrades, and skill progression
 - Add specific boss names, area names, and item names
 - Include social/multiplayer elements if applicable
+- CRITICAL: Include clear ACTION INSTRUCTIONS on HOW to achieve each milestone
 
 Format as JSON array with objects containing:
 - title: Specific milestone with exact game terminology (max 65 characters)
 - description: Detailed description with specific game context (max 150 characters)
+- action: Clear step-by-step instructions on HOW to achieve this milestone (max 200 characters)
 - category: "story", "exploration", "gameplay", or "completion"
 - difficulty: "easy", "medium", "hard", or "expert"
 - estimatedTime: rough time estimate in minutes
 
 Example format for specific games:
-Super Mario Odyssey: {"title": "Defeat Bowser in Cloud Kingdom", "description": "Battle Bowser atop the airship in Nimbus Arena using Cappy mechanics and environmental hazards", "category": "story", "difficulty": "medium", "estimatedTime": 45}
-Zelda BOTW: {"title": "Obtain Hylian Shield from Hyrule Castle", "description": "Defeat Stalnox in Hyrule Castle lockup to claim the legendary unbreakable shield", "category": "exploration", "difficulty": "hard", "estimatedTime": 90}
+Super Mario Odyssey: {"title": "Defeat Bowser in Cloud Kingdom", "description": "Battle Bowser atop the airship in Nimbus Arena using Cappy mechanics and environmental hazards", "action": "Navigate to Cloud Kingdom's Nimbus Arena. Use Cappy to capture enemies and throw them at Bowser. Dodge his fire attacks and jump on his head 3 times to defeat him.", "category": "story", "difficulty": "medium", "estimatedTime": 45}
+Zelda BOTW: {"title": "Obtain Hylian Shield from Hyrule Castle", "description": "Defeat Stalnox in Hyrule Castle lockup to claim the legendary unbreakable shield", "action": "Enter Hyrule Castle through the docks. Go to the lockup area in the basement. Fight the Stalnox boss by attacking its eye when it glows. Claim the shield from the chest.", "category": "exploration", "difficulty": "hard", "estimatedTime": 90}
 
 Return only the JSON array with no additional text or formatting.`;
 
@@ -73,6 +75,7 @@ Return only the JSON array with no additional text or formatting.`;
       title: typeof milestone.title === 'string' ? milestone.title : `Milestone ${index + safeNumber(1)}`,
       completed: false,
       description: typeof milestone.description === 'string' ? milestone.description : `Brief milestone for ${gameTitle}`,
+      action: typeof milestone.action === 'string' ? milestone.action : `Complete this milestone in ${gameTitle}`,
       category: typeof milestone.category === 'string' ? milestone.category : 'gameplay',
       difficulty: typeof milestone.difficulty === 'string' ? milestone.difficulty : 'medium',
       estimatedTime: typeof milestone.estimatedTime === 'number' ? milestone.estimatedTime : 30,
@@ -120,7 +123,13 @@ Return only the JSON array with no additional text or formatting.`;
       id: index + safeNumber(1),
       title,
       completed: false,
-      description: `Brief milestone for ${gameTitle}`
+      description: `Brief milestone for ${gameTitle}`,
+      action: `Work towards completing: ${title}`,
+      category: 'gameplay',
+      difficulty: 'medium',
+      estimatedTime: 30,
+      dateCompleted: null,
+      triggeredByNote: null
     }));
   }
 };

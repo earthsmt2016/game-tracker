@@ -14,28 +14,42 @@ export const analyzeMilestoneFromNote = (note, milestones) => {
       let score = 0;
       const titleWords = milestone.title.toLowerCase().split(/\s+/);
       const descWords = milestone.description.toLowerCase().split(/\s+/);
+      const actionWords = milestone.action ? milestone.action.toLowerCase().split(/\s+/) : [];
       
-      // Direct word matches in title (higher weight)
+      // Direct word matches in title (highest weight)
       titleWords.forEach(word => {
-        if (word.length > 3 && noteWords.some(nw => nw.includes(word) || word.includes(nw))) {
-          score += 3;
+        if (word.length > 2 && noteWords.some(nw => nw.includes(word) || word.includes(nw))) {
+          score += 4;
         }
       });
       
       // Direct word matches in description
       descWords.forEach(word => {
-        if (word.length > 3 && noteWords.some(nw => nw.includes(word) || word.includes(nw))) {
+        if (word.length > 2 && noteWords.some(nw => nw.includes(word) || word.includes(nw))) {
           score += 2;
         }
       });
       
-      // Context-based scoring
-      if (noteText.includes('completed') || noteText.includes('finished') || noteText.includes('beat')) {
+      // Direct word matches in action instructions
+      actionWords.forEach(word => {
+        if (word.length > 2 && noteWords.some(nw => nw.includes(word) || word.includes(nw))) {
+          score += 1;
+        }
+      });
+      
+      // Enhanced context-based scoring with more keywords
+      if (noteText.includes('completed') || noteText.includes('finished') || noteText.includes('beat') || noteText.includes('cleared') || noteText.includes('done')) {
+        score += 3;
+      }
+      
+      if (noteText.includes('unlocked') || noteText.includes('obtained') || noteText.includes('found') || noteText.includes('got') || noteText.includes('acquired')) {
         score += 2;
       }
       
-      if (noteText.includes('unlocked') || noteText.includes('obtained') || noteText.includes('found')) {
-        score += 2;
+      if (noteText.includes('started') || noteText.includes('began') || noteText.includes('beginning')) {
+        if (milestone.difficulty === 'easy') {
+          score += 2;
+        }
       }
       
       // Boss/enemy mentions
@@ -61,9 +75,9 @@ export const analyzeMilestoneFromNote = (note, milestones) => {
       
       return { ...milestone, matchScore: score };
     })
-    .filter(milestone => milestone.matchScore > 2)
+    .filter(milestone => milestone.matchScore > 1) // Lower threshold for more matches
     .sort((a, b) => b.matchScore - a.matchScore)
-    .slice(0, 5); // Return top 5 matches
+    .slice(0, 15); // Return top 15 matches for better suggestions
   
   return potentialMilestones;
 };
