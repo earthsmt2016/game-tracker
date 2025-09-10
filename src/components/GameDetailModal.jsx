@@ -315,10 +315,21 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const deleteNote = (noteIndex) => {
-    const updatedNotes = [...(game.notes || [])];
-    updatedNotes.splice(noteIndex, 1);
-    onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
-    toast.success('Note deleted!');
+    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
+      const updatedNotes = [...(game.notes || [])];
+      // If the note is associated with any milestones, clear that association
+      const updatedMilestones = (localMilestones || []).map(milestone => {
+        if (milestone.triggeredByNote === updatedNotes[noteIndex]?.text) {
+          return { ...milestone, triggeredByNote: undefined };
+        }
+        return milestone;
+      });
+      
+      updatedNotes.splice(noteIndex, 1);
+      onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+      setLocalMilestones(updatedMilestones);
+      toast.success('Note deleted successfully!');
+    }
   };
 
   const exportReport = () => {
@@ -910,8 +921,10 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
 
                       <div className={`space-y-2 overflow-y-auto ${showAllNotes ? 'max-h-[70vh]' : 'max-h-64'}`}>
                         {/* Categorized Notes with Related Milestones */}
-                        {categorizedNotes.categorized.map((noteData, index) => (
-                          <div key={`cat-${index}`} className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800">
+                        {categorizedNotes.categorized.map((noteData, index) => {
+                          const noteIndex = game.notes?.findIndex(n => n.text === noteData.note.text && n.date === noteData.note.date) ?? -1;
+                          return (
+                          <div key={`cat-${index}`} className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800 hover:shadow-sm transition-shadow">
                             <p className="text-sm text-slate-900 dark:text-slate-100 mb-2">{noteData.note.text}</p>
                             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
                               <span>{safeFormat(noteData.note.date, 'MMM d, yyyy')}</span>
@@ -924,10 +937,10 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               )}
                             </div>
                             
-                            {/* Actually Cleared Milestones */}
+                            {/* Cleared Milestones */}
                             {(() => {
-                              const clearedMilestones = milestones.filter(m => 
-                                m.completed && m.triggeredByNote === noteData.note.text
+                              const clearedMilestones = (localMilestones || []).filter(m => 
+                                m && m.completed && m.triggeredByNote && m.triggeredByNote === noteData.note.text
                               );
                               return clearedMilestones.length > 0 ? (
                                 <div className="mt-2 space-y-1">
@@ -946,7 +959,12 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                             })()}
                             
                             <button
-                              onClick={() => deleteNote(categorizedNotes.categorized.length + index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (noteIndex >= 0) {
+                                  deleteNote(noteIndex);
+                                }
+                              }}
                               className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
                               title="Delete Note"
                             >
@@ -956,8 +974,10 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         ))}
                         
                         {/* Uncategorized Notes */}
-                        {categorizedNotes.uncategorized.map((note, index) => (
-                          <div key={`uncat-${index}`} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative">
+                        {categorizedNotes.uncategorized.map((note, index) => {
+                          const noteIndex = game.notes?.findIndex(n => n.text === note.text && n.date === note.date) ?? -1;
+                          return (
+                          <div key={`uncat-${index}`} className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative hover:shadow-sm transition-shadow">
                             <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
                             <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
                               <span>{safeFormat(note.date, 'MMM d, yyyy')}</span>
@@ -970,7 +990,12 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               )}
                             </div>
                             <button
-                              onClick={() => deleteNote(categorizedNotes.categorized.length + index)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                if (noteIndex >= 0) {
+                                  deleteNote(noteIndex);
+                                }
+                              }}
                               className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
                               title="Delete Note"
                             >
