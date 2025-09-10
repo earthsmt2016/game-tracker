@@ -21,37 +21,41 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
-    const prompt = `Generate 50+ comprehensive and highly specific milestones for the video game "${gameTitle}". Research the actual game content and create detailed, game-specific milestones that cover every aspect of gameplay:
+    const prompt = `Generate 50+ comprehensive and highly specific milestones for the video game "${gameTitle}". Research the actual game content and create detailed, game-specific milestones that follow the EXACT progression order of the game:
 
-STORY MILESTONES (18): Main quest progression, key plot points, boss defeats, character encounters, story revelations, cutscenes
-EXPLORATION MILESTONES (15): Specific areas, regions, dungeons, hidden locations, secrets, collectibles, easter eggs with exact names
-GAMEPLAY MILESTONES (15): Specific mechanics, abilities, weapons, upgrades, combat techniques, skill unlocks, crafting systems
-COMPLETION MILESTONES (8): Side quests, achievements, 100% completion goals, optional content, challenges, mini-games
+CRITICAL REQUIREMENTS:
+- Order milestones by CHRONOLOGICAL GAME PROGRESSION (tutorial → early game → mid game → late game → endgame)
+- Use EXACT names from "${gameTitle}" (characters, locations, items, abilities, NPCs, levels, stages)
+- NO GENERIC TERMS - every milestone must be specific to this game
+- Include specific numbers/quantities where relevant
+- Progressive difficulty following natural game progression
+- Include clear ACTION INSTRUCTIONS on HOW to achieve each milestone
 
-Requirements for each milestone:
-- Use EXACT names from "${gameTitle}" (characters, locations, items, abilities, NPCs)
-- Include specific numbers/quantities where relevant (e.g., "Collect 50 Star Bits", "Reach Level 25")
-- Progressive difficulty from tutorial to endgame content
-- Mix of major story beats and smaller accomplishments
-- Avoid generic terms - use actual names from the game
-- Include both mandatory and optional content
-- Cover early, mid, and late game progression
-- Include collectibles, upgrades, and skill progression
-- Add specific boss names, area names, and item names
-- Include social/multiplayer elements if applicable
-- CRITICAL: Include clear ACTION INSTRUCTIONS on HOW to achieve each milestone
+MILESTONE CATEGORIES (in progression order):
+TUTORIAL/EARLY GAME (12): First levels, basic mechanics, initial characters, opening story
+STORY PROGRESSION (18): Main quest milestones in chronological order, boss defeats, key plot points
+EXPLORATION/LEVELS (15): Specific stages, areas, hidden locations in order of accessibility
+GAMEPLAY MASTERY (10): Abilities, techniques, upgrades in order of unlock/availability
+COMPLETION GOALS (8): Side content, collectibles, achievements, 100% completion
+
+For "${gameTitle}" specifically:
+- If it's Sonic Heroes: Include Team Sonic/Dark/Rose/Chaotix progression, specific stage names, Chaos Emeralds, Metal Overlord
+- If it's Mario: Include world progression, power-ups, specific castle/level names
+- If it's Zelda: Include Divine Beasts, shrines, regions in logical order
+- If it's Pokemon: Include gym order, Elite Four, specific Pokemon encounters
+- Research the actual game structure and follow it precisely
 
 Format as JSON array with objects containing:
 - title: Specific milestone with exact game terminology (max 65 characters)
-- description: Detailed description with specific game context (max 150 characters)
+- description: Detailed description with specific game context (max 150 characters)  
 - action: Clear step-by-step instructions on HOW to achieve this milestone (max 200 characters)
 - category: "story", "exploration", "gameplay", or "completion"
 - difficulty: "easy", "medium", "hard", or "expert"
 - estimatedTime: rough time estimate in minutes
+- progressionOrder: number indicating chronological order (1-50+)
 
-Example format for specific games:
-Super Mario Odyssey: {"title": "Defeat Bowser in Cloud Kingdom", "description": "Battle Bowser atop the airship in Nimbus Arena using Cappy mechanics and environmental hazards", "action": "Navigate to Cloud Kingdom's Nimbus Arena. Use Cappy to capture enemies and throw them at Bowser. Dodge his fire attacks and jump on his head 3 times to defeat him.", "category": "story", "difficulty": "medium", "estimatedTime": 45}
-Zelda BOTW: {"title": "Obtain Hylian Shield from Hyrule Castle", "description": "Defeat Stalnox in Hyrule Castle lockup to claim the legendary unbreakable shield", "action": "Enter Hyrule Castle through the docks. Go to the lockup area in the basement. Fight the Stalnox boss by attacking its eye when it glows. Claim the shield from the chest.", "category": "exploration", "difficulty": "hard", "estimatedTime": 90}
+Example for Sonic Heroes:
+{"title": "Complete Seaside Hill (Team Sonic)", "description": "First stage with Team Sonic - learn basic team mechanics and speed formation", "action": "Select Team Sonic, use Speed formation to run through loops, switch to Power formation for enemies, reach goal ring", "category": "story", "difficulty": "easy", "estimatedTime": 15, "progressionOrder": 1}
 
 Return only the JSON array with no additional text or formatting.`;
 
@@ -69,8 +73,14 @@ Return only the JSON array with no additional text or formatting.`;
     // Parse the JSON response
     const milestones = JSON.parse(content);
     
-    // Validate and format the milestones
-    return milestones.map((milestone, index) => ({
+    // Validate and format the milestones, sorting by progression order
+    const sortedMilestones = milestones.sort((a, b) => {
+      const orderA = typeof a.progressionOrder === 'number' ? a.progressionOrder : 999;
+      const orderB = typeof b.progressionOrder === 'number' ? b.progressionOrder : 999;
+      return orderA - orderB;
+    });
+    
+    return sortedMilestones.map((milestone, index) => ({
       id: index + safeNumber(1),
       title: typeof milestone.title === 'string' ? milestone.title : `Milestone ${index + safeNumber(1)}`,
       completed: false,
@@ -79,6 +89,7 @@ Return only the JSON array with no additional text or formatting.`;
       category: typeof milestone.category === 'string' ? milestone.category : 'gameplay',
       difficulty: typeof milestone.difficulty === 'string' ? milestone.difficulty : 'medium',
       estimatedTime: typeof milestone.estimatedTime === 'number' ? milestone.estimatedTime : 30,
+      progressionOrder: typeof milestone.progressionOrder === 'number' ? milestone.progressionOrder : index + 1,
       dateCompleted: null,
       triggeredByNote: null
     }));
@@ -128,6 +139,7 @@ Return only the JSON array with no additional text or formatting.`;
       category: 'gameplay',
       difficulty: 'medium',
       estimatedTime: 30,
+      progressionOrder: index + 1,
       dateCompleted: null,
       triggeredByNote: null
     }));
