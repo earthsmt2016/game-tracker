@@ -760,17 +760,17 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                 </div>
 
                                 <div className="flex-shrink-0">
-                                <button
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    deleteMilestone(milestone.id);
-                                  }}
-                                  className="p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors"
-                                  title="Delete Milestone"
-                                >
-                                  <Trash2 className="h-3 w-3" />
-                                </button>
-                              </div>
+                                  <button
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      deleteMilestone(milestone.id);
+                                    }}
+                                    className="p-1 bg-red-600 hover:bg-red-700 text-white rounded-full transition-colors"
+                                    title="Delete Milestone"
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </button>
+                                </div>
                             </motion.div>
                           ))
                         ) : (
