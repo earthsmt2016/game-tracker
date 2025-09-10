@@ -18,7 +18,14 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [reportScreenshots, setReportScreenshots] = useState([]);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [newMilestoneDescription, setNewMilestoneDescription] = useState('');
-  const [localMilestones, setLocalMilestones] = useState([...game.milestones || []]);
+  const [localMilestones, setLocalMilestones] = useState([]);
+  
+  // Initialize local state when component mounts or game changes
+  useEffect(() => {
+    if (game) {
+      setLocalMilestones([...(game.milestones || [])]);
+    }
+  }, [game]);
   const [isRegeneratingMilestones, setIsRegeneratingMilestones] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingMilestoneUpdates, setPendingMilestoneUpdates] = useState([]);
@@ -82,8 +89,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     setIsEditingCover(false);
   };
 
-  const completedMilestones = localMilestones.filter(m => m.completed).length;
-  const totalMilestones = localMilestones.length;
+  const completedMilestones = (localMilestones || []).filter(m => m.completed).length;
+  const totalMilestones = (localMilestones || []).length;
   const progressPercentage = totalMilestones > safeNumber(0) ? safeDivision(safeNumber(completedMilestones), safeNumber(totalMilestones)) * safeNumber(100) : safeNumber(0);
   const safeProgressPercentage = Number.isFinite(progressPercentage) && !isNaN(progressPercentage) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(progressPercentage)))) : safeNumber(0);
 
@@ -498,11 +505,11 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
       });
     }
 
-    doc.save(`${game.title}-report.pdf`);
+    doc.save(`${game?.title || ''}-report.pdf`);
     toast.success('PDF exported successfully!');
   };
 
-  if (!game) return null;
+  if (!isOpen || !game) return null;
 
   return (
     <>
