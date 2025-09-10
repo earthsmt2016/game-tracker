@@ -100,13 +100,22 @@ const Home = () => {
   };
 
   const handleUpdateProgress = (gameId, progress, milestones) => {
-    const updatedGames = games.map(game =>
-      game.id === gameId
-        ? { ...game, progress, milestones, lastPlayed: new Date().toISOString() }
-        : game
-    );
-    setGames(updatedGames);
-    saveGamesToLocalStorage(updatedGames);
+    setGames(prevGames => {
+      const updatedGames = prevGames.map(game => {
+        if (game.id === gameId) {
+          // Preserve all existing game properties and only update progress, milestones, and lastPlayed
+          return {
+            ...game,
+            progress: Number(progress) || 0,
+            milestones: Array.isArray(milestones) ? [...milestones] : [],
+            lastPlayed: new Date().toISOString()
+          };
+        }
+        return { ...game }; // Return a new object to ensure proper state updates
+      });
+      saveGamesToLocalStorage(updatedGames);
+      return updatedGames;
+    });
   };
 
   const handleUpdateNotes = (gameId, notes, report, reportScreenshots) => {
