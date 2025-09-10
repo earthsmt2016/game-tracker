@@ -922,56 +922,80 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                       <div className={`space-y-2 overflow-y-auto ${showAllNotes ? 'max-h-[70vh]' : 'max-h-64'}`}>
                         {/* Categorized Notes with Related Milestones */}
                         {categorizedNotes.categorized.map((noteData, index) => {
-                          const noteIndex = game.notes?.findIndex(n => n.text === noteData.note.text && n.date === noteData.note.date) ?? -1;
+                          const noteIndex =
+                            game.notes?.findIndex(
+                              (n) => n.text === noteData.note.text && n.date === noteData.note.date
+                            ) ?? -1;
+
                           return (
-                          <div key={`cat-${index}`} className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800 hover:shadow-sm transition-shadow">
-                            <p className="text-sm text-slate-900 dark:text-slate-100 mb-2">{noteData.note.text}</p>
-                            <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
-                              <span>{safeFormat(noteData.note.date, 'MMM d, yyyy')}</span>
-                              {(noteData.note.hoursPlayed || noteData.note.minutesPlayed) && (
-                                <span className="text-violet-600 dark:text-violet-400 font-medium">
-                                  {noteData.note.hoursPlayed ? `${noteData.note.hoursPlayed}h` : ''}
-                                  {noteData.note.hoursPlayed && noteData.note.minutesPlayed ? ' ' : ''}
-                                  {noteData.note.minutesPlayed ? `${noteData.note.minutesPlayed}m` : ''}
-                                </span>
-                              )}
-                            </div>
-                            
-                            {/* Cleared Milestones */}
-                            {(() => {
-                              const clearedMilestones = (localMilestones || []).filter(m => 
-                                m && m.completed && m.triggeredByNote && m.triggeredByNote === noteData.note.text
-                              );
-                              return clearedMilestones.length > 0 ? (
-                                <div className="mt-2 space-y-1">
-                                  <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
-                                    <AlertCircle className="h-3 w-3 mr-1" />
-                                    Milestones Cleared by This Note:
-                                  </p>
-                                  {clearedMilestones.slice(0, 3).map((milestone) => (
-                                    <div key={milestone.id} className="text-xs text-slate-600 dark:text-slate-400 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800">
-                                      <span className="font-medium text-green-800 dark:text-green-300">{milestone.title}</span>
-                                      <span className="ml-2 text-green-600 dark:text-green-400">✓ Completed</span>
-                                    </div>
-                                  ))}
-                                </div>
-                              ) : null;
-                            })()}
-                            
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                if (noteIndex >= 0) {
-                                  deleteNote(noteIndex);
-                                }
-                              }}
-                              className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
-                              title="Delete Note"
+                            <div
+                              key={`cat-${index}`}
+                              className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800 hover:shadow-sm transition-shadow"
                             >
-                              <Trash2 className="h-3 w-3" />
-                            </button>
-                          </div>
-                        ))}
+                              <p className="text-sm text-slate-900 dark:text-slate-100 mb-2">
+                                {noteData.note.text}
+                              </p>
+                              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mb-2">
+                                <span>{safeFormat(noteData.note.date, "MMM d, yyyy")}</span>
+                                {(noteData.note.hoursPlayed || noteData.note.minutesPlayed) && (
+                                  <span className="text-violet-600 dark:text-violet-400 font-medium">
+                                    {noteData.note.hoursPlayed ? `${noteData.note.hoursPlayed}h` : ""}
+                                    {noteData.note.hoursPlayed && noteData.note.minutesPlayed ? " " : ""}
+                                    {noteData.note.minutesPlayed
+                                      ? `${noteData.note.minutesPlayed}m`
+                                      : ""}
+                                  </span>
+                                )}
+                              </div>
+
+                              {/* Cleared Milestones */}
+                              {(() => {
+                                const clearedMilestones = (localMilestones || []).filter(
+                                  (m) =>
+                                    m &&
+                                    m.completed &&
+                                    m.triggeredByNote &&
+                                    m.triggeredByNote === noteData.note.text
+                                );
+                                return clearedMilestones.length > 0 ? (
+                                  <div className="mt-2 space-y-1">
+                                    <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
+                                      <AlertCircle className="h-3 w-3 mr-1" />
+                                      Milestones Cleared by This Note:
+                                    </p>
+                                    {clearedMilestones.slice(0, 3).map((milestone) => (
+                                      <div
+                                        key={milestone.id}
+                                        className="text-xs text-slate-600 dark:text-slate-400 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800"
+                                      >
+                                        <span className="font-medium text-green-800 dark:text-green-300">
+                                          {milestone.title}
+                                        </span>
+                                        <span className="ml-2 text-green-600 dark:text-green-400">
+                                          ✓ Completed
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                ) : null;
+                              })()}
+
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  if (noteIndex >= 0) {
+                                    deleteNote(noteIndex);
+                                  }
+                                }}
+                                className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
+                                title="Delete Note"
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          );
+                        })}
+                        
                         
                         {/* Uncategorized Notes */}
                         {categorizedNotes.uncategorized.map((note, index) => {
