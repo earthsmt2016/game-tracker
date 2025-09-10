@@ -18,6 +18,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [reportScreenshots, setReportScreenshots] = useState([]);
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [newMilestoneDescription, setNewMilestoneDescription] = useState('');
+  const [localMilestones, setLocalMilestones] = useState([...game.milestones || []]);
   const [isRegeneratingMilestones, setIsRegeneratingMilestones] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingMilestoneUpdates, setPendingMilestoneUpdates] = useState([]);
@@ -56,6 +57,10 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     }
   }, [game]);
 
+  useEffect(() => {
+    setLocalMilestones([...game.milestones || []]);
+  }, [game.milestones]);
+
   const handleCoverUpdate = () => {
     if (!newCoverUrl.trim()) {
       toast.error('Please enter a valid image URL');
@@ -77,8 +82,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     setIsEditingCover(false);
   };
 
-  const completedMilestones = milestones.filter(m => m.completed).length;
-  const totalMilestones = milestones.length;
+  const completedMilestones = localMilestones.filter(m => m.completed).length;
+  const totalMilestones = localMilestones.length;
   const progressPercentage = totalMilestones > safeNumber(0) ? safeDivision(safeNumber(completedMilestones), safeNumber(totalMilestones)) * safeNumber(100) : safeNumber(0);
   const safeProgressPercentage = Number.isFinite(progressPercentage) && !isNaN(progressPercentage) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(progressPercentage)))) : safeNumber(0);
 
@@ -93,12 +98,12 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const toggleMilestone = (milestoneId) => {
-    const updatedMilestones = milestones.map(milestone =>
+    const updatedMilestones = localMilestones.map(milestone =>
       milestone.id === milestoneId
         ? { ...milestone, completed: !milestone.completed }
         : milestone
     );
-    setMilestones(updatedMilestones);
+    setLocalMilestones(updatedMilestones);
 
     const completedCount = updatedMilestones.filter(m => m.completed).length;
     const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
@@ -107,8 +112,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const deleteMilestone = (milestoneId) => {
-    const updatedMilestones = milestones.filter(m => m.id !== milestoneId);
-    setMilestones(updatedMilestones);
+    const updatedMilestones = localMilestones.filter(m => m.id !== milestoneId);
+    setLocalMilestones(updatedMilestones);
     const completedCount = updatedMilestones.filter(m => m.completed).length;
     const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
     onUpdateProgress(game.id, progress, updatedMilestones);
@@ -123,8 +128,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         description: newMilestoneDescription,
         completed: false
       };
-      const updatedMilestones = [...milestones, newMilestone];
-      setMilestones(updatedMilestones);
+      const updatedMilestones = [...localMilestones, newMilestone];
+      setLocalMilestones(updatedMilestones);
       const completedCount = updatedMilestones.filter(m => m.completed).length;
       const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
       onUpdateProgress(game.id, progress, updatedMilestones);
@@ -138,9 +143,16 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     setIsRegeneratingMilestones(true);
     try {
       const newMilestones = await generateMilestones(game.title);
-      setMilestones(newMilestones);
+      // Update local state immediately for better UX
+      setLocalMilestones(newMilestones);
+      
+      // Then update the parent component
       const completedCount = newMilestones.filter(m => m.completed).length;
-      const progress = newMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(newMilestones.length)) * safeNumber(100) : safeNumber(0);
+      const progress = newMilestones.length > safeNumber(0) 
+        ? safeDivision(safeNumber(completedCount), safeNumber(newMilestones.length)) * safeNumber(100) 
+        : safeNumber(0);
+      
+      // Update parent with the new milestones
       onUpdateProgress(game.id, progress, newMilestones);
       toast.success('Milestones regenerated successfully!');
     } catch (error) {
@@ -154,7 +166,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const handleGenerateReport = async () => {
     setIsGeneratingReport(true);
     try {
-      const generatedReport = await generateGameReport(game.title, milestones, game.notes || []);
+      const generatedReport = await generateGameReport(game.title, localMilestones, game.notes || []);
       setReport(generatedReport);
       setEditedReport(generatedReport);
       // Note: Automatic milestone completion removed to prevent unwanted auto-clearing
@@ -191,7 +203,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       };
       
       // Use enhanced milestone analysis
-      const suggestedMilestones = analyzeMilestoneFromNote(note, milestones);
+      const suggestedMilestones = analyzeMilestoneFromNote(note, localMilestones);
 
       if (suggestedMilestones.length > 0) {
         setPendingMilestoneUpdates(suggestedMilestones);
@@ -206,7 +218,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         toast.success('Note added successfully!');
         
         // Update categorized notes
-        const categorized = categorizeNotesByMilestones(updatedNotes, milestones);
+        const categorized = categorizeNotesByMilestones(updatedNotes, localMilestones);
         setCategorizedNotes(categorized);
       }
     }
@@ -215,12 +227,12 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const handleMilestoneDecision = (milestoneId, agree) => {
     setPendingMilestoneUpdates(prev => prev.filter(m => m.id !== milestoneId));
     if (agree) {
-      const updatedMilestones = milestones.map(milestone =>
+      const updatedMilestones = localMilestones.map(milestone =>
         milestone.id === milestoneId
           ? { ...milestone, completed: true, dateCompleted: new Date().toISOString(), triggeredByNote: newNote }
           : milestone
       );
-      setMilestones(updatedMilestones);
+      setLocalMilestones(updatedMilestones);
       
       const completedCount = updatedMilestones.filter(m => m.completed).length;
       const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
@@ -250,7 +262,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     toast.success('Note added successfully!');
     
     // Update categorized notes
-    const categorized = categorizeNotesByMilestones(updatedNotes, milestones);
+    const categorized = categorizeNotesByMilestones(updatedNotes, localMilestones);
     setCategorizedNotes(categorized);
   };
 
@@ -606,7 +618,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         <button
                           onClick={handleGenerateReport}
                           disabled={isGeneratingReport}
-                          className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                          className="inline-flex items-center space-x-2 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                           <FileText className="h-4 w-4" />
                           <span>{isGeneratingReport ? 'Generating...' : 'Generate AI Report'}</span>
@@ -702,13 +714,13 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                           onClick={() => setShowAllMilestones(!showAllMilestones)}
                           className="text-sm text-violet-600 hover:text-violet-700 font-medium"
                         >
-                          {showAllMilestones ? 'Show Less' : `Show All Milestones (${milestones.length})`}
+                          {showAllMilestones ? 'Show Less' : `Show All Milestones (${localMilestones.length})`}
                         </button>
                       </div>
 
                       <div className={`space-y-3 overflow-y-auto ${showAllMilestones ? 'max-h-[70vh]' : 'max-h-96'}`}>
-                        {milestones.length > safeNumber(0) ? (
-                          milestones.map((milestone, index) => (
+                        {localMilestones.length > safeNumber(0) ? (
+                          localMilestones.map((milestone, index) => (
                             <motion.div
                               key={milestone.id}
                               initial={{ opacity: 0, x: -20 }}
