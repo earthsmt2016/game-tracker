@@ -50,7 +50,41 @@ export const generateMilestones = async (gameTitle) => {
   try {
     const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25+ ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
 
-RESPONSE FORMAT: You MUST respond with a valid JSON array of milestone objects. The response must start with [ and end with ]. Do not include any markdown formatting, code blocks, or additional text outside the JSON array. The response must be valid JSON that can be parsed with JSON.parse().
+IMPORTANT: Your response MUST be a valid JSON array of milestone objects. Do not include any markdown formatting, code blocks, or additional text. The response should be parseable with JSON.parse().
+
+Required fields for each milestone:
+- title: string
+- description: string
+- action: string
+- category: string (story/exploration/gameplay/completion)
+- difficulty: string (easy/medium/hard/expert)
+- estimatedTime: number
+- progressionOrder: number
+- team: string
+- storyPath: string
+- gamePercentage: number (1-100)
+- prerequisites: string
+- reward: string
+
+Example milestone:
+{
+  "title": "Complete Seaside Hill with Team Sonic",
+  "description": "Navigate through the tropical paradise of Seaside Hill with Team Sonic, showcasing their unique abilities",
+  "action": "Switch between Speed, Power, and Flight formations to overcome obstacles and defeat enemies. Collect 200 rings for an A Rank.",
+  "category": "exploration",
+  "difficulty": "easy",
+  "estimatedTime": 30,
+  "progressionOrder": 1,
+  "team": "Team Sonic",
+  "storyPath": "Main Story",
+  "gamePercentage": 5,
+  "prerequisites": "N/A",
+  "reward": "Unlocks Ocean Palace"
+}
+
+Generate 25-30 milestones in the exact format shown above. The response must be valid JSON and nothing else. Do not include any markdown formatting or additional text.
+
+[The response must be valid JSON that can be parsed with JSON.parse().
 
 EXAMPLE RESPONSE:
 [
@@ -71,159 +105,24 @@ EXAMPLE RESPONSE:
   // ... more milestones
 ]
 
-IMPORTANT: The response must be valid JSON. Do not include any text outside the JSON array.
-
-ABSOLUTE REQUIREMENTS - ZERO GENERIC CONTENT:
-- You MUST generate AT LEAST 25 milestones - more are welcome if needed to cover the full game
-- The more milestones the better, as long as they are specific and meaningful
-- Ensure milestones are comprehensive and cover the entire game progression
-- Every milestone MUST use EXACT names, locations, characters, items from "${gameTitle}"
-- NO generic terms like "Complete tutorial", "Defeat first boss", "Unlock features"
-- Include SPECIFIC numbers, collectible names, character names, level names
-- Order by EXACT game progression (how the game actually flows)
-- Each milestone should be instantly recognizable to someone who has played this game
-- Ensure milestones are evenly distributed throughout the entire game
-- Include key story moments, major bosses, and significant gameplay milestones
-- For open-world games, include milestones for different regions/areas in the order they're typically explored
-
-FOR SONIC HEROES SPECIFICALLY:
-- Include specific team formations and abilities (e.g., "Use Team Sonic's Thunder Shoot")
-- Reference specific stage gimmicks (e.g., "Grind rails in Rail Canyon")
-- Include rank requirements for A ranks (e.g., "Get 100 rings in BINGO Highway")
-- Mention specific boss patterns (e.g., "Dodge Egg Emperor's laser sweep")
-- Include Chaos Emerald requirements for special stages
-- Reference specific team stories (Team Dark, Team Rose, Team Chaotix)
-
-GAME-SPECIFIC RESEARCH REQUIREMENTS:
-For Sonic Heroes: Seaside Hill, Ocean Palace, Grand Metropolis, Power Plant, Casino Park, BINGO Highway, Rail Canyon, Bullet Station, Frog Forest, Lost Jungle, Hang Castle, Mystic Mansion, Egg Fleet, Final Fortress, Team Blast abilities, Formation changes, Chaos Emeralds, Team Dark/Rose/Chaotix stories, Metal Overlord, Neo Metal Sonic
-
-For other games, research and include:
-- Exact level/stage names in order
-- Specific boss names and locations  
-- Unique items, weapons, abilities by their real names
-- Character progression systems
-- Collectible systems with exact names and quantities
-- Story beats with specific character/location names
-- Side content that's significant to game completion
-
-MILESTONE REQUIREMENTS:
-- MINIMUM 25 milestones, aim for 30-35 for comprehensive coverage
-- Each milestone must have a clear game percentage estimate (e.g., "~15%")
-- Team/group requirements must be clearly specified
-- Milestones should be evenly distributed across the game's progression
-
-MILESTONE DISTRIBUTION (25+ total):
-1. Early Game (6-8 milestones): 0-25% completion
-   - Tutorial areas and basic mechanics
-   - First major objectives
-   - Team-specific introductions
-   - First major upgrades/abilities
-
-2. Mid Game (9-12 milestones): 25-60% completion
-   - Major story beats
-   - Key character developments
-   - Team-specific storylines
-   - Major boss battles
-   - Important upgrades and abilities
-
-3. Late Game (6-8 milestones): 60-85% completion
-   - Climactic story moments
-   - Challenging boss encounters
-   - Team convergence points
-   - Major plot twists
-
-4. Endgame (4-5 milestones): 85-100% completion
-   - Final story missions
-   - True ending requirements
-   - Ultimate challenges
-   - Team-specific finales
-
-5. 100% Completion (4-6 milestones):
-   - All collectibles with exact numbers
-   - Max level/upgrades requirements
-   - Hidden areas and secret content
-   - Team-specific achievements
-   - Special challenges and time trials
-
-CRITICAL REQUIREMENTS FOR EACH MILESTONE:
-1. gamePercentage: REQUIRED - Must be a number 1-100 indicating game completion percentage (e.g., 15, 45, 80)
-2. team: REQUIRED - Specify team/group name (e.g., "Team Sonic", "Team Dark", "All Teams")
-3. storyPath: REQUIRED - Specify story path (e.g., "Main Story", "Team Story", "True Ending")
-
-Each milestone must also include:
-- title: Exact game terminology, character/location names (max 65 chars)
-- description: Specific context only players would know (max 150 chars)
-- action: Precise instructions using game-specific terms (max 200 chars)
-- category: "story", "exploration", "gameplay", or "completion"
-- difficulty: "easy", "medium", "hard", or "expert"
-- estimatedTime: realistic time in minutes from game start
-- progressionOrder: chronological sequence (1-35)
-- prerequisites: Any requirements or preparations needed
-- reward: What you get for completing this milestone
-
-IMPORTANT: If any milestone is missing gamePercentage, team, or storyPath, the game will break. These fields are required for every milestone.
-
-For games with multiple teams/groups:
-- Include milestones for each major team/group
-- Clearly mark which team each milestone belongs to
-- Include cross-team milestones where they intersect
-- For team-specific endings, create separate story paths
-
-For completion milestones, include specific requirements like:
-- Exact number of collectibles needed
-- Specific character levels or stats required
-- Hidden or missable content locations
-- Optimal strategies for challenging sections
-- Team composition requirements (if applicable)
-- Story path requirements for different endings
-
-EXAMPLES OF GOOD SPECIFICITY:
-Sonic Heroes: [
-  {
-    "title": "Defeat Egg Hawk in Ocean Palace",
-    "description": "First boss battle against Dr. Eggman's flying mech in Ocean Palace using Team Sonic's Thunder Shoot formation attack",
-    "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times. Use Speed formation to dodge missiles.",
-    "category": "story",
-    "difficulty": "easy",
-    "estimatedTime": 45,
-    "progressionOrder": 4,
-    "team": "Team Sonic",
-    "storyPath": "Main Story"
-  },
-  {
-    "title": "Complete BINGO Highway with Team Dark",
-    "description": "Navigate the pinball-themed highway while collecting 100 rings to achieve A Rank with Team Dark",
-    "action": "Use Rouge's flight to collect rings in the air, and Omega's firepower to defeat enemies. Time your jumps on the flippers to reach high areas.",
-    "category": "gameplay",
-    "difficulty": "medium",
-    "estimatedTime": 20,
-    "progressionOrder": 12,
-    "team": "Team Dark",
-    "storyPath": "Dark Story"
-  },
-  {
-    "title": "Unlock Super Hard Mode in Final Fortress",
-    "description": "Complete all Team Stories and collect all 7 Chaos Emeralds to unlock the true final story and Super Hard mode",
-    "action": "Replay stages to collect all Chaos Emeralds by completing Special Stages with all teams. Requires completing all Team Stories first.",
-    "category": "completion",
-    "difficulty": "hard",
-    "estimatedTime": 1200,
-    "progressionOrder": 28,
-    "team": "All Teams",
-    "storyPath": "Last Story"
-  }
-]
-
-Mario Odyssey: {"title": "Capture T-Rex in Cascade Kingdom", "description": "Use Cappy to possess the sleeping T-Rex near the Odyssey landing site to break blocks", "action": "Throw Cappy at the sleeping T-Rex's head, press Y to capture, use roar button to break stone blocks", "category": "gameplay", "difficulty": "easy", "estimatedTime": 15, "progressionOrder": 3}
-
 Return ONLY the JSON array with 25-30 game-specific milestones, properly formatted and in exact chronological order. The response must be valid JSON and nothing else.`;
 
     console.log('Attempting OpenAI API call for milestones...');
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: safeNumber(3000),
-      temperature: safeNumber(0.7),
+      messages: [
+        {
+          role: 'system',
+          content: 'You are a helpful assistant that generates detailed game milestones in JSON format.'
+        },
+        {
+          role: 'user',
+          content: prompt
+        }
+      ],
+      max_tokens: 4000, // Increased to handle larger responses
+      temperature: 0.7,
+      response_format: { type: 'json_object' } // Force JSON response format
     });
 
     console.log('OpenAI API response received successfully');
@@ -240,29 +139,53 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
       // Log the raw response for debugging (first 500 chars to avoid huge logs)
       console.log('Raw OpenAI API response (truncated):', responseContent.substring(0, 500) + (responseContent.length > 500 ? '...' : ''));
       
-      // Try to extract JSON from markdown code blocks if present
-      let jsonContent = responseContent.trim();
-      
+      // Clean and parse the response
       let parsed;
-      
       try {
         console.log('Attempting to parse JSON content...');
-        // First try to extract from markdown code blocks
-        const codeBlockMatch = jsonContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
-        if (codeBlockMatch && codeBlockMatch[1]) {
-          jsonContent = codeBlockMatch[1];
-          console.log('Extracted JSON from code block');
-        } else {
-          // If no code block, clean up the content
-          jsonContent = jsonContent
-            .replace(/^\s*```(?:json)?\s*/g, '')
-            .replace(/\s*```\s*$/g, '')
-            .trim();
-        }
         
-        // Use our robust JSON cleaner and parser
-        parsed = cleanAndParseJson(jsonContent);
-        console.log('Successfully parsed JSON content');
+        // If the response is a string, try to parse it as JSON
+        if (typeof responseContent === 'string') {
+          // Try to parse as is first
+          try {
+            parsed = JSON.parse(responseContent);
+            console.log('Successfully parsed direct JSON response');
+          } catch (e) {
+            // If that fails, try to extract JSON from markdown code blocks
+            const codeBlockMatch = responseContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
+            if (codeBlockMatch && codeBlockMatch[1]) {
+              console.log('Extracted JSON from code block');
+              parsed = JSON.parse(codeBlockMatch[1]);
+            } else {
+              // If no code block, try to clean and parse the content
+              const cleaned = responseContent
+                .replace(/^[\s\S]*?\[\s*{/, '{') // Remove everything before the first {
+                .replace(/}\s*\][\s\S]*$/, '}')  // Remove everything after the last }
+                .replace(/([^\\])\'/g, '$1\\\'')  // Escape single quotes
+                .replace(/\n/g, '\\n')           // Escape newlines
+                .replace(/\r/g, '\\r')           // Escape carriage returns
+                .replace(/\t/g, '\\t');           // Escape tabs
+              
+              // Try to parse as an array
+              try {
+                parsed = JSON.parse(`[${cleaned}]`);
+                console.log('Successfully parsed as JSON array');
+              } catch (e) {
+                // If that fails, try to parse as an object with a milestones array
+                try {
+                  parsed = { milestones: JSON.parse(`[${cleaned}]`) };
+                  console.log('Successfully parsed as milestones object');
+                } catch (e2) {
+                  console.error('Failed to parse JSON content:', e2);
+                  throw new Error('Could not parse the response as valid JSON');
+                }
+              }
+            }
+          }
+        } else {
+          // If it's not a string, use it as is
+          parsed = responseContent;
+        }
       } catch (e) {
         console.error('Failed to parse JSON content:', e);
         console.error('Problematic content:', jsonContent);
