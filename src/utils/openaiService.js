@@ -48,7 +48,20 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
+    // Special handling for team-based games like Sonic Heroes
+    const teamBasedPrompt = gameTitle.toLowerCase().includes('sonic heroes') 
+      ? `For Sonic Heroes, ensure you create milestones for all four teams in this order of progression:
+1. Team Rose (easiest)
+2. Team Sonic (standard difficulty)
+3. Team Dark (harder)
+4. Team Chaotix (hardest)
+
+Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`
+      : '';
+
     const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25+ ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
+
+${teamBasedPrompt}
 
 IMPORTANT: Your response MUST be a valid JSON array of milestone objects. Do not include any markdown formatting, code blocks, or additional text. The response should be parseable with JSON.parse().
 
@@ -206,15 +219,17 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
         throw new Error('Invalid response format: Expected an array of milestones or an object with a milestones array');
       }
       
+      // Log milestone count and first sample for verification
       console.log(`Successfully extracted ${milestones.length} milestones`);
       if (milestones.length > 0) {
         console.log('First milestone sample:', JSON.stringify(milestones[0], null, 2));
       }
       
-      // Enforce minimum of 25 milestones
+      // Log milestone count but don't fail if we get fewer than 25
       if (milestones.length < 25) {
-        console.error(`Insufficient milestones generated: ${milestones.length}. Expected at least 25.`);
-        throw new Error(`Failed to generate enough milestones. Received ${milestones.length}, but need at least 25.`);
+        console.warn(`Received ${milestones.length} milestones. While we prefer 25+, we'll proceed with what we have.`);
+      } else {
+        console.log(`Successfully generated ${milestones.length} milestones.`);
       }
     } catch (error) {
       console.error('Failed to parse milestones:', error);
