@@ -1,6 +1,33 @@
 import OpenAI from 'openai';
 import { safeNumber, safeDivision, safeArrayFilter, safePercentage } from './helpers';
 
+// Helper function to clean and validate JSON content
+const cleanAndParseJson = (jsonString) => {
+  try {
+    // Remove any control characters except newlines and tabs
+    let cleaned = jsonString.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
+    
+    // Fix common JSON issues
+    cleaned = cleaned
+      .replace(/([\{\,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3') // Add quotes around unquoted property names
+      .replace(/:\s*'([^']*)'/g, ': "$1"') // Convert single quotes to double quotes for strings
+      .replace(/([^\\])\\n/g, '$1\\\\n') // Escape newlines in strings
+      .replace(/,\s*([}\]])/g, '$1') // Remove trailing commas
+      .replace(/([^\\])\\u/g, '$1\\\\u') // Fix unicode escape sequences
+      .replace(/\\"/g, '\\"') // Ensure proper escaping of quotes
+      .replace(/\n/g, '\\n') // Escape newlines
+      .replace(/\r/g, '\\r') // Escape carriage returns
+      .replace(/\t/g, '\\t'); // Escape tabs
+    
+    // Try to parse the cleaned JSON
+    return JSON.parse(cleaned);
+  } catch (error) {
+    console.error('Failed to clean and parse JSON:', error);
+    console.error('Original content:', jsonString);
+    throw new Error('Failed to parse JSON response after cleaning');
+  }
+};
+
 console.log("VITE_OPENAI_API_KEY:", import.meta.env.VITE_OPENAI_API_KEY);
 
 const openai = new OpenAI({
@@ -218,27 +245,28 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
       
       let parsed;
       
-      // Try to parse directly first
       try {
-        console.log('Attempting direct JSON parse...');
-        parsed = JSON.parse(jsonContent);
-      } catch (e) {
-        console.log('Direct parse failed, trying to extract from markdown...');
-        // Try to extract from markdown code blocks
+        console.log('Attempting to parse JSON content...');
+        // First try to extract from markdown code blocks
         const codeBlockMatch = jsonContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
         if (codeBlockMatch && codeBlockMatch[1]) {
           jsonContent = codeBlockMatch[1];
           console.log('Extracted JSON from code block');
+        } else {
+          // If no code block, clean up the content
+          jsonContent = jsonContent
+            .replace(/^\s*```(?:json)?\s*/g, '')
+            .replace(/\s*```\s*$/g, '')
+            .trim();
         }
         
-        // Clean up the JSON string
-        jsonContent = jsonContent
-          .replace(/^\s*```(?:json)?\s*/g, '')  // Remove leading ``` or ```json
-          .replace(/\s*```\s*$/g, '')           // Remove trailing ```
-          .trim();
-        
-        console.log('Processing JSON content...');
-        parsed = JSON.parse(jsonContent);
+        // Use our robust JSON cleaner and parser
+        parsed = cleanAndParseJson(jsonContent);
+        console.log('Successfully parsed JSON content');
+      } catch (e) {
+        console.error('Failed to parse JSON content:', e);
+        console.error('Problematic content:', jsonContent);
+        throw new Error('Failed to parse the milestone data. The response format was not valid JSON.');
       }
       console.log('Successfully parsed JSON response');
       
