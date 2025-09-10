@@ -23,6 +23,29 @@ export const generateMilestones = async (gameTitle) => {
   try {
     const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25+ ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
 
+RESPONSE FORMAT: You MUST respond with a valid JSON array of milestone objects. Do not include any markdown formatting, code blocks, or additional text. The response should be parseable with JSON.parse().
+
+EXAMPLE RESPONSE:
+[
+  {
+    "title": "Defeat Egg Hawk in Ocean Palace",
+    "description": "First boss battle against Dr. Eggman's flying mech in Ocean Palace using Team Sonic's Thunder Shoot formation attack",
+    "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times. Use Speed formation to dodge missiles.",
+    "category": "story",
+    "difficulty": "easy",
+    "estimatedTime": 45,
+    "progressionOrder": 4,
+    "team": "Team Sonic",
+    "storyPath": "Main Story",
+    "gamePercentage": 15,
+    "prerequisites": "Complete Seaside Hill with Team Sonic",
+    "reward": "Unlocks access to Grand Metropolis"
+  },
+  // ... more milestones
+]
+
+IMPORTANT: The response must be valid JSON. Do not include any text outside the JSON array.
+
 ABSOLUTE REQUIREMENTS - ZERO GENERIC CONTENT:
 - You MUST generate AT LEAST 25 milestones - more are welcome if needed to cover the full game
 - The more milestones the better, as long as they are specific and meaningful
@@ -182,30 +205,48 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
     // Parse the response and ensure it's an array
     let milestones = [];
     try {
-      // Log the raw response for debugging
-      console.log('Raw OpenAI API response:', completion.choices[0].message.content);
+      const responseContent = completion.choices[0]?.message?.content;
+      if (!responseContent) {
+        throw new Error('Empty response from OpenAI API');
+      }
       
-      // Try to parse the response as JSON
-      if (typeof completion.choices[0].message.content === 'string') {
-        try {
-          const parsed = JSON.parse(completion.choices[0].message.content);
-          console.log('Parsed milestones:', parsed);
-          
-          if (Array.isArray(parsed)) {
-            milestones = parsed;
-          } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
-            milestones = parsed.milestones;
-          } else {
-            console.error('Unexpected response format from OpenAI API:', parsed);
-            throw new Error('Invalid response format from OpenAI API');
-          }
-          
-          console.log('Extracted milestones count:', milestones.length);
-        } catch (parseError) {
-          console.error('Failed to parse OpenAI response:', parseError);
-          console.error('Response content:', completion.choices[0].message.content);
-          throw new Error('Failed to parse milestones from OpenAI response');
-        }
+      // Log the raw response for debugging (first 500 chars to avoid huge logs)
+      console.log('Raw OpenAI API response (truncated):', responseContent.substring(0, 500) + (responseContent.length > 500 ? '...' : ''));
+      
+      // Try to extract JSON from markdown code blocks if present
+      let jsonContent = responseContent;
+      const codeBlockMatch = responseContent.match(/```(?:json)?\n([\s\S]*?)\n```/);
+      if (codeBlockMatch && codeBlockMatch[1]) {
+        jsonContent = codeBlockMatch[1];
+        console.log('Extracted JSON from code block');
+      }
+      
+      // Clean up the JSON string
+      jsonContent = jsonContent
+        .replace(/^\s*```json\s*/g, '')  // Remove leading ```json
+        .replace(/\s*```\s*$/g, '')       // Remove trailing ```
+        .trim();
+      
+      console.log('Processing JSON content...');
+      const parsed = JSON.parse(jsonContent);
+      console.log('Successfully parsed JSON response');
+      
+      // Handle different response formats
+      if (Array.isArray(parsed)) {
+        milestones = parsed;
+      } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
+        milestones = parsed.milestones;
+      } else if (typeof parsed === 'object' && Object.keys(parsed).length > 0) {
+        // Handle case where response is a single milestone object
+        milestones = [parsed];
+      } else {
+        console.error('Unexpected response format from OpenAI API:', parsed);
+        throw new Error('Invalid response format: Expected an array of milestones or an object with a milestones array');
+      }
+      
+      console.log(`Successfully extracted ${milestones.length} milestones`);
+      if (milestones.length > 0) {
+        console.log('First milestone sample:', JSON.stringify(milestones[0], null, 2));
       }
       
       // Enforce minimum of 25 milestones
