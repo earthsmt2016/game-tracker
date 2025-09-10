@@ -95,13 +95,12 @@ MILESTONE DISTRIBUTION (25+ total):
    - Team-specific achievements
    - Special challenges and time trials
 
-Each milestone must include:
-- Team/group requirement (if applicable)
-- Estimated game percentage when achieved
-- Specific conditions for completion
-- Any prerequisites or recommended preparations
+CRITICAL REQUIREMENTS FOR EACH MILESTONE:
+1. gamePercentage: REQUIRED - Must be a number 1-100 indicating game completion percentage (e.g., 15, 45, 80)
+2. team: REQUIRED - Specify team/group name (e.g., "Team Sonic", "Team Dark", "All Teams")
+3. storyPath: REQUIRED - Specify story path (e.g., "Main Story", "Team Story", "True Ending")
 
-FORMAT REQUIREMENTS:
+Each milestone must also include:
 - title: Exact game terminology, character/location names (max 65 chars)
 - description: Specific context only players would know (max 150 chars)
 - action: Precise instructions using game-specific terms (max 200 chars)
@@ -109,11 +108,10 @@ FORMAT REQUIREMENTS:
 - difficulty: "easy", "medium", "hard", or "expert"
 - estimatedTime: realistic time in minutes from game start
 - progressionOrder: chronological sequence (1-35)
-- team: REQUIRED - specify team/group name (e.g., "Team Sonic", "Team Dark", "All Teams")
-- storyPath: REQUIRED - specify story path (e.g., "Main Story", "Team Story", "True Ending")
-- gamePercentage: REQUIRED - estimated game completion percentage (e.g., 15, 45, 80)
 - prerequisites: Any requirements or preparations needed
 - reward: What you get for completing this milestone
+
+IMPORTANT: If any milestone is missing gamePercentage, team, or storyPath, the game will break. These fields are required for every milestone.
 
 For games with multiple teams/groups:
 - Include milestones for each major team/group
@@ -184,13 +182,29 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
     // Parse the response and ensure it's an array
     let milestones = [];
     try {
+      // Log the raw response for debugging
+      console.log('Raw OpenAI API response:', completion.choices[0].message.content);
+      
       // Try to parse the response as JSON
       if (typeof completion.choices[0].message.content === 'string') {
-        const parsed = JSON.parse(completion.choices[0].message.content);
-        if (Array.isArray(parsed)) {
-          milestones = parsed;
-        } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
-          milestones = parsed.milestones;
+        try {
+          const parsed = JSON.parse(completion.choices[0].message.content);
+          console.log('Parsed milestones:', parsed);
+          
+          if (Array.isArray(parsed)) {
+            milestones = parsed;
+          } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
+            milestones = parsed.milestones;
+          } else {
+            console.error('Unexpected response format from OpenAI API:', parsed);
+            throw new Error('Invalid response format from OpenAI API');
+          }
+          
+          console.log('Extracted milestones count:', milestones.length);
+        } catch (parseError) {
+          console.error('Failed to parse OpenAI response:', parseError);
+          console.error('Response content:', completion.choices[0].message.content);
+          throw new Error('Failed to parse milestones from OpenAI response');
         }
       }
       
@@ -204,8 +218,32 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
       throw new Error('Failed to parse milestones. Please check the OpenAI API response.');
     }
     
-    // Validate and format the milestones, sorting by progression order
-    const sortedMilestones = milestones.sort((a, b) => {
+    // Validate each milestone has required fields
+    const validatedMilestones = milestones.map((milestone, index) => {
+      const requiredFields = ['title', 'description', 'action', 'team', 'gamePercentage', 'storyPath'];
+      const missingFields = requiredFields.filter(field => !(field in milestone));
+      
+      if (missingFields.length > 0) {
+        console.error(`Milestone #${index + 1} is missing required fields:`, missingFields);
+        console.error('Milestone data:', milestone);
+        throw new Error(`Invalid milestone format: Missing required fields: ${missingFields.join(', ')}`);
+      }
+
+      // Ensure gamePercentage is a number between 1-100
+      const percentage = parseInt(milestone.gamePercentage, 10);
+      if (isNaN(percentage) || percentage < 1 || percentage > 100) {
+        console.error(`Invalid gamePercentage for milestone: ${milestone.title}`, milestone.gamePercentage);
+        throw new Error(`Invalid gamePercentage: ${milestone.gamePercentage}. Must be a number between 1-100`);
+      }
+
+      return {
+        ...milestone,
+        gamePercentage: percentage // Ensure it's a number
+      };
+    });
+
+    // Sort milestones by progression order
+    const sortedMilestones = [...validatedMilestones].sort((a, b) => {
       const orderA = typeof a.progressionOrder === 'number' ? a.progressionOrder : 999;
       const orderB = typeof b.progressionOrder === 'number' ? b.progressionOrder : 999;
       return orderA - orderB;
@@ -213,18 +251,21 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
     
     return sortedMilestones.map((milestone, index) => ({
       id: index + safeNumber(1),
-      title: typeof milestone.title === 'string' ? milestone.title : `Milestone ${index + safeNumber(1)}`,
+      title: milestone.title || `Milestone ${index + safeNumber(1)}`,
+      description: milestone.description || `Complete this objective in ${gameTitle}`,
+      action: milestone.action || `Complete this milestone in ${gameTitle}`,
+      category: ['story', 'exploration', 'gameplay', 'completion'].includes(milestone.category) ? milestone.category : 'gameplay',
+      difficulty: ['easy', 'medium', 'hard', 'expert'].includes(milestone.difficulty) ? milestone.difficulty : 'medium',
+      estimatedTime: Number.isInteger(milestone.estimatedTime) ? milestone.estimatedTime : 30,
+      progressionOrder: Number.isInteger(milestone.progressionOrder) ? milestone.progressionOrder : index + 1,
+      team: milestone.team || 'All Teams',
+      storyPath: milestone.storyPath || 'Main Story',
+      gamePercentage: Number.isInteger(milestone.gamePercentage) ? Math.min(100, Math.max(1, milestone.gamePercentage)) : 0,
       completed: false,
-      description: typeof milestone.description === 'string' ? milestone.description : `Brief milestone for ${gameTitle}`,
-      action: typeof milestone.action === 'string' ? milestone.action : `Complete this milestone in ${gameTitle}`,
-      category: typeof milestone.category === 'string' ? milestone.category : 'gameplay',
-      difficulty: typeof milestone.difficulty === 'string' ? milestone.difficulty : 'medium',
-      estimatedTime: typeof milestone.estimatedTime === 'number' ? milestone.estimatedTime : 30,
-      progressionOrder: typeof milestone.progressionOrder === 'number' ? milestone.progressionOrder : index + 1,
-      team: milestone.team || null,
-      gamePercentage: milestone.gamePercentage || null,
       dateCompleted: null,
-      triggeredByNote: null
+      triggeredByNote: null,
+      prerequisites: milestone.prerequisites || '',
+      reward: milestone.reward || ''
     }));
   } catch (error) {
     console.error('OpenAI API Error in generateMilestones:', error);

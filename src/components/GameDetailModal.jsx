@@ -32,6 +32,15 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
 
   useEffect(() => {
     if (game) {
+      console.log('Game data:', game);
+      console.log('Milestones:', game.milestones);
+      
+      // Log each milestone to check for gamePercentage
+      if (game.milestones && game.milestones.length > 0) {
+        console.log('First milestone:', game.milestones[0]);
+        console.log('Milestone properties:', Object.keys(game.milestones[0]));
+      }
+      
       setMilestones(game.milestones || []);
       setReport(game.report || null);
       setReportScreenshots(game.reportScreenshots || []);
