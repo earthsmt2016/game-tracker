@@ -21,10 +21,12 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
-    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25-30 ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
+    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25+ ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
 
 ABSOLUTE REQUIREMENTS - ZERO GENERIC CONTENT:
-- Generate EXACTLY 25-30 milestones that cover the full game progression
+- You MUST generate AT LEAST 25 milestones - more are welcome if needed to cover the full game
+- The more milestones the better, as long as they are specific and meaningful
+- Ensure milestones are comprehensive and cover the entire game progression
 - Every milestone MUST use EXACT names, locations, characters, items from "${gameTitle}"
 - NO generic terms like "Complete tutorial", "Defeat first boss", "Unlock features"
 - Include SPECIFIC numbers, collectible names, character names, level names
@@ -177,10 +179,30 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
     });
 
     console.log('OpenAI API response received successfully');
-    const content = response.choices[safeNumber(0)].message.content.trim();
+    const completion = response;
     
-    // Parse the JSON response
-    const milestones = JSON.parse(content);
+    // Parse the response and ensure it's an array
+    let milestones = [];
+    try {
+      // Try to parse the response as JSON
+      if (typeof completion.choices[0].message.content === 'string') {
+        const parsed = JSON.parse(completion.choices[0].message.content);
+        if (Array.isArray(parsed)) {
+          milestones = parsed;
+        } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
+          milestones = parsed.milestones;
+        }
+      }
+      
+      // Enforce minimum of 25 milestones
+      if (milestones.length < 25) {
+        console.error(`Insufficient milestones generated: ${milestones.length}. Expected at least 25.`);
+        throw new Error(`Failed to generate enough milestones. Received ${milestones.length}, but need at least 25.`);
+      }
+    } catch (error) {
+      console.error('Failed to parse milestones:', error);
+      throw new Error('Failed to parse milestones. Please check the OpenAI API response.');
+    }
     
     // Validate and format the milestones, sorting by progression order
     const sortedMilestones = milestones.sort((a, b) => {

@@ -741,12 +741,19 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                   
                                   {milestone.action && (
                                     <div className="mt-2 p-3 bg-blue-50 rounded-md">
-                                      <div className="flex justify-between items-center mb-1">
-                                        <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wider">How to Achieve</h4>
+                                      <div className="space-y-2">
+                                        <div className="flex justify-between items-center">
+                                          <h4 className="text-xs font-semibold text-blue-700 uppercase tracking-wider">How to Achieve</h4>
+                                        </div>
                                         {milestone.team && (
-                                          <span className="text-xs font-medium text-blue-700 bg-blue-100 px-2 py-0.5 rounded">
-                                            Team: {milestone.team}
-                                          </span>
+                                          <div className="flex items-center bg-blue-50 border border-blue-100 rounded px-3 py-1.5">
+                                            <span className="text-xs font-medium text-blue-700">
+                                              <span className="font-bold">Team: </span>
+                                              <span className="inline-flex items-center px-2 py-0.5 rounded bg-blue-100 text-blue-800 ml-1">
+                                                {milestone.team}
+                                              </span>
+                                            </span>
+                                          </div>
                                         )}
                                       </div>
                                       <p className="text-sm text-gray-700">{milestone.action}</p>
