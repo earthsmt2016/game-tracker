@@ -162,42 +162,12 @@ export const generateGameReport = async (gameTitle, milestones, notes, gamesThis
       return acc;
     }, {}) : {};
     
-    // Analyze notes to determine completed milestones
-    const promptForCompletion = `Based on the following notes for "${gameTitle}", determine which of these milestones might be completed. Consider the milestone categories, difficulty levels, and specific game terminology. Return a JSON array of milestone IDs that appear completed based on the notes.
+    // REMOVED: Automatic milestone completion analysis to prevent unwanted auto-clearing
+    // The AI will no longer automatically mark milestones as completed based on notes
+    // Users must manually confirm milestone completion through the suggestion system
 
-Milestones with Categories & Difficulty:
-${Array.isArray(milestones) ? milestones.map(m => `${m.id}: [${m.category || 'other'}] [${m.difficulty || 'medium'}] ${m.title} - ${m.description}`).join('\n') : ''}
-
-Category Progress: ${Object.entries(categoryBreakdown).map(([cat, data]) => `${cat}: ${data.completed}/${data.total}`).join(', ')}
-Difficulty Progress: ${Object.entries(difficultyBreakdown).map(([diff, data]) => `${diff}: ${data.completed}/${data.total}`).join(', ')}
-
-Screenshots: ${gamesThisWeek ? gamesThisWeek.reduce((total, game) => {
-  const noteScreenshots = Array.isArray(game.notes) ? game.notes.filter(n => n.screenshot).length : 0;
-  const reportScreenshots = Array.isArray(game.reportScreenshots) ? game.reportScreenshots.length : 0;
-  return total + noteScreenshots + reportScreenshots;
-}, 0) : 0} screenshots from notes and reports attached milestones
-
-Notes:
-${notesText || 'No notes provided'}
-
-Return only a JSON array of numbers (milestone IDs), no additional text.`;
-
-    console.log('Attempting OpenAI API call for milestone completion analysis...');
-    const completionResponse = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: promptForCompletion }],
-      max_tokens: safeNumber(500),
-      temperature: safeNumber(0.3),
-    });
-    console.log('Milestone completion analysis successful');
-
-    const completionContent = completionResponse.choices[safeNumber(0)].message.content.trim();
-    const completedIds = JSON.parse(completionContent);
-    const updatedMilestones = Array.isArray(milestones) ? milestones.map(m => ({
-      ...m,
-      completed: Array.isArray(completedIds) && completedIds.includes(m.id) ? true : m.completed
-    })) : [];
-    
+    // Use existing milestones without auto-completion
+    const updatedMilestones = Array.isArray(milestones) ? milestones : [];
     const completedMilestones = updatedMilestones.filter(m => m.completed);
     const completedCount = completedMilestones.length;
     
@@ -253,8 +223,8 @@ Return only the JSON object, no additional text.`;
       categoryInsights: typeof report.categoryInsights === 'object' ? report.categoryInsights : {},
       recommendedFocus: Array.isArray(report.recommendedFocus) ? report.recommendedFocus.map(r => typeof r === 'string' ? r : 'Recommendation') : [],
       categoryBreakdown,
-      difficultyBreakdown,
-      updatedMilestones
+      difficultyBreakdown
+      // Note: updatedMilestones removed to prevent auto-clearing of milestones
     };
   } catch (error) {
     // Fallback report

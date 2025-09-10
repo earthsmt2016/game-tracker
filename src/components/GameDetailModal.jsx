@@ -148,13 +148,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       const generatedReport = await generateGameReport(game.title, milestones, game.notes || []);
       setReport(generatedReport);
       setEditedReport(generatedReport);
-      // Update milestones based on notes analysis
-      if (generatedReport.updatedMilestones) {
-        setMilestones(generatedReport.updatedMilestones);
-        const completedCount = generatedReport.updatedMilestones.filter(m => m.completed).length;
-        const progress = generatedReport.updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(generatedReport.updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
-        onUpdateProgress(game.id, progress, generatedReport.updatedMilestones);
-      }
+      // Note: Automatic milestone completion removed to prevent unwanted auto-clearing
+      // Milestones will only be marked complete through manual user confirmation
       onUpdateNotes(game.id, game.notes || [], generatedReport, reportScreenshots);
       toast.success('AI report generated successfully!');
     } catch (error) {
