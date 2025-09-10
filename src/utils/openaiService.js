@@ -62,11 +62,19 @@ export const generateMilestones = async (gameTitle) => {
 Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`
       : '';
 
-    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate 25+ ultra-specific milestones that cover the ENTIRE progression of the game, from start to finish. Research the actual game content thoroughly to ensure accuracy and depth.
+    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate EXACTLY 15 key milestones that cover the main story progression and major gameplay moments. Each milestone must be meaningful, concise, and clearly indicate the team it belongs to in the title (e.g., "[Team Rose] Complete Tutorial").
 
 ${teamBasedPrompt}
 
-IMPORTANT: Your response MUST be a valid JSON array of milestone objects. Do not include any markdown formatting, code blocks, or additional text. The response should be parseable with JSON.parse().
+IMPORTANT:
+- Return EXACTLY 15 milestone objects in a JSON array
+- Each milestone MUST include the 'team' field with the team name
+- Include team name in the title (e.g., "[Team Rose] Complete Tutorial")
+- Keep titles under 10 words and descriptions under 2 sentences
+- Focus on major story beats and key progression points
+- Ensure milestones are properly ordered by progression (1-15)
+- Do not include markdown or additional text outside the JSON
+- Each milestone must include all required fields
 
 Required fields for each milestone:
 - title: string
@@ -82,46 +90,23 @@ Required fields for each milestone:
 - prerequisites: string
 - reward: string
 
-Example milestone:
-{
-  "title": "Complete Seaside Hill with Team Sonic",
-  "description": "Navigate through the tropical paradise of Seaside Hill with Team Sonic, showcasing their unique abilities",
-  "action": "Switch between Speed, Power, and Flight formations to overcome obstacles and defeat enemies. Collect 200 rings for an A Rank.",
-  "category": "exploration",
-  "difficulty": "easy",
-  "estimatedTime": 30,
-  "progressionOrder": 1,
-  "team": "Team Sonic",
-  "storyPath": "Main Story",
-  "gamePercentage": 5,
-  "prerequisites": "N/A",
-  "reward": "Unlocks Ocean Palace"
-}
+RULES:
+1. You MUST return EXACTLY 15 milestones - no more, no less
+2. Each milestone must have ALL required fields
+3. progressionOrder must be unique and sequential from 1 to 15
+4. gamePercentage should be roughly evenly distributed from 1-100%
+5. estimatedTime should be realistic (15-60 minutes)
+6. ALWAYS include the team name in the title (e.g., "[Team Rose] Complete First Mission")
+7. Keep descriptions under 2 sentences and actions under 3 sentences
+8. Use consistent team names throughout (Team Rose, Team Sonic, etc.)
+9. Ensure prerequisites reference actual milestone titles or game requirements
+10. Focus on major story beats and key progression points
+11. Each team should have a balanced number of milestones
+12. Include a mix of different categories (story, exploration, gameplay, completion)
 
-Generate 25-30 milestones in the exact format shown above. The response must be valid JSON and nothing else. Do not include any markdown formatting or additional text.
+Generate 15 milestones in the exact format shown above. The response must be valid JSON and nothing else. Do not include any markdown formatting or additional text.
 
-[The response must be valid JSON that can be parsed with JSON.parse().
-
-EXAMPLE RESPONSE:
-[
-  {
-    "title": "Defeat Egg Hawk in Ocean Palace",
-    "description": "First boss battle against Dr. Eggman's flying mech in Ocean Palace using Team Sonic's Thunder Shoot formation attack",
-    "action": "Use Team Blast when Egg Hawk hovers low, then switch to Power formation and jump attack the cockpit 3 times. Use Speed formation to dodge missiles.",
-    "category": "story",
-    "difficulty": "easy",
-    "estimatedTime": 45,
-    "progressionOrder": 4,
-    "team": "Team Sonic",
-    "storyPath": "Main Story",
-    "gamePercentage": 15,
-    "prerequisites": "Complete Seaside Hill with Team Sonic",
-    "reward": "Unlocks access to Grand Metropolis"
-  },
-  // ... more milestones
-]
-
-Return ONLY the JSON array with 25-30 game-specific milestones, properly formatted and in exact chronological order. The response must be valid JSON and nothing else.`;
+[The response must be valid JSON that can be parsed with JSON.parse().`;
 
     console.log(`Generating milestones for: ${gameTitle}`);
     const openai = getOpenAIClient();
@@ -229,9 +214,9 @@ Return ONLY the JSON array with 25-30 game-specific milestones, properly formatt
         console.log('First milestone sample:', JSON.stringify(milestones[0], null, 2));
       }
       
-      // Log milestone count but don't fail if we get fewer than 25
-      if (milestones.length < 25) {
-        console.warn(`Received ${milestones.length} milestones. While we prefer 25+, we'll proceed with what we have.`);
+      // Log milestone count but don't fail if we get fewer than 15
+      if (milestones.length < 15) {
+        console.warn(`Received ${milestones.length} milestones. While we prefer 15+, we'll proceed with what we have.`);
       } else {
         console.log(`Successfully generated ${milestones.length} milestones.`);
       }
