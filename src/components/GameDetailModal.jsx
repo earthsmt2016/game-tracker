@@ -321,7 +321,7 @@ const GameDetailModal = ({
       setReport(generatedReport);
       setEditedReport(generatedReport);
       // Note: Automatic milestone completion removed to prevent unwanted auto-clearing
-      // Milestones will only be marked complete through manual user confirmation
+      // Milestones will only be marked complete through manual user confirmations
       onUpdateNotes(game.id, game.notes || [], generatedReport, reportScreenshots);
       toast.success('AI report generated successfully!');
     } catch (error) {
