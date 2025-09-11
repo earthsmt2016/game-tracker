@@ -113,73 +113,93 @@ export const categorizeNotesByMilestones = (notes, milestones) => {
   
   const categorized = [];
   const uncategorized = [];
+  const processedNoteIds = new Set();
   
-  notes.forEach((note, index) => {
-    console.log(`\nProcessing note ${index + 1}:`, { 
-      noteText: note.text.substring(0, 50) + '...',
-      noteDate: note.date,
-      noteId: note.id
-    });
-    // First, check for explicitly triggered milestones (completed by this note)
+  // First pass: Process all notes and collect unique ones by milestone
+  const notesByMilestone = new Map();
+  
+  notes.forEach(note => {
+    if (!note?.id || processedNoteIds.has(note.id)) return;
+    processedNoteIds.add(note.id);
+    
+    // Check for milestones triggered by this note
     const triggeredMilestones = [];
     
-    // Check for milestones that were triggered by this note
-    let foundMatch = false;
-    milestones.forEach((milestone, mIndex) => {
-      if (!milestone || !milestone.triggeredByNote) return;
+    milestones.forEach(milestone => {
+      if (!milestone?.triggeredByNote) return;
       
-      // Handle different formats of triggeredByNote
-      if (!milestone || !milestone.triggeredByNote) return;
-      
-      console.log(`  Checking milestone ${mIndex + 1}:`, {
-        milestoneId: milestone.id,
-        milestoneTitle: milestone.title,
-        triggeredByNote: milestone.triggeredByNote,
-        milestoneCompleted: milestone.completed
-      });
-      
-      if (typeof milestone.triggeredByNote === 'string') {
-        if (milestone.triggeredByNote === note.text) {
-          console.log('    ✅ Matched milestone by string comparison');
-          triggeredMilestones.push(milestone);
-          foundMatch = true;
-        }
-      } else if (milestone.triggeredByNote && milestone.triggeredByNote.text) {
-        if (milestone.triggeredByNote.text === note.text) {
-          console.log('    ✅ Matched milestone by object comparison');
-          triggeredMilestones.push(milestone);
-          foundMatch = true;
-        }
+      const isMatch = typeof milestone.triggeredByNote === 'string'
+        ? milestone.triggeredByNote === note.text
+        : milestone.triggeredByNote?.text === note.text;
+        
+      if (isMatch) {
+        triggeredMilestones.push(milestone);
       }
     });
     
     if (triggeredMilestones.length > 0) {
-      console.log(`  Found ${triggeredMilestones.length} matching milestones for note`);
-      categorized.push({
-        note,
-        relatedMilestones: triggeredMilestones,
-        primaryMilestone: triggeredMilestones[0],
-        isTriggered: true
-      });
-    } else {
-      console.log('  No matching milestones found for note');
-      // If no explicitly triggered milestones, try to find related ones
-      const matches = analyzeMilestoneFromNote(note, milestones);
-      if (matches.length > 0) {
-        // Only suggest milestones that aren't already completed
-        const suggestedMilestones = matches.filter(m => !m.completed);
-        if (suggestedMilestones.length > 0) {
-          categorized.push({
-            note,
-            relatedMilestones: suggestedMilestones.slice(0, 3), // Top 3 matches
-            primaryMilestone: suggestedMilestones[0]
-          });
-          return; // Skip adding to uncategorized
+      triggeredMilestones.forEach(milestone => {
+        if (!notesByMilestone.has(milestone.id)) {
+          notesByMilestone.set(milestone.id, { note, milestone });
         }
-      }
-      // If we get here, no relevant milestones were found
-      uncategorized.push(note);
+      });
     }
+  });
+  
+  // Second pass: Process unique notes and build the final result
+  const processedNotes = new Set();
+  
+  // First, add all notes that triggered milestones (without duplicates)
+  for (const [milestoneId, { note, milestone }] of notesByMilestone) {
+    if (processedNotes.has(note.id)) continue;
+    
+    const existingEntry = categorized.find(c => 
+      c.note.id === note.id || 
+      c.relatedMilestones.some(m => m.id === milestoneId)
+    );
+    
+    if (!existingEntry) {
+      const allMilestones = Array.from(notesByMilestone.entries())
+        .filter(([_, { note: n }]) => n.id === note.id)
+        .map(([_, { milestone: m }]) => m);
+      
+      if (allMilestones.length > 0) {
+        categorized.push({
+          note,
+          relatedMilestones: allMilestones,
+          primaryMilestone: allMilestones[0],
+          isTriggered: true
+        });
+        processedNotes.add(note.id);
+      }
+    }
+  }
+  
+  // Then process remaining notes that didn't trigger milestones
+  notes.forEach(note => {
+    if (processedNotes.has(note.id)) return;
+    
+    const matches = analyzeMilestoneFromNote(note, milestones);
+    if (matches.length > 0) {
+      // Only suggest milestones that aren't already completed or used
+      const suggestedMilestones = matches
+        .filter(m => !m.completed && !notesByMilestone.has(m.id))
+        .slice(0, 3);
+        
+      if (suggestedMilestones.length > 0) {
+        categorized.push({
+          note,
+          relatedMilestones: suggestedMilestones,
+          primaryMilestone: suggestedMilestones[0],
+          isTriggered: false
+        });
+        processedNotes.add(note.id);
+        return;
+      }
+    }
+    
+    // If we get here, no relevant milestones were found
+    uncategorized.push(note);
   });
   
   return { categorized, uncategorized };
