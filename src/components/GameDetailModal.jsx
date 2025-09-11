@@ -1007,19 +1007,19 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               {/* Cleared Milestones */}
                               {noteData.isTriggered ? (
                                 <div className="mt-2 space-y-1">
-                                  <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
+                                  <p className="text-xs font-medium text-slate-900 dark:text-slate-100 flex items-center">
                                     <AlertCircle className="h-3 w-3 mr-1" />
                                     Milestones Cleared by This Note:
                                   </p>
                                   {noteData.relatedMilestones.map((milestone) => (
                                     <div
                                       key={milestone.id}
-                                      className="text-xs text-slate-600 dark:text-slate-400 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800"
+                                      className="text-xs text-slate-900 dark:text-slate-100 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800"
                                     >
-                                      <span className="font-medium text-green-800 dark:text-green-300">
+                                      <span className="font-medium text-slate-900 dark:text-slate-100">
                                         {milestone.title}
                                       </span>
-                                      <span className="ml-2 text-green-600 dark:text-green-400">
+                                      <span className="ml-2 text-slate-700 dark:text-slate-300">
                                         {milestone.completed ? '✓ Completed' : 'Pending'}
                                       </span>
                                     </div>
@@ -1151,13 +1151,13 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                           ) : (
                             <div className="space-y-4">
                               <div className="p-4 bg-indigo-50 dark:bg-indigo-900/20 rounded-lg">
-                                <h4 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-2">Summary</h4>
-                                <p className="text-sm text-indigo-700 dark:text-indigo-400">{report.summary}</p>
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Summary</h4>
+                                <p className="text-sm text-slate-900 dark:text-slate-100">{report.summary}</p>
                               </div>
 
                               <div className="p-4 bg-green-50 dark:bg-green-900/20 rounded-lg">
-                                <h4 className="font-semibold text-green-800 dark:text-green-300 mb-2">Key Highlights</h4>
-                                <ul className="text-sm text-green-700 dark:text-green-400 space-y-1">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Key Highlights</h4>
+                                <ul className="text-sm text-slate-900 dark:text-slate-100 space-y-1">
                                   {report.highlights.map((highlight, index) => (
                                     <li key={index} className="flex items-start">
                                       <span className="mr-2">•</span>
@@ -1168,8 +1168,8 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               </div>
 
                               <div className="p-4 bg-orange-50 dark:bg-orange-900/20 rounded-lg">
-                                <h4 className="font-semibold text-orange-800 dark:text-orange-300 mb-2">Next Steps</h4>
-                                <ul className="text-sm text-orange-700 dark:text-orange-400 space-y-1">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Next Steps</h4>
+                                <ul className="text-sm text-slate-900 dark:text-slate-100 space-y-1">
                                   {report.nextSteps.map((step, index) => (
                                     <li key={index} className="flex items-start">
                                       <span className="mr-2">•</span>
@@ -1180,13 +1180,13 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               </div>
 
                               <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-                                <h4 className="font-semibold text-blue-800 dark:text-blue-300 mb-2">Detailed Analysis</h4>
-                                <p className="text-sm text-blue-700 dark:text-blue-400">{report.detailedAnalysis}</p>
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Detailed Analysis</h4>
+                                <p className="text-sm text-slate-900 dark:text-slate-100">{report.detailedAnalysis}</p>
                               </div>
 
                               <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg">
-                                <h4 className="font-semibold text-purple-800 dark:text-purple-300 mb-2">Achievements</h4>
-                                <ul className="text-sm text-purple-700 dark:text-purple-400 space-y-1">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Achievements</h4>
+                                <ul className="text-sm text-slate-900 dark:text-slate-100 space-y-1">
                                   {report.achievements.map((achievement, index) => (
                                     <li key={index} className="flex items-start">
                                       <span className="mr-2">•</span>
@@ -1197,8 +1197,8 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               </div>
 
                               <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg">
-                                <h4 className="font-semibold text-red-800 dark:text-red-300 mb-2">Challenges Faced</h4>
-                                <ul className="text-sm text-red-700 dark:text-red-400 space-y-1">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Challenges Faced</h4>
+                                <ul className="text-sm text-slate-900 dark:text-slate-100 space-y-1">
                                   {report.challenges.map((challenge, index) => (
                                     <li key={index} className="flex items-start">
                                       <span className="mr-2">•</span>
@@ -1209,8 +1209,8 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               </div>
 
                               <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg">
-                                <h4 className="font-semibold text-yellow-800 dark:text-yellow-300 mb-2">Future Goals</h4>
-                                <ul className="text-sm text-yellow-700 dark:text-yellow-400 space-y-1">
+                                <h4 className="font-semibold text-slate-900 dark:text-slate-100 mb-2">Future Goals</h4>
+                                <ul className="text-sm text-slate-900 dark:text-slate-100 space-y-1">
                                   {report.futureGoals.map((goal, index) => (
                                     <li key={index} className="flex items-start">
                                       <span className="mr-2">•</span>

@@ -115,15 +115,21 @@ export const categorizeNotesByMilestones = (notes, milestones) => {
     
     // Check for milestones that were triggered by this note
     milestones.forEach(milestone => {
-      if (milestone && milestone.triggeredByNote) {
-        // Handle both direct string comparison and object comparison
-        if (typeof milestone.triggeredByNote === 'string') {
-          if (milestone.triggeredByNote === note.text) {
+      if (!milestone || !milestone.triggeredByNote) return;
+      
+      // Handle different formats of triggeredByNote
+      if (typeof milestone.triggeredByNote === 'string') {
+        // If triggeredByNote is a string, check if it matches the note's text
+        if (milestone.triggeredByNote === note.text) {
+          triggeredMilestones.push(milestone);
+        }
+      } else if (milestone.triggeredByNote.text) {
+        // If triggeredByNote is an object with text property
+        if (milestone.triggeredByNote.text === note.text) {
+          // If date exists, check it too, otherwise just match on text
+          if (!milestone.triggeredByNote.date || milestone.triggeredByNote.date === note.date) {
             triggeredMilestones.push(milestone);
           }
-        } else if (milestone.triggeredByNote.text === note.text && 
-                  milestone.triggeredByNote.date === note.date) {
-          triggeredMilestones.push(milestone);
         }
       }
     });
@@ -139,14 +145,19 @@ export const categorizeNotesByMilestones = (notes, milestones) => {
       // If no explicitly triggered milestones, try to find related ones
       const matches = analyzeMilestoneFromNote(note, milestones);
       if (matches.length > 0) {
-        categorized.push({
-          note,
-          relatedMilestones: matches.slice(0, 3), // Top 3 matches
-          primaryMilestone: matches[0]
-        });
-      } else {
-        uncategorized.push(note);
+        // Only suggest milestones that aren't already completed
+        const suggestedMilestones = matches.filter(m => !m.completed);
+        if (suggestedMilestones.length > 0) {
+          categorized.push({
+            note,
+            relatedMilestones: suggestedMilestones.slice(0, 3), // Top 3 matches
+            primaryMilestone: suggestedMilestones[0]
+          });
+          return; // Skip adding to uncategorized
+        }
       }
+      // If we get here, no relevant milestones were found
+      uncategorized.push(note);
     }
   });
   
