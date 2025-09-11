@@ -246,21 +246,38 @@ const Reports = () => {
   };
 
   const exportPDF = () => {
-    const doc = new jsPDF();
-    let yPosition = safeNumber(20);
-    const lineHeight = safeNumber(7); // Slightly reduced line height
-    const pageHeight = doc.internal.pageSize.height - 30; // Increased bottom margin
-    const leftMargin = safeNumber(15); // Reduced left margin
-    const rightMargin = safeNumber(15); // Reduced right margin
-    const maxWidth = doc.internal.pageSize.width - leftMargin - rightMargin;
+    // Initialize PDF with better defaults
+    const doc = new jsPDF({
+      orientation: 'portrait',
+      unit: 'mm',
+      format: 'a4'
+    });
     
+    // Set margins and spacing
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const leftMargin = 10; // 10mm margin
+    const rightMargin = 10; // 10mm margin
+    const topMargin = 15; // 15mm from top
+    const maxWidth = pageWidth - leftMargin - rightMargin;
+    let yPosition = topMargin;
+    const lineHeight = 5; // Fixed line height in mm
+    const sectionSpacing = 8; // Space between sections
+    
+    // Helper function to add text with wrapping and page breaks
     const addTextWithWrapping = (text, y, options = {}) => {
       const { 
         x = leftMargin, 
-        maxY = pageHeight, 
+        maxY = pageHeight - 20, // Leave bottom margin
         lineHeight: customLineHeight = lineHeight,
-        maxWidth: customMaxWidth = maxWidth
+        maxWidth: customMaxWidth = maxWidth,
+        align = 'left',
+        style = 'normal'
       } = options;
+      
+      // Set font style
+      const currentFont = doc.getFont();
+      doc.setFont(currentFont.fontName, style);
       
       // Ensure text is a string
       const textStr = String(text || '');
@@ -270,27 +287,51 @@ const Reports = () => {
       
       for (let i = 0; i < splitText.length; i++) {
         // Check if we need a new page
-        if (y > maxY - customLineHeight) {
+        if (y > maxY) {
           doc.addPage();
-          y = 20; // Reset Y position for new page
+          y = topMargin;
         }
         
-        doc.text(splitText[i], x, y);
+        // Add text with specified alignment
+        if (align === 'center') {
+          const textWidth = doc.getTextWidth(splitText[i]);
+          const centerX = (pageWidth - textWidth) / 2;
+          doc.text(splitText[i], centerX, y);
+        } else if (align === 'right') {
+          const textWidth = doc.getTextWidth(splitText[i]);
+          const rightX = pageWidth - rightMargin - textWidth;
+          doc.text(splitText[i], rightX, y);
+        } else {
+          doc.text(splitText[i], x, y);
+        }
+        
         y += customLineHeight;
       }
       
-      return y; // Return the new Y position
+      return y;
     };
 
-    // Set up fonts and styles
+    // Title
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(14); // Slightly smaller title
-    yPosition = addTextWithWrapping('Gaming Reports Summary', yPosition, { 
+    doc.setFontSize(16);
+    yPosition = addTextWithWrapping('Gaming Reports Summary', yPosition, {
+      align: 'center',
       lineHeight: lineHeight * 1.5,
-      maxWidth: maxWidth - 10 // Slightly narrower to ensure it fits
+      maxWidth: maxWidth,
+      style: 'bold'
     });
+    
+    // Date range
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10); // Smaller base font size
+    doc.setFontSize(10);
+    const dateRange = `${format(weekStart, 'MMM d, yyyy')} - ${format(weekEnd, 'MMM d, yyyy')}`;
+    yPosition = addTextWithWrapping(dateRange, yPosition, {
+      align: 'center',
+      lineHeight: lineHeight * 1.2,
+      maxWidth: maxWidth
+    });
+    
+    yPosition += sectionSpacing;
 
     const weeklyData = generateWeeklyData() || [];
     const gamesThisWeekLocal = gamesThisWeek || [];
@@ -312,133 +353,152 @@ const Reports = () => {
       return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg * 100) / 100));
     })();
 
-    // Add summary stats with more compact formatting
-    const stats = [
-      `Total Games: ${gamesThisWeekLocal.length}`,
-      `Completed: ${gamesThisWeekLocal.filter(g => g.status === 'completed').length}`,
-      `In Progress: ${gamesThisWeekLocal.filter(g => g.status === 'playing').length}`,
-      `Avg Progress: ${(Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0))}%`
-    ];
+    // Stats section
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    yPosition = addTextWithWrapping('Summary Statistics', yPosition + sectionSpacing, {
+      lineHeight: lineHeight * 1.3,
+      maxWidth: maxWidth,
+      style: 'bold'
+    });
     
-    // Add stats in a more compact format
-    const statsPerLine = 2;
-    for (let i = 0; i < stats.length; i += statsPerLine) {
-      const lineStats = [];
-      for (let j = 0; j < statsPerLine && (i + j) < stats.length; j++) {
-        lineStats.push(stats[i + j]);
-      }
-      yPosition = addTextWithWrapping(
-        `• ${lineStats.join('   •   ')}`,
-        yPosition,
-        { maxWidth: maxWidth - 5 } // Slightly reduced width for bullet points
-      );
-    }
-    yPosition += safeNumber(lineHeight); // Add extra space
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    
+    // Calculate column widths
+    const col1Width = maxWidth * 0.5;
+    const col2Width = maxWidth * 0.5;
+    
+    const addStatLine = (label, value, y) => {
+      y = addTextWithWrapping(label, y, {
+        maxWidth: col1Width,
+        lineHeight: lineHeight
+      });
+      
+      return addTextWithWrapping(value, y, {
+        x: leftMargin + col1Width,
+        maxWidth: col2Width,
+        lineHeight: lineHeight
+      });
+    };
+    
+    // Add stats in two columns
+    let currentY = yPosition;
+    currentY = addStatLine('• Total Games:', gamesThisWeekLocal.length.toString(), currentY);
+    currentY = addStatLine('• Completed:', gamesThisWeekLocal.filter(g => g.status === 'completed').length.toString(), currentY);
+    currentY = addStatLine('• In Progress:', gamesThisWeekLocal.filter(g => g.status === 'playing').length.toString(), currentY);
+    currentY = addStatLine('• Avg Progress:', 
+      `${(Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : 0).toFixed(1)}%`,
+      currentY
+    );
+    
+    yPosition = currentY + sectionSpacing;
 
     if (weeklyReport?.summary) {
       // Add section header with more space
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11); // Slightly smaller for section headers
-      yPosition = addTextWithWrapping('WEEKLY REPORT SUMMARY', yPosition + 8, { 
+      doc.setFontSize(12);
+      yPosition = addTextWithWrapping('WEEKLY SUMMARY', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth - 5
+        maxWidth: maxWidth,
+        style: 'bold'
       });
-      doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9); // Smaller font for content
       
-      // Add summary with proper wrapping and smaller line height
-      yPosition = addTextWithWrapping(weeklyReport.summary, yPosition, {
-        lineHeight: lineHeight * 0.9,
-        maxWidth: maxWidth - 5
-      });
-      yPosition += safeNumber(lineHeight) * 1.5; // Add more space after section
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      // Add highlights section with better spacing
-      doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      yPosition = addTextWithWrapping('HIGHLIGHTS', yPosition + 5, { 
-        lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth - 5
-      });
+      // Add summary with proper wrapping
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
+      yPosition = addTextWithWrapping(weeklyReport.summary, yPosition, {
+        lineHeight: lineHeight * 1.1,
+        maxWidth: maxWidth
+      });
+      yPosition += sectionSpacing;
+
+      // Add highlights section
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      yPosition = addTextWithWrapping('HIGHLIGHTS', yPosition + sectionSpacing, {
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth,
+        style: 'bold'
+      });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
       
       (weeklyReport.highlights || []).forEach((highlight) => {
         yPosition = addTextWithWrapping(`• ${highlight}`, yPosition, {
-          lineHeight: lineHeight * 0.9,
-          maxWidth: maxWidth - 10 // Indent bullet points slightly
+          lineHeight: lineHeight * 1.1,
+          maxWidth: maxWidth - 5,
+          x: leftMargin + 5
         });
       });
+      yPosition += sectionSpacing / 2;
       yPosition += safeNumber(lineHeight);
 
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      // Add progress section with better spacing
+      // Add progress section
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      yPosition = addTextWithWrapping('PROGRESS', yPosition + 5, { 
+      doc.setFontSize(12);
+      yPosition = addTextWithWrapping('PROGRESS', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth - 5
+        maxWidth: maxWidth,
+        style: 'bold'
       });
+      
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       
       (weeklyReport.progress || []).forEach((prog) => {
         yPosition = addTextWithWrapping(`• ${prog}`, yPosition, {
-          lineHeight: lineHeight * 0.9,
-          maxWidth: maxWidth - 10 // Indent bullet points slightly
+          lineHeight: lineHeight * 1.1,
+          maxWidth: maxWidth - 5,
+          x: leftMargin + 5
         });
       });
+      yPosition += sectionSpacing / 2;
       yPosition += safeNumber(lineHeight);
 
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      // Add insights section with better spacing
+      // Add insights section
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      yPosition = addTextWithWrapping('INSIGHTS', yPosition + 5, { 
+      doc.setFontSize(12);
+      yPosition = addTextWithWrapping('INSIGHTS', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth - 5
+        maxWidth: maxWidth,
+        style: 'bold'
       });
+      
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       
       (weeklyReport.insights || []).forEach((insight) => {
         yPosition = addTextWithWrapping(`• ${insight}`, yPosition, {
-          lineHeight: lineHeight * 0.9,
-          maxWidth: maxWidth - 10 // Indent bullet points slightly
+          lineHeight: lineHeight * 1.1,
+          maxWidth: maxWidth - 5,
+          x: leftMargin + 5
         });
       });
+      yPosition += sectionSpacing / 2;
       yPosition += safeNumber(lineHeight);
 
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      // Add next week goals section with better spacing
+      // Add next week goals section
       doc.setFont('helvetica', 'bold');
-      doc.setFontSize(11);
-      yPosition = addTextWithWrapping('NEXT WEEK GOALS', yPosition + 5, { 
+      doc.setFontSize(12);
+      yPosition = addTextWithWrapping('NEXT WEEK GOALS', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth - 5
+        maxWidth: maxWidth,
+        style: 'bold'
       });
+      
       doc.setFont('helvetica', 'normal');
-      doc.setFontSize(9);
+      doc.setFontSize(10);
       
       (weeklyReport.nextWeekGoals || []).forEach((goal) => {
         yPosition = addTextWithWrapping(`• ${goal}`, yPosition, {
-          lineHeight: lineHeight * 0.9,
-          maxWidth: maxWidth - 10 // Indent bullet points slightly
+          lineHeight: lineHeight * 1.1,
+          maxWidth: maxWidth - 5,
+          x: leftMargin + 5
         });
       });
+      yPosition += sectionSpacing;
     }
 
     // Add notes and screenshots from games this week
