@@ -253,58 +253,77 @@ const Reports = () => {
       format: 'a4'
     });
     
-    // Set margins and spacing
-    const pageWidth = doc.internal.pageSize.getWidth();
-    const pageHeight = doc.internal.pageSize.getHeight();
-    const leftMargin = 10; // 10mm margin
-    const rightMargin = 10; // 10mm margin
-    const topMargin = 15; // 15mm from top
-    const maxWidth = pageWidth - leftMargin - rightMargin;
-    let yPosition = topMargin;
-    const lineHeight = 5; // Fixed line height in mm
-    const sectionSpacing = 8; // Space between sections
+    try {
+      
+      // Set margins and spacing
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const leftMargin = 15; // 15mm margin
+      const rightMargin = 15; // 15mm margin
+      const topMargin = 20; // 20mm from top
+      const bottomMargin = 20; // 20mm from bottom
+      const maxWidth = pageWidth - leftMargin - rightMargin;
+      let yPosition = topMargin;
+      const lineHeight = 5; // Base line height in mm
+      const sectionSpacing = 8; // Space between sections
+      const paragraphSpacing = 4; // Space between paragraphs
     
     // Helper function to add text with wrapping and page breaks
     const addTextWithWrapping = (text, y, options = {}) => {
       const { 
         x = leftMargin, 
-        maxY = pageHeight - 20, // Leave bottom margin
+        maxY = pageHeight - bottomMargin,
         lineHeight: customLineHeight = lineHeight,
         maxWidth: customMaxWidth = maxWidth,
         align = 'left',
-        style = 'normal'
+        style = 'normal',
+        bulletPoint = false
       } = options;
       
       // Set font style
       const currentFont = doc.getFont();
       doc.setFont(currentFont.fontName, style);
       
-      // Ensure text is a string
-      const textStr = String(text || '');
+      // Ensure text is a string and trim whitespace
+      const textStr = String(text || '').trim();
+      if (!textStr) return y;
+      
+      // Add bullet point if needed
+      const displayText = bulletPoint && !textStr.startsWith('•') ? `• ${textStr}` : textStr;
       
       // Split text into lines that fit within maxWidth
-      const splitText = doc.splitTextToSize(textStr, customMaxWidth);
+      const splitText = doc.splitTextToSize(displayText, customMaxWidth - (bulletPoint ? 5 : 0));
       
       for (let i = 0; i < splitText.length; i++) {
         // Check if we need a new page
-        if (y > maxY) {
+        if (y + customLineHeight > maxY) {
           doc.addPage();
           y = topMargin;
+        }
+        
+        // Calculate x position based on alignment and bullet point
+        let textX = x;
+        if (bulletPoint && i === 0) {
+          textX = x + 5; // Indent bullet points
         }
         
         // Add text with specified alignment
         if (align === 'center') {
           const textWidth = doc.getTextWidth(splitText[i]);
-          const centerX = (pageWidth - textWidth) / 2;
-          doc.text(splitText[i], centerX, y);
+          textX = (pageWidth - textWidth) / 2;
         } else if (align === 'right') {
           const textWidth = doc.getTextWidth(splitText[i]);
-          const rightX = pageWidth - rightMargin - textWidth;
-          doc.text(splitText[i], rightX, y);
-        } else {
-          doc.text(splitText[i], x, y);
+          textX = pageWidth - rightMargin - textWidth;
         }
         
+        // Ensure text doesn't go off the page
+        const textWidth = doc.getTextWidth(splitText[i]);
+        if (textX + textWidth > pageWidth - rightMargin) {
+          textX = pageWidth - rightMargin - textWidth - 1;
+        }
+        
+        // Draw the text
+        doc.text(splitText[i], textX, y);
         y += customLineHeight;
       }
       
@@ -313,13 +332,20 @@ const Reports = () => {
 
     // Title
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    yPosition = addTextWithWrapping('Gaming Reports Summary', yPosition, {
+    doc.setFontSize(18);
+    yPosition = addTextWithWrapping('GAMING REPORTS SUMMARY', yPosition, {
       align: 'center',
       lineHeight: lineHeight * 1.5,
       maxWidth: maxWidth,
       style: 'bold'
     });
+    
+    // Add a horizontal line under the title
+    doc.setDrawColor(200, 200, 200);
+    doc.setLineWidth(0.5);
+    yPosition += 2;
+    doc.line(leftMargin, yPosition, pageWidth - rightMargin, yPosition);
+    yPosition += sectionSpacing;
     
     // Date range
     doc.setFont('helvetica', 'normal');
@@ -328,7 +354,8 @@ const Reports = () => {
     yPosition = addTextWithWrapping(dateRange, yPosition, {
       align: 'center',
       lineHeight: lineHeight * 1.2,
-      maxWidth: maxWidth
+      maxWidth: maxWidth,
+      style: 'normal'
     });
     
     yPosition += sectionSpacing;
@@ -502,38 +529,68 @@ const Reports = () => {
     }
 
     // Add notes and screenshots from games this week
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    yPosition = addTextWithWrapping('GAME NOTES', yPosition + sectionSpacing, {
+      lineHeight: lineHeight * 1.3,
+      maxWidth: maxWidth,
+      style: 'bold'
+    });
+    
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    
     gamesThisWeekLocal.forEach(game => {
-      if (game.notes && game.notes.length > safeNumber(0)) {
-        if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`Notes for ${game.title}:`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
+      if (game.notes && game.notes.length > 0) {
+        // Add game title
+        yPosition = addTextWithWrapping(`${game.title}:`, yPosition + lineHeight, {
+          lineHeight: lineHeight * 1.2,
+          style: 'bold'
+        });
+        
+        // Add notes
         game.notes.forEach((note) => {
-          if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-            doc.addPage();
-            yPosition = safeNumber(20);
-          }
-          doc.text(`${safeFormat(note.date, 'MMM d, yyyy')}: ${note.text}`, safeNumber(20), yPosition);
-          yPosition += safeNumber(lineHeight);
+          const noteText = `${safeFormat(note.date, 'MMM d, yyyy')}: ${note.text}`;
+          yPosition = addTextWithWrapping(noteText, yPosition, {
+            lineHeight: lineHeight * 1.1,
+            bulletPoint: true,
+            x: leftMargin + 5
+          });
+          
+          // Add screenshot if available
           if (note.screenshot) {
             try {
-              doc.addImage(note.screenshot, 'JPEG', safeNumber(20), yPosition, safeNumber(50), safeNumber(50));
-              yPosition += safeNumber(60);
+              const imageHeight = 40; // Fixed height for all images
+              const imageWidth = 80; // Fixed width for all images
+              
+              // Check if we need a new page for the image
+              if (yPosition + imageHeight > pageHeight - bottomMargin) {
+                doc.addPage();
+                yPosition = topMargin;
+              }
+              
+              doc.addImage(note.screenshot, 'JPEG', leftMargin, yPosition, imageWidth, imageHeight);
+              yPosition += imageHeight + lineHeight;
             } catch (e) {
               console.error('Error adding screenshot to PDF:', e);
-              doc.text('(Screenshot could not be embedded)', safeNumber(20), yPosition);
-              yPosition += safeNumber(lineHeight);
+              yPosition = addTextWithWrapping('(Screenshot could not be embedded)', yPosition, {
+                lineHeight: lineHeight,
+                style: 'italic'
+              });
             }
           }
         });
-        yPosition += safeNumber(lineHeight);
+        yPosition += lineHeight;
       }
     });
 
-    doc.save('gaming-reports.pdf');
-    toast.success('PDF exported successfully!');
+      // Save the PDF
+      doc.save('gaming-report.pdf');
+      toast.success('PDF exported successfully!');
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+      toast.error('An error occurred while generating the PDF.');
+    }
   };
 
   const exportWeeklyReportTXT = () => {
