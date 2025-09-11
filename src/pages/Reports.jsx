@@ -248,28 +248,35 @@ const Reports = () => {
   const exportPDF = () => {
     const doc = new jsPDF();
     let yPosition = safeNumber(20);
-    const lineHeight = safeNumber(8);
-    const pageHeight = doc.internal.pageSize.height - 20; // Add bottom margin
-    const leftMargin = safeNumber(20);
-    const rightMargin = safeNumber(20);
+    const lineHeight = safeNumber(7); // Slightly reduced line height
+    const pageHeight = doc.internal.pageSize.height - 30; // Increased bottom margin
+    const leftMargin = safeNumber(15); // Reduced left margin
+    const rightMargin = safeNumber(15); // Reduced right margin
     const maxWidth = doc.internal.pageSize.width - leftMargin - rightMargin;
     
     const addTextWithWrapping = (text, y, options = {}) => {
-      const { x = leftMargin, maxY = pageHeight, lineHeight: customLineHeight } = options;
-      const currentLineHeight = customLineHeight || lineHeight;
+      const { 
+        x = leftMargin, 
+        maxY = pageHeight, 
+        lineHeight: customLineHeight = lineHeight,
+        maxWidth: customMaxWidth = maxWidth
+      } = options;
+      
+      // Ensure text is a string
+      const textStr = String(text || '');
       
       // Split text into lines that fit within maxWidth
-      const splitText = doc.splitTextToSize(text, maxWidth - x + leftMargin);
+      const splitText = doc.splitTextToSize(textStr, customMaxWidth);
       
       for (let i = 0; i < splitText.length; i++) {
         // Check if we need a new page
-        if (y > maxY - currentLineHeight) {
+        if (y > maxY - customLineHeight) {
           doc.addPage();
           y = 20; // Reset Y position for new page
         }
         
         doc.text(splitText[i], x, y);
-        y += currentLineHeight;
+        y += customLineHeight;
       }
       
       return y; // Return the new Y position
@@ -277,10 +284,13 @@ const Reports = () => {
 
     // Set up fonts and styles
     doc.setFont('helvetica', 'bold');
-    doc.setFontSize(16);
-    yPosition = addTextWithWrapping('Gaming Reports Summary', yPosition, { lineHeight: lineHeight * 1.5 });
+    doc.setFontSize(14); // Slightly smaller title
+    yPosition = addTextWithWrapping('Gaming Reports Summary', yPosition, { 
+      lineHeight: lineHeight * 1.5,
+      maxWidth: maxWidth - 10 // Slightly narrower to ensure it fits
+    });
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(12);
+    doc.setFontSize(10); // Smaller base font size
 
     const weeklyData = generateWeeklyData() || [];
     const gamesThisWeekLocal = gamesThisWeek || [];
@@ -302,35 +312,66 @@ const Reports = () => {
       return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg * 100) / 100));
     })();
 
-    // Add summary stats
-    yPosition = addTextWithWrapping(`• Total Games This Week: ${gamesThisWeekLocal.length}`, yPosition);
-    yPosition = addTextWithWrapping(`• Completed This Week: ${gamesThisWeekLocal.filter(g => g.status === 'completed').length}`, yPosition);
-    yPosition = addTextWithWrapping(`• In Progress This Week: ${gamesThisWeekLocal.filter(g => g.status === 'playing').length}`, yPosition);
-    const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
-    yPosition = addTextWithWrapping(`• Average Progress This Week: ${safeAverage}%`, yPosition);
+    // Add summary stats with more compact formatting
+    const stats = [
+      `Total Games: ${gamesThisWeekLocal.length}`,
+      `Completed: ${gamesThisWeekLocal.filter(g => g.status === 'completed').length}`,
+      `In Progress: ${gamesThisWeekLocal.filter(g => g.status === 'playing').length}`,
+      `Avg Progress: ${(Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0))}%`
+    ];
+    
+    // Add stats in a more compact format
+    const statsPerLine = 2;
+    for (let i = 0; i < stats.length; i += statsPerLine) {
+      const lineStats = [];
+      for (let j = 0; j < statsPerLine && (i + j) < stats.length; j++) {
+        lineStats.push(stats[i + j]);
+      }
+      yPosition = addTextWithWrapping(
+        `• ${lineStats.join('   •   ')}`,
+        yPosition,
+        { maxWidth: maxWidth - 5 } // Slightly reduced width for bullet points
+      );
+    }
     yPosition += safeNumber(lineHeight); // Add extra space
 
     if (weeklyReport?.summary) {
-      // Add section header
+      // Add section header with more space
       doc.setFont('helvetica', 'bold');
-      yPosition = addTextWithWrapping('WEEKLY REPORT SUMMARY', yPosition + 5);
+      doc.setFontSize(11); // Slightly smaller for section headers
+      yPosition = addTextWithWrapping('WEEKLY REPORT SUMMARY', yPosition + 8, { 
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth - 5
+      });
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9); // Smaller font for content
       
-      // Add summary with proper wrapping
-      yPosition = addTextWithWrapping(weeklyReport.summary, yPosition);
-      yPosition += safeNumber(lineHeight); // Add space after section
+      // Add summary with proper wrapping and smaller line height
+      yPosition = addTextWithWrapping(weeklyReport.summary, yPosition, {
+        lineHeight: lineHeight * 0.9,
+        maxWidth: maxWidth - 5
+      });
+      yPosition += safeNumber(lineHeight) * 1.5; // Add more space after section
 
       if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      // Add highlights section
+      // Add highlights section with better spacing
       doc.setFont('helvetica', 'bold');
-      yPosition = addTextWithWrapping('HIGHLIGHTS', yPosition + 5);
+      doc.setFontSize(11);
+      yPosition = addTextWithWrapping('HIGHLIGHTS', yPosition + 5, { 
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth - 5
+      });
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       
       (weeklyReport.highlights || []).forEach((highlight) => {
-        yPosition = addTextWithWrapping(`• ${highlight}`, yPosition);
+        yPosition = addTextWithWrapping(`• ${highlight}`, yPosition, {
+          lineHeight: lineHeight * 0.9,
+          maxWidth: maxWidth - 10 // Indent bullet points slightly
+        });
       });
       yPosition += safeNumber(lineHeight);
 
@@ -338,13 +379,21 @@ const Reports = () => {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      // Add progress section
+      // Add progress section with better spacing
       doc.setFont('helvetica', 'bold');
-      yPosition = addTextWithWrapping('PROGRESS', yPosition + 5);
+      doc.setFontSize(11);
+      yPosition = addTextWithWrapping('PROGRESS', yPosition + 5, { 
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth - 5
+      });
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       
       (weeklyReport.progress || []).forEach((prog) => {
-        yPosition = addTextWithWrapping(`• ${prog}`, yPosition);
+        yPosition = addTextWithWrapping(`• ${prog}`, yPosition, {
+          lineHeight: lineHeight * 0.9,
+          maxWidth: maxWidth - 10 // Indent bullet points slightly
+        });
       });
       yPosition += safeNumber(lineHeight);
 
@@ -352,13 +401,21 @@ const Reports = () => {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      // Add insights section
+      // Add insights section with better spacing
       doc.setFont('helvetica', 'bold');
-      yPosition = addTextWithWrapping('INSIGHTS', yPosition + 5);
+      doc.setFontSize(11);
+      yPosition = addTextWithWrapping('INSIGHTS', yPosition + 5, { 
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth - 5
+      });
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       
       (weeklyReport.insights || []).forEach((insight) => {
-        yPosition = addTextWithWrapping(`• ${insight}`, yPosition);
+        yPosition = addTextWithWrapping(`• ${insight}`, yPosition, {
+          lineHeight: lineHeight * 0.9,
+          maxWidth: maxWidth - 10 // Indent bullet points slightly
+        });
       });
       yPosition += safeNumber(lineHeight);
 
@@ -366,13 +423,21 @@ const Reports = () => {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      // Add next week goals section
+      // Add next week goals section with better spacing
       doc.setFont('helvetica', 'bold');
-      yPosition = addTextWithWrapping('NEXT WEEK GOALS', yPosition + 5);
+      doc.setFontSize(11);
+      yPosition = addTextWithWrapping('NEXT WEEK GOALS', yPosition + 5, { 
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth - 5
+      });
       doc.setFont('helvetica', 'normal');
+      doc.setFontSize(9);
       
       (weeklyReport.nextWeekGoals || []).forEach((goal) => {
-        yPosition = addTextWithWrapping(`• ${goal}`, yPosition);
+        yPosition = addTextWithWrapping(`• ${goal}`, yPosition, {
+          lineHeight: lineHeight * 0.9,
+          maxWidth: maxWidth - 10 // Indent bullet points slightly
+        });
       });
     }
 
