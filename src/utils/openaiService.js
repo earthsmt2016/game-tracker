@@ -376,7 +376,7 @@ Generate 15 milestones in the exact format shown above. The response must be val
 };
 
 export const generateGameReport = async (gameTitle, milestones, notes, gamesThisWeek) => {
-  // Validate API key before making request
+  // Validate API key before making requests
   if (!import.meta.env.VITE_OPENAI_API_KEY) {
     console.error('OpenAI API key is missing or not configured properly');
     throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file with a valid OpenAI API key.');
