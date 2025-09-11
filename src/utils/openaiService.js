@@ -653,45 +653,78 @@ Return only the JSON object, no additional text.`;
       throw new Error('OpenAI service is temporarily unavailable. Please try again later.');
     }
     
-    // Fallback report
-    if (!Array.isArray(games) || games.length === 0) {
-      return {
-        summary: 'This week, I didn\'t play any games. Time to start a new adventure!',
-        highlights: ['No games played this week'],
-        progress: ['No progress made'],
-        insights: ['Consider starting a new game to track progress'],
-        nextWeekGoals: ['Pick a game to play', 'Set some gaming goals']
-      };
-    } else {
-      return {
-        summary: `This week, I played ${games.length} games, completed ${games.filter(g => g.status === 'completed').length}, and made solid progress on my gaming goals.`,
-        highlights: [
-          'Completed a challenging game that tested my skills',
-          'Made significant progress on multiple titles',
-          'Discovered new strategies that improved my gameplay',
-          'Enjoyed some relaxing gaming sessions',
-          'Achieved personal bests in several games'
-        ],
-        progress: [
-          'Advanced further in my main game with key milestones',
-          'Started a new game and got through the initial setup',
-          'Improved my completion rate on side quests',
-          'Experimented with different playstyles'
-        ],
-        insights: [
-          'I need to focus more on consistent daily play',
-          'Certain games require more time than I expected',
-          'My strategy for tackling difficult sections is improving',
-          'Balancing multiple games helps keep things fresh'
-        ],
-        nextWeekGoals: [
-          'Complete at least one more game',
-          'Reach specific milestones in my current games',
-          'Try out new games or genres',
-          'Spend more time on detailed exploration',
-          'Track my progress more meticulously'
-        ]
+    // Fallback report with all required fields
+    const fallbackReport = {
+      summary: Array.isArray(games) && games.length > 0
+        ? `This week, I played ${games.length} games, completed ${games.filter(g => g.status === 'completed').length}, and made solid progress on my gaming goals.`
+        : 'This week, I didn\'t play any games. Time to start a new adventure!',
+      highlights: [
+        'Completed a challenging game that tested my skills',
+        'Made significant progress on multiple titles',
+        'Discovered new strategies that improved my gameplay',
+        'Enjoyed some relaxing gaming sessions',
+        'Achieved personal bests in several games'
+      ],
+      progress: [
+        'Advanced further in my main game with key milestones',
+        'Started a new game and got through the initial setup',
+        'Improved my completion rate on side quests',
+        'Experimented with different playstyles'
+      ],
+      insights: [
+        'I need to focus more on consistent daily play',
+        'Certain games require more time than I expected',
+        'My strategy for tackling difficult sections is improving',
+        'Balancing multiple games helps keep things fresh'
+      ],
+      nextWeekGoals: [
+        'Complete at least one more game',
+        'Reach specific milestones in my current games',
+        'Try out new games or genres',
+        'Spend more time on detailed exploration',
+        'Track my progress more meticulously'
+      ],
+      categoryAnalysis: {
+        story: 'Made good progress on main story content',
+        exploration: 'Discovered several hidden areas and secrets',
+        gameplay: 'Improved combat and gameplay mechanics',
+        completion: 'Working towards 100% completion on favorite titles'
+      },
+      difficultyAnalysis: {
+        easy: 'Quickly completed easier challenges',
+        medium: 'Solid progress on standard difficulty content',
+        hard: 'Overcame several tough challenges',
+        expert: 'Making steady progress on expert-level content'
+      },
+      recommendedFocus: [
+        'Focus on completing main story objectives',
+        'Try a new game genre to diversify experience',
+        'Set specific milestone targets for next week',
+        'Allocate time for both progress and exploration'
+      ],
+      weeklyStats: {
+        totalMilestones: 0,
+        completedMilestones: 0,
+        totalNotes: 0,
+        categoryProgress: {},
+        difficultyProgress: {}
+      }
+    };
+    
+    // If we have games data, update the stats
+    if (Array.isArray(games) && games.length > 0) {
+      fallbackReport.weeklyStats = {
+        totalMilestones: games.reduce((sum, game) => 
+          sum + (Array.isArray(game.milestones) ? game.milestones.length : 0), 0),
+        completedMilestones: games.reduce((sum, game) => 
+          sum + (Array.isArray(game.milestones) ? game.milestones.filter(m => m.completed).length : 0), 0),
+        totalNotes: games.reduce((sum, game) => 
+          sum + (Array.isArray(game.notes) ? game.notes.length : 0), 0),
+        categoryProgress: {},
+        difficultyProgress: {}
       };
     }
+    
+    return fallbackReport;
   }
 };

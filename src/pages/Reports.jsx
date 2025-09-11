@@ -474,15 +474,63 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
   };
 
   const handleGenerateWeeklyReport = async () => {
+    console.log('[DEBUG] Starting weekly report generation...');
+    console.log('[DEBUG] Games this week:', gamesThisWeek);
+    console.log('[DEBUG] Week start:', weekStart);
+    console.log('[DEBUG] Week end:', weekEnd);
+    
+    if (!gamesThisWeek || gamesThisWeek.length === 0) {
+      const errorMsg = 'No games found for the selected week';
+      console.error('[DEBUG]', errorMsg);
+      toast.error(errorMsg);
+      return;
+    }
+
     setIsGeneratingWeeklyReport(true);
+    
     try {
+      console.log('[DEBUG] Calling generateWeeklyReport...');
       const report = await generateWeeklyReport(gamesThisWeek, weekStart, weekEnd);
+      
+      if (!report) {
+        throw new Error('Received empty report from API');
+      }
+      
+      console.log('[DEBUG] Report generated successfully:', report);
+      
+      // Validate required report fields
+      const requiredFields = ['summary', 'highlights', 'progress', 'insights', 'nextWeekGoals'];
+      const missingFields = requiredFields.filter(field => !report[field]);
+      
+      if (missingFields.length > 0) {
+        console.warn('[DEBUG] Report is missing some fields:', missingFields);
+      }
+      
       setWeeklyReport(report);
       setEditedWeeklyReport(report);
       toast.success('AI Weekly Report generated successfully!');
+      
     } catch (error) {
-      console.error('Error generating weekly report:', error);
-      toast.error('Failed to generate AI Weekly Report. Please try again.');
+      console.error('[DEBUG] Error generating weekly report:', {
+        error: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      
+      toast.error(`Failed to generate report: ${error.message || 'Unknown error'}`);
+      
+      // Provide fallback report if possible
+      const fallbackReport = {
+        summary: 'Weekly report generation failed. Using fallback data.',
+        highlights: ['Check console for detailed error logs'],
+        progress: ['Could not generate progress data'],
+        insights: ['Error occurred during report generation'],
+        nextWeekGoals: ['Try generating the report again']
+      };
+      
+      setWeeklyReport(fallbackReport);
+      setEditedWeeklyReport(fallbackReport);
+      
     } finally {
       setIsGeneratingWeeklyReport(false);
     }
