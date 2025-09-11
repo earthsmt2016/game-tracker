@@ -265,13 +265,31 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     };
     
     // Use enhanced milestone analysis
-    const suggestedMilestones = analyzeMilestoneFromNote(note, localMilestones).map(milestone => ({
-      ...milestone,
-      triggeredByNote: note.text // Include the note text with each suggested milestone
-    }));
-
-    if (suggestedMilestones.length > 0) {
-      setPendingMilestoneUpdates(suggestedMilestones);
+    const suggestedMilestones = analyzeMilestoneFromNote(note, localMilestones);
+    
+    // Check if we have the no-milestones placeholder
+    if (suggestedMilestones.length === 1 && suggestedMilestones[0].isPlaceholder) {
+      // Show the placeholder message to the user
+      toast.info(suggestedMilestones[0].title);
+      
+      // Add the note directly without showing milestone confirmation
+      const updatedNotes = [...getSafeNotes(), note];
+      onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+      setNewNote('');
+      setHoursPlayed('');
+      setMinutesPlayed('');
+      
+      // Update categorized notes
+      const categorized = categorizeNotesByMilestones(updatedNotes, localMilestones);
+      setCategorizedNotes(categorized);
+    } else if (suggestedMilestones.length > 0) {
+      // We have actual milestones to suggest
+      const milestonesWithNote = suggestedMilestones.map(milestone => ({
+        ...milestone,
+        triggeredByNote: note.text // Include the note text with each suggested milestone
+      }));
+      
+      setPendingMilestoneUpdates(milestonesWithNote);
       setShowConfirmationModal(true);
     } else {
       // No milestones to suggest, add note directly
@@ -445,28 +463,44 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const deleteNote = (noteIndex) => {
     if (!game?.id) return;
     
-    if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-      const currentNotes = getSafeNotes();
-      if (noteIndex < 0 || noteIndex >= currentNotes.length) return;
-      
-      const updatedNotes = [...currentNotes];
-      // If the note is associated with any milestones, clear that association
-      const updatedMilestones = (localMilestones || []).map(milestone => {
-        if (milestone.triggeredByNote === updatedNotes[noteIndex]?.text) {
-          return { ...milestone, triggeredByNote: undefined };
-        }
-        return milestone;
-      });
-      
-      updatedNotes.splice(noteIndex, 1);
-      onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+    const currentNotes = getSafeNotes();
+    if (noteIndex < 0 || noteIndex >= currentNotes.length) return;
+    
+    const updatedNotes = [...currentNotes];
+    const deletedNote = updatedNotes[noteIndex];
+    
+    // Uncheck any milestones that were completed by this note
+    const updatedMilestones = (localMilestones || []).map(milestone => {
+      if (milestone.completed && milestone.triggeredByNote === deletedNote.text) {
+        return {
+          ...milestone,
+          completed: false,
+          completedDate: null,
+          triggeredByNote: undefined,
+          lastUpdated: new Date().toISOString()
+        };
+      }
+      return milestone;
+    });
+    
+    updatedNotes.splice(noteIndex, 1);
+    onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+    
+    // Update milestones in parent component if any were changed
+    if (JSON.stringify(updatedMilestones) !== JSON.stringify(localMilestones)) {
+      const completedCount = updatedMilestones.filter(m => m.completed).length;
+      const progress = updatedMilestones.length > 0 
+        ? (completedCount / updatedMilestones.length) * 100 
+        : 0;
+      onUpdateProgress(game.id, progress, updatedMilestones);
       setLocalMilestones(updatedMilestones);
-      toast.success('Note deleted successfully!');
-      
-      // Update categorized notes
-      const categorized = categorizeNotesByMilestones(updatedNotes, updatedMilestones);
-      setCategorizedNotes(categorized);
     }
+    
+    // Update categorized notes
+    const categorized = categorizeNotesByMilestones(updatedNotes, updatedMilestones.length > 0 ? updatedMilestones : localMilestones);
+    setCategorizedNotes(categorized);
+    
+    toast.success('Note deleted successfully!');
   };
 
   const exportReport = () => {

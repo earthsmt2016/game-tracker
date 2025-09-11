@@ -7,9 +7,16 @@ export const analyzeMilestoneFromNote = (note, milestones) => {
   const noteText = note.text.toLowerCase();
   const noteWords = noteText.split(/\s+/);
   
-  // Filter out completed milestones before analysis
-  const potentialMilestones = milestones
-    .filter(milestone => milestone && !milestone.completed) // Only include uncompleted milestones
+  // Get uncompleted milestones
+  const uncompletedMilestones = milestones.filter(milestone => milestone && !milestone.completed);
+  
+  // If no uncompleted milestones, return a special indicator
+  if (uncompletedMilestones.length === 0) {
+    return [{ id: 'no-milestones', title: 'All Suggested Milestones have already been allocated', isPlaceholder: true }];
+  }
+  
+  // Process uncompleted milestones for potential matches
+  const potentialMilestones = uncompletedMilestones
     .map(milestone => {
       let score = 0;
       const titleWords = milestone.title.toLowerCase().split(/\s+/);
