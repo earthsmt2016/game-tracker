@@ -274,25 +274,24 @@ const Reports = () => {
         x = leftMargin, 
         maxY = pageHeight - bottomMargin,
         lineHeight: customLineHeight = lineHeight,
-        maxWidth: customMaxWidth = maxWidth,
+        maxWidth: customMaxWidth = maxWidth - 10, // Reduce maxWidth for better margins
         align = 'left',
         style = 'normal',
         bulletPoint = false
       } = options;
       
       // Set font style
-      const currentFont = doc.getFont();
-      doc.setFont(currentFont.fontName, style);
+      doc.setFont('helvetica', style);
       
       // Ensure text is a string and trim whitespace
       const textStr = String(text || '').trim();
       if (!textStr) return y;
       
       // Add bullet point if needed
-      const displayText = bulletPoint && !textStr.startsWith('•') ? `• ${textStr}` : textStr;
+      const displayText = bulletPoint ? (textStr.startsWith('•') ? textStr : `• ${textStr}`) : textStr;
       
       // Split text into lines that fit within maxWidth
-      const splitText = doc.splitTextToSize(displayText, customMaxWidth - (bulletPoint ? 5 : 0));
+      const splitText = doc.splitTextToSize(displayText, customMaxWidth);
       
       for (let i = 0; i < splitText.length; i++) {
         // Check if we need a new page
@@ -303,9 +302,6 @@ const Reports = () => {
         
         // Calculate x position based on alignment and bullet point
         let textX = x;
-        if (bulletPoint && i === 0) {
-          textX = x + 5; // Indent bullet points
-        }
         
         // Add text with specified alignment
         if (align === 'center') {
@@ -316,11 +312,8 @@ const Reports = () => {
           textX = pageWidth - rightMargin - textWidth;
         }
         
-        // Ensure text doesn't go off the page
-        const textWidth = doc.getTextWidth(splitText[i]);
-        if (textX + textWidth > pageWidth - rightMargin) {
-          textX = pageWidth - rightMargin - textWidth - 1;
-        }
+        // Ensure minimum left margin
+        textX = Math.max(leftMargin, textX);
         
         // Draw the text
         doc.text(splitText[i], textX, y);
@@ -445,7 +438,6 @@ const Reports = () => {
       doc.setFontSize(12);
       yPosition = addTextWithWrapping('HIGHLIGHTS', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth,
         style: 'bold'
       });
       
@@ -453,21 +445,19 @@ const Reports = () => {
       doc.setFontSize(10);
       
       (weeklyReport.highlights || []).forEach((highlight) => {
-        yPosition = addTextWithWrapping(highlight, yPosition, {
-          lineHeight: lineHeight * 1.1,
-          maxWidth: maxWidth - 10,
+        yPosition = addTextWithWrapping(highlight, yPosition + 2, {
+          lineHeight: lineHeight * 1.2,
           x: leftMargin + 5,
           bulletPoint: true
         });
       });
-      yPosition += sectionSpacing;
+      yPosition += 4;
 
       // Add progress section
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       yPosition = addTextWithWrapping('PROGRESS', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth,
         style: 'bold'
       });
       
@@ -475,21 +465,19 @@ const Reports = () => {
       doc.setFontSize(10);
       
       (weeklyReport.progress || []).forEach((prog) => {
-        yPosition = addTextWithWrapping(prog, yPosition, {
-          lineHeight: lineHeight * 1.1,
-          maxWidth: maxWidth - 10,
+        yPosition = addTextWithWrapping(prog, yPosition + 2, {
+          lineHeight: lineHeight * 1.2,
           x: leftMargin + 5,
           bulletPoint: true
         });
       });
-      yPosition += sectionSpacing;
+      yPosition += 4;
 
       // Add insights section
       doc.setFont('helvetica', 'bold');
       doc.setFontSize(12);
       yPosition = addTextWithWrapping('INSIGHTS', yPosition + sectionSpacing, {
         lineHeight: lineHeight * 1.3,
-        maxWidth: maxWidth,
         style: 'bold'
       });
       
@@ -497,14 +485,13 @@ const Reports = () => {
       doc.setFontSize(10);
       
       (weeklyReport.insights || []).forEach((insight) => {
-        yPosition = addTextWithWrapping(insight, yPosition, {
-          lineHeight: lineHeight * 1.1,
-          maxWidth: maxWidth - 10,
+        yPosition = addTextWithWrapping(insight, yPosition + 2, {
+          lineHeight: lineHeight * 1.2,
           x: leftMargin + 5,
           bulletPoint: true
         });
       });
-      yPosition += sectionSpacing;
+      yPosition += 4;
       
       // Next week goals section
       doc.setFont('helvetica', 'bold');
