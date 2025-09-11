@@ -7,9 +7,9 @@ export const analyzeMilestoneFromNote = (note, milestones) => {
   const noteText = note.text.toLowerCase();
   const noteWords = noteText.split(/\s+/);
   
-  // Enhanced keyword matching with scoring - include all milestones, not just uncompleted ones
+  // Filter out completed milestones before analysis
   const potentialMilestones = milestones
-    .filter(milestone => milestone) // Just filter out any null/undefined milestones
+    .filter(milestone => milestone && !milestone.completed) // Only include uncompleted milestones
     .map(milestone => {
       let score = 0;
       const titleWords = milestone.title.toLowerCase().split(/\s+/);
