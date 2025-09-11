@@ -290,52 +290,66 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       // Filter out the processed milestone
       const remainingUpdates = prev.filter(m => m.id !== milestoneId);
       
+      // Create a copy of the current note to be added
+      const noteToAdd = {
+        text: newNote,
+        date: new Date().toISOString(),
+        hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
+        minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
+      };
+      
       if (agree) {
-        // Find the milestone that was agreed to
-        const milestoneToUpdate = prev.find(m => m.id === milestoneId);
+        // Update the local milestones state
+        const updatedMilestones = localMilestones.map(milestone => {
+          if (milestone.id === milestoneId) {
+            // Create a new note object for the milestone's notes array
+            const milestoneNote = { ...noteToAdd };
+            const updatedNotes = [...(milestone.notes || []), milestoneNote];
+            
+            return {
+              ...milestone,
+              completed: true,
+              completedDate: new Date().toISOString(),
+              triggeredByNote: noteToAdd.text, // Store the note text for reference
+              notes: updatedNotes,
+              // Preserve other milestone properties
+              lastUpdated: new Date().toISOString()
+            };
+          }
+          return milestone;
+        });
         
-        if (milestoneToUpdate) {
-          // Create the new note that will be associated with the milestone
-          const newMilestoneNote = {
-            text: newNote,
-            date: new Date().toISOString()
-          };
-          
-          // Update the local milestones state
-          const updatedMilestones = localMilestones.map(milestone => {
-            if (milestone.id === milestoneId) {
-              // Add the note to the milestone's notes array
-              const updatedNotes = [...(milestone.notes || []), newMilestoneNote];
-              return {
-                ...milestone,
-                completed: true,
-                completedDate: new Date().toISOString(),
-                triggeredByNote: newNote,
-                notes: updatedNotes
-              };
-            }
-            return milestone;
-          });
-          
-          setLocalMilestones(updatedMilestones);
-          
-          // Update progress
-          const completedCount = updatedMilestones.filter(m => m.completed).length;
-          const progress = updatedMilestones.length > safeNumber(0) 
-            ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) 
-            : safeNumber(0);
-          
-          // Update the parent component with the new progress and milestones
-          onUpdateProgress(game.id, progress, updatedMilestones);
-        }
+        // Update local state
+        setLocalMilestones(updatedMilestones);
+        
+        // Update progress
+        const completedCount = updatedMilestones.filter(m => m.completed).length;
+        const progress = updatedMilestones.length > safeNumber(0) 
+          ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) 
+          : safeNumber(0);
+        
+        // Update the parent component with the new progress and milestones
+        onUpdateProgress(game.id, progress, updatedMilestones);
       }
       
       // If no more pending updates, proceed with adding the note to the game's notes
       if (remainingUpdates.length === 0) {
-        // Small delay to ensure state updates are processed
-        setTimeout(() => {
-          confirmAddNote();
-        }, 100);
+        // Add the note to the game's notes
+        const updatedNotes = [...getSafeNotes(), noteToAdd];
+        onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+        
+        // Reset form fields
+        setNewNote('');
+        setHoursPlayed('');
+        setMinutesPlayed('');
+        setShowConfirmationModal(false);
+        setPendingMilestoneUpdates([]);
+        
+        // Update categorized notes
+        const categorized = categorizeNotesByMilestones(updatedNotes, localMilestones);
+        setCategorizedNotes(categorized);
+        
+        toast.success('Note and milestone updates saved successfully!');
       }
       
       return remainingUpdates;
