@@ -100,16 +100,48 @@ const Home = () => {
   };
 
   const handleUpdateProgress = (gameId, progress, updatedMilestones) => {
+    console.log('handleUpdateProgress called with:', { gameId, progress, updatedMilestones });
+    
     setGames(prevGames => {
       const updatedGames = prevGames.map(game => {
         if (game.id === gameId) {
+          // Log the current state before merging
+          console.log('Current game milestones:', game.milestones);
+          console.log('Updated milestones:', updatedMilestones);
+          
           // Merge the updated milestones with existing ones to preserve any additional data
-          const mergedMilestones = game.milestones?.length && Array.isArray(updatedMilestones)
-            ? game.milestones.map(existing => {
-                const updated = updatedMilestones.find(m => m.id === existing.id);
-                return updated ? { ...existing, ...updated } : existing;
-              })
-            : updatedMilestones || [];
+          let mergedMilestones = [];
+          
+          if (game.milestones?.length && Array.isArray(updatedMilestones)) {
+            console.log('Merging existing milestones with updates');
+            mergedMilestones = game.milestones.map(existing => {
+              const updated = updatedMilestones.find(m => m.id === existing.id);
+              if (updated) {
+                console.log('Merging milestone:', { 
+                  id: existing.id, 
+                  existing: { ...existing, notes: existing.notes?.length || 0 },
+                  updates: { ...updated, notes: updated.notes?.length || 0 }
+                });
+                return { ...existing, ...updated };
+              }
+              return existing;
+            });
+            
+            // Add any new milestones that weren't in the existing array
+            const newMilestones = updatedMilestones.filter(updated => 
+              !game.milestones.some(existing => existing.id === updated.id)
+            );
+            
+            if (newMilestones.length > 0) {
+              console.log('Adding new milestones:', newMilestones);
+              mergedMilestones = [...mergedMilestones, ...newMilestones];
+            }
+          } else {
+            console.log('No existing milestones or invalid updatedMilestones, using updatedMilestones');
+            mergedMilestones = Array.isArray(updatedMilestones) ? [...updatedMilestones] : [];
+          }
+          
+          console.log('Merged milestones:', mergedMilestones);
 
           return {
             ...game,

@@ -104,35 +104,57 @@ export const getTriggeredMilestones = (notes, milestones) => {
 };
 
 export const categorizeNotesByMilestones = (notes, milestones) => {
-  if (!Array.isArray(notes) || !Array.isArray(milestones)) return { categorized: [], uncategorized: notes || [] };
+  if (!Array.isArray(notes) || !Array.isArray(milestones)) {
+    console.log('Invalid input to categorizeNotesByMilestones:', { notes, milestones });
+    return { categorized: [], uncategorized: notes || [] };
+  }
+  
+  console.log('Categorizing notes. Total notes:', notes.length, 'Total milestones:', milestones.length);
   
   const categorized = [];
   const uncategorized = [];
   
-  notes.forEach(note => {
+  notes.forEach((note, index) => {
+    console.log(`\nProcessing note ${index + 1}:`, { 
+      noteText: note.text.substring(0, 50) + '...',
+      noteDate: note.date,
+      noteId: note.id
+    });
     // First, check for explicitly triggered milestones (completed by this note)
     const triggeredMilestones = [];
     
     // Check for milestones that were triggered by this note
-    milestones.forEach(milestone => {
+    let foundMatch = false;
+    milestones.forEach((milestone, mIndex) => {
       if (!milestone || !milestone.triggeredByNote) return;
       
       // Handle different formats of triggeredByNote
+      if (!milestone || !milestone.triggeredByNote) return;
+      
+      console.log(`  Checking milestone ${mIndex + 1}:`, {
+        milestoneId: milestone.id,
+        milestoneTitle: milestone.title,
+        triggeredByNote: milestone.triggeredByNote,
+        milestoneCompleted: milestone.completed
+      });
+      
       if (typeof milestone.triggeredByNote === 'string') {
-        // If triggeredByNote is a string, check if it matches the note's text
         if (milestone.triggeredByNote === note.text) {
+          console.log('    ✅ Matched milestone by string comparison');
           triggeredMilestones.push(milestone);
+          foundMatch = true;
         }
       } else if (milestone.triggeredByNote && milestone.triggeredByNote.text) {
-        // If triggeredByNote is an object with text property
         if (milestone.triggeredByNote.text === note.text) {
-          // Match on text only, don't check date to be more flexible
+          console.log('    ✅ Matched milestone by object comparison');
           triggeredMilestones.push(milestone);
+          foundMatch = true;
         }
       }
     });
     
     if (triggeredMilestones.length > 0) {
+      console.log(`  Found ${triggeredMilestones.length} matching milestones for note`);
       categorized.push({
         note,
         relatedMilestones: triggeredMilestones,
@@ -140,6 +162,7 @@ export const categorizeNotesByMilestones = (notes, milestones) => {
         isTriggered: true
       });
     } else {
+      console.log('  No matching milestones found for note');
       // If no explicitly triggered milestones, try to find related ones
       const matches = analyzeMilestoneFromNote(note, milestones);
       if (matches.length > 0) {

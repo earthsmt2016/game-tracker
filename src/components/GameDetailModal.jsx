@@ -286,6 +286,9 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const handleMilestoneDecision = (milestoneId, agree) => {
+    console.log('handleMilestoneDecision called with:', { milestoneId, agree });
+    console.log('Current localMilestones:', localMilestones);
+    
     setPendingMilestoneUpdates(prev => {
       // Create the note object first to ensure consistency
       const noteToAdd = {
@@ -307,6 +310,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       let shouldUpdateParent = false;
       
       if (agree) {
+        console.log('Updating milestone:', milestoneId);
         // Update the milestones array
         updatedMilestones = localMilestones.map(milestone => {
           if (milestone.id === milestoneId) {
@@ -343,6 +347,11 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         
         // Update parent component with the new state
         if (shouldUpdateParent) {
+          console.log('Calling onUpdateProgress with:', { 
+            progress, 
+            milestones: updatedMilestones,
+            updatedMilestone: updatedMilestones.find(m => m.id === milestoneId)
+          });
           onUpdateProgress(game.id, progress, updatedMilestones);
         }
         
