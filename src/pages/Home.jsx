@@ -119,11 +119,21 @@ const Home = () => {
   };
 
   const handleUpdateNotes = (gameId, notes, report, reportScreenshots) => {
-    const updatedGames = games.map(game =>
-      game.id === gameId
-        ? { ...game, notes, report, reportScreenshots, lastPlayed: new Date().toISOString() }
-        : game
-    );
+    const updatedGames = games.map(game => {
+      if (game.id === gameId) {
+        // Preserve existing milestones and other properties
+        return {
+          ...game,
+          notes: Array.isArray(notes) ? [...notes] : [],
+          report: report || game.report,
+          reportScreenshots: reportScreenshots || game.reportScreenshots || [],
+          lastPlayed: new Date().toISOString(),
+          // Preserve milestones to maintain their state
+          milestones: game.milestones || []
+        };
+      }
+      return game;
+    });
     setGames(updatedGames);
     saveGamesToLocalStorage(updatedGames);
   };
