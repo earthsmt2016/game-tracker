@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import PropTypes from 'prop-types';
 import { X, CheckCircle, Circle, Calendar, Trophy, Target, FileText, Plus, Edit, Save, Download, Image, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -1604,38 +1603,6 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
   );
 };
 
-GameDetailModal.propTypes = {
-  isOpen: PropTypes.bool,
-  onClose: PropTypes.func,
-  game: PropTypes.shape({
-    id: PropTypes.string,
-    title: PropTypes.string,
-    notes: PropTypes.array,
-    milestones: PropTypes.array,
-    image: PropTypes.string,
-    status: PropTypes.string
-  }),
-  onUpdateProgress: PropTypes.func,
-  onUpdateNotes: PropTypes.func,
-  onStatusChange: PropTypes.func,
-  onUpdateGame: PropTypes.func
-};
-
-GameDetailModal.defaultProps = {
-  isOpen: false,
-  onClose: () => {},
-  game: {
-    id: '',
-    title: 'Untitled Game',
-    notes: [],
-    milestones: [],
-    image: '',
-    status: 'not_started'
-  },
-  onUpdateProgress: () => {},
-  onUpdateNotes: () => {},
-  onStatusChange: () => {},
-  onUpdateGame: () => {}
-};
+// Default props are now defined in the function parameters
 
 export default GameDetailModal;
