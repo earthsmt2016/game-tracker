@@ -39,6 +39,16 @@ const parseJsonWithRetry = async (jsonString, maxRetries = 3) => {
   throw new Error(`Failed to parse JSON after ${maxRetries} attempts: ${lastError.message}`);
 };
 
+// Convert minutes to hours and minutes format
+const formatTime = (minutes) => {
+  if (!minutes) return '0 minutes';
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  if (hours === 0) return `${mins} minute${mins !== 1 ? 's' : ''}`;
+  if (mins === 0) return `${hours} hour${hours !== 1 ? 's' : ''}`;
+  return `${hours} hour${hours !== 1 ? 's' : ''} ${mins} minute${mins !== 1 ? 's' : ''}`;
+};
+
 // Helper function to clean and validate JSON content
 const cleanAndParseJson = (jsonString) => {
   try {
@@ -419,8 +429,8 @@ ${notesText || 'No notes provided'}
 Progress Statistics:
 - Total milestones: ${totalMilestones}
 - Completed: ${completedCount} (${Math.round((completedCount/totalMilestones)*100)}%)
-- Estimated time invested: ${completedMilestones.reduce((sum, m) => sum + (m.estimatedTime || 30), 0)} minutes
-- Remaining estimated time: ${updatedMilestones.filter(m => !m.completed).reduce((sum, m) => sum + (m.estimatedTime || 30), 0)} minutes
+- Estimated time invested: ${formatTime(completedMilestones.reduce((sum, m) => sum + (m.estimatedTime || 30), 0))}
+- Remaining estimated time: ${formatTime(updatedMilestones.filter(m => !m.completed).reduce((sum, m) => sum + (m.estimatedTime || 30), 0))}
 
 Format the response as a JSON object with:
 - summary: A personal summary of my progress (max 400 characters, first-person, detailed with specific numbers)

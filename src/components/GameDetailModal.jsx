@@ -974,10 +974,10 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                   
                                   {milestone.action && (
                                     <div className="mt-2 p-3 bg-blue-50 dark:bg-blue-900/20 rounded-md border border-blue-100 dark:border-blue-800/50">
-                                      {milestone.team && (
+                                      {milestone.team && game.title === 'Sonic Heroes' && (
                                         <div className="mb-2">
                                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-200">
-                                            Team: {milestone.team}
+                                            {milestone.team.split(',')[0].trim()}
                                           </span>
                                         </div>
                                       )}
