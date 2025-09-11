@@ -99,19 +99,26 @@ const Home = () => {
     saveGamesToLocalStorage(updatedGames);
   };
 
-  const handleUpdateProgress = (gameId, progress, milestones) => {
+  const handleUpdateProgress = (gameId, progress, updatedMilestones) => {
     setGames(prevGames => {
       const updatedGames = prevGames.map(game => {
         if (game.id === gameId) {
-          // Preserve all existing game properties and only update progress, milestones, and lastPlayed
+          // Merge the updated milestones with existing ones to preserve any additional data
+          const mergedMilestones = game.milestones?.length && Array.isArray(updatedMilestones)
+            ? game.milestones.map(existing => {
+                const updated = updatedMilestones.find(m => m.id === existing.id);
+                return updated ? { ...existing, ...updated } : existing;
+              })
+            : updatedMilestones || [];
+
           return {
             ...game,
             progress: Number(progress) || 0,
-            milestones: Array.isArray(milestones) ? [...milestones] : [],
+            milestones: mergedMilestones,
             lastPlayed: new Date().toISOString()
           };
         }
-        return { ...game }; // Return a new object to ensure proper state updates
+        return { ...game };
       });
       saveGamesToLocalStorage(updatedGames);
       return updatedGames;
@@ -119,23 +126,24 @@ const Home = () => {
   };
 
   const handleUpdateNotes = (gameId, notes, report, reportScreenshots) => {
-    const updatedGames = games.map(game => {
-      if (game.id === gameId) {
-        // Preserve existing milestones and other properties
-        return {
-          ...game,
-          notes: Array.isArray(notes) ? [...notes] : [],
-          report: report || game.report,
-          reportScreenshots: reportScreenshots || game.reportScreenshots || [],
-          lastPlayed: new Date().toISOString(),
-          // Preserve milestones to maintain their state
-          milestones: game.milestones || []
-        };
-      }
-      return game;
+    setGames(prevGames => {
+      const updatedGames = prevGames.map(game => {
+        if (game.id === gameId) {
+          return {
+            ...game,
+            notes: Array.isArray(notes) ? [...notes] : [],
+            report: report || game.report,
+            reportScreenshots: reportScreenshots || game.reportScreenshots || [],
+            lastPlayed: new Date().toISOString(),
+            // Preserve existing milestones
+            milestones: game.milestones || []
+          };
+        }
+        return { ...game }; // Return a new object to ensure proper state updates
+      });
+      saveGamesToLocalStorage(updatedGames);
+      return updatedGames;
     });
-    setGames(updatedGames);
-    saveGamesToLocalStorage(updatedGames);
   };
 
   const handleUpdateGame = (updatedGame) => {
