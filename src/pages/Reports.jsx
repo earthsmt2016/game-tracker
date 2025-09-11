@@ -59,7 +59,7 @@ const Reports = () => {
   const gamesThisWeek = Array.isArray(games) ? games.filter(game => {
     if (!Array.isArray(game.notes) || game.notes.length === 0) return false;
     
-    // Check if any notes were created during this week
+    // Check if any notes were created during this week ...
     return game.notes.some(note => {
       try {
         const noteDate = new Date(note.date);
