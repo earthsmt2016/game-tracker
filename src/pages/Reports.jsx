@@ -944,7 +944,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: safeNumber(0.9) }}
-            className="bg-gradient-to-r from-indigo-600 to-purple-500 rounded-xl p-6 text-white mt-8"
+            className="bg-gradient-to-r from-indigo-600 to-purple-500 rounded-xl p-6 mt-8"
           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">AI Weekly Report</h3>

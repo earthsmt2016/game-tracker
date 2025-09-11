@@ -463,11 +463,13 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const disassociateMilestoneFromNote = (milestoneId, noteText) => {
     if (!game?.id) return;
     
-    // Update the milestone to remove the triggeredByNote reference
+    // Update the milestone to remove the triggeredByNote reference and mark as incomplete
     const updatedMilestones = localMilestones.map(milestone => {
       if (milestone.id === milestoneId && milestone.triggeredByNote === noteText) {
         return {
           ...milestone,
+          completed: false,
+          completedDate: null,
           triggeredByNote: undefined,
           lastUpdated: new Date().toISOString()
         };
@@ -489,7 +491,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     const categorized = categorizeNotesByMilestones(game.notes || [], updatedMilestones);
     setCategorizedNotes(categorized);
     
-    toast.success('Milestone disassociated from note!');
+    toast.success('Milestone marked as incomplete and disassociated from note!');
   };
 
   const deleteNote = (noteIndex) => {
