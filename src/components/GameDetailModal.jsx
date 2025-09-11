@@ -292,7 +292,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         text: newNote,
         date: new Date().toISOString(),
         hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
-        minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
+        minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined,
+        id: `note-${Date.now()}`
       };
       
       // Create the updated notes array with the new note
@@ -303,11 +304,13 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       
       // Declare updatedMilestones here so it's available in the entire function
       let updatedMilestones = [...localMilestones];
+      let shouldUpdateParent = false;
       
       if (agree) {
         // Update the milestones array
         updatedMilestones = localMilestones.map(milestone => {
           if (milestone.id === milestoneId) {
+            shouldUpdateParent = true;
             return {
               ...milestone,
               completed: true,
@@ -316,7 +319,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
               triggeredByNote: { 
                 text: noteToAdd.text,
                 date: noteToAdd.date,
-                id: `note-${Date.now()}`
+                id: noteToAdd.id
               },
               // Update the notes array for this milestone
               notes: [
@@ -339,10 +342,16 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
           : 0;
         
         // Update parent component with the new state
-        onUpdateProgress(game.id, progress, updatedMilestones);
+        if (shouldUpdateParent) {
+          onUpdateProgress(game.id, progress, updatedMilestones);
+        }
         
         // Update notes in parent component
         onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+        
+        // Update categorized notes immediately
+        const categorized = categorizeNotesByMilestones(updatedNotes, updatedMilestones);
+        setCategorizedNotes(categorized);
       }
       
       // If no more pending updates, clean up the UI
@@ -353,13 +362,6 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         setMinutesPlayed('');
         setShowConfirmationModal(false);
         setPendingMilestoneUpdates([]);
-        
-        // If we have updated milestones, use them, otherwise use localMilestones
-        const targetMilestones = agree ? updatedMilestones || localMilestones : localMilestones;
-        
-        // Update categorized notes with the latest data
-        const categorized = categorizeNotesByMilestones(updatedNotes, targetMilestones);
-        setCategorizedNotes(categorized);
         
         toast.success('Note and milestone updates saved successfully!');
       }
