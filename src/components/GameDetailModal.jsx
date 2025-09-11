@@ -140,17 +140,35 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     }
   };
 
-  const clearAllMilestones = () => {
-    if (window.confirm('Are you sure you want to clear all milestones? This action cannot be undone.')) {
-      const emptyMilestones = [];
-      setLocalMilestones(emptyMilestones);
-      onUpdateProgress(game.id, 0, emptyMilestones);
-      toast.success('All milestones have been cleared!');
-      
-      // Re-categorize notes since we've cleared milestones
-      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
-      const categorized = categorizeNotesByMilestones(notes, emptyMilestones);
-      setCategorizedNotes(categorized);
+  const clearAllMilestones = async () => {
+    const updatedMilestones = (localMilestones || []).map((m) => ({
+      ...m,
+      completed: false,
+      completedDate: null,
+      triggeredByNote: null,
+      notes: []
+    }));
+    
+    setLocalMilestones(updatedMilestones);
+    
+    // Update the parent component's state
+    const updatedGame = {
+      ...game,
+      milestones: updatedMilestones
+    };
+    onUpdateGame(updatedGame);
+    
+    // Force a re-render and update of categorized notes
+    if (game.notes && game.notes.length > 0) {
+      // Use setTimeout to ensure state updates have completed
+      setTimeout(() => {
+        const { categorized, uncategorized } = categorizeNotesByMilestones(updatedGame.notes, updatedMilestones);
+        setCategorizedNotes({ categorized, uncategorized });
+        
+        // Update milestone insights after clearing all milestones
+        const insights = analyzeMilestoneProgress(updatedMilestones);
+        setMilestoneInsights(insights);
+      }, 0);
     }
   };
 
