@@ -453,14 +453,14 @@ const Reports = () => {
       doc.setFontSize(10);
       
       (weeklyReport.highlights || []).forEach((highlight) => {
-        yPosition = addTextWithWrapping(`• ${highlight}`, yPosition, {
+        yPosition = addTextWithWrapping(highlight, yPosition, {
           lineHeight: lineHeight * 1.1,
-          maxWidth: maxWidth - 5,
-          x: leftMargin + 5
+          maxWidth: maxWidth - 10,
+          x: leftMargin + 5,
+          bulletPoint: true
         });
       });
-      yPosition += sectionSpacing / 2;
-      yPosition += safeNumber(lineHeight);
+      yPosition += sectionSpacing;
 
       // Add progress section
       doc.setFont('helvetica', 'bold');
@@ -475,14 +475,14 @@ const Reports = () => {
       doc.setFontSize(10);
       
       (weeklyReport.progress || []).forEach((prog) => {
-        yPosition = addTextWithWrapping(`• ${prog}`, yPosition, {
+        yPosition = addTextWithWrapping(prog, yPosition, {
           lineHeight: lineHeight * 1.1,
-          maxWidth: maxWidth - 5,
-          x: leftMargin + 5
+          maxWidth: maxWidth - 10,
+          x: leftMargin + 5,
+          bulletPoint: true
         });
       });
-      yPosition += sectionSpacing / 2;
-      yPosition += safeNumber(lineHeight);
+      yPosition += sectionSpacing;
 
       // Add insights section
       doc.setFont('helvetica', 'bold');
@@ -497,7 +497,29 @@ const Reports = () => {
       doc.setFontSize(10);
       
       (weeklyReport.insights || []).forEach((insight) => {
-        yPosition = addTextWithWrapping(`• ${insight}`, yPosition, {
+        yPosition = addTextWithWrapping(insight, yPosition, {
+          lineHeight: lineHeight * 1.1,
+          maxWidth: maxWidth - 10,
+          x: leftMargin + 5,
+          bulletPoint: true
+        });
+      });
+      yPosition += sectionSpacing;
+      
+      // Next week goals section
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(12);
+      yPosition = addTextWithWrapping('NEXT WEEK GOALS', yPosition + sectionSpacing, {
+        lineHeight: lineHeight * 1.3,
+        maxWidth: maxWidth,
+        style: 'bold'
+      });
+      
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(10);
+      
+      (weeklyReport.nextWeekGoals || []).forEach((goal) => {
+        yPosition = addTextWithWrapping(goal, yPosition, {
           lineHeight: lineHeight * 1.1,
           maxWidth: maxWidth - 5,
           x: leftMargin + 5
@@ -521,8 +543,9 @@ const Reports = () => {
       (weeklyReport.nextWeekGoals || []).forEach((goal) => {
         yPosition = addTextWithWrapping(`• ${goal}`, yPosition, {
           lineHeight: lineHeight * 1.1,
-          maxWidth: maxWidth - 5,
-          x: leftMargin + 5
+          maxWidth: maxWidth - 10,
+          x: leftMargin + 5,
+          bulletPoint: true
         });
       });
       yPosition += sectionSpacing;
