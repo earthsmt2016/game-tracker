@@ -123,13 +123,11 @@ export const categorizeNotesByMilestones = (notes, milestones) => {
         if (milestone.triggeredByNote === note.text) {
           triggeredMilestones.push(milestone);
         }
-      } else if (milestone.triggeredByNote.text) {
+      } else if (milestone.triggeredByNote && milestone.triggeredByNote.text) {
         // If triggeredByNote is an object with text property
         if (milestone.triggeredByNote.text === note.text) {
-          // If date exists, check it too, otherwise just match on text
-          if (!milestone.triggeredByNote.date || milestone.triggeredByNote.date === note.date) {
-            triggeredMilestones.push(milestone);
-          }
+          // Match on text only, don't check date to be more flexible
+          triggeredMilestones.push(milestone);
         }
       }
     });
