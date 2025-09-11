@@ -103,106 +103,92 @@ export const getTriggeredMilestones = (notes, milestones) => {
   return triggeredMilestones.sort((a, b) => b.confidence - a.confidence);
 };
 
-export const categorizeNotesByMilestones = (notes, milestones) => {
+export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
   if (!Array.isArray(notes) || !Array.isArray(milestones)) {
-    console.log('Invalid input to categorizeNotesByMilestones:', { notes, milestones });
-    return { categorized: [], uncategorized: notes || [] };
+    console.error('Invalid input to categorizeNotesByMilestones:', { notes, milestones });
+    return { categorized: [], uncategorized: [...(notes || [])] };
   }
-  
+
   console.log('Categorizing notes. Total notes:', notes.length, 'Total milestones:', milestones.length);
   
   const categorized = [];
   const uncategorized = [];
   const processedNoteIds = new Set();
   
-  // First pass: Process all notes and collect unique ones by milestone
-  const notesByMilestone = new Map();
+  // First, find all notes that have triggered milestones
+  const noteToMilestones = new Map();
   
-  notes.forEach(note => {
-    if (!note?.id || processedNoteIds.has(note.id)) return;
-    processedNoteIds.add(note.id);
+  // Build a map of note text to the milestones it triggered
+  milestones.forEach(milestone => {
+    if (!milestone?.triggeredByNote) return;
     
-    // Check for milestones triggered by this note
-    const triggeredMilestones = [];
-    
-    milestones.forEach(milestone => {
-      if (!milestone?.triggeredByNote) return;
+    const noteText = typeof milestone.triggeredByNote === 'string' 
+      ? milestone.triggeredByNote 
+      : milestone.triggeredByNote.text;
       
-      const isMatch = typeof milestone.triggeredByNote === 'string'
-        ? milestone.triggeredByNote === note.text
-        : milestone.triggeredByNote?.text === note.text;
-        
-      if (isMatch) {
-        triggeredMilestones.push(milestone);
-      }
-    });
+    if (!noteText) return;
     
-    if (triggeredMilestones.length > 0) {
-      triggeredMilestones.forEach(milestone => {
-        if (!notesByMilestone.has(milestone.id)) {
-          notesByMilestone.set(milestone.id, { note, milestone });
-        }
+    // Find the original note object that triggered this milestone
+    const originalNote = notes.find(n => n.text === noteText);
+    if (!originalNote) return;
+    
+    if (!noteToMilestones.has(originalNote.id)) {
+      noteToMilestones.set(originalNote.id, {
+        note: originalNote,
+        milestones: []
       });
     }
+    noteToMilestones.get(originalNote.id).milestones.push(milestone);
   });
   
-  // Second pass: Process unique notes and build the final result
-  const processedNotes = new Set();
-  
-  // First, add all notes that triggered milestones (without duplicates)
-  for (const [milestoneId, { note, milestone }] of notesByMilestone) {
-    if (processedNotes.has(note.id)) continue;
-    
-    const existingEntry = categorized.find(c => 
-      c.note.id === note.id || 
-      c.relatedMilestones.some(m => m.id === milestoneId)
-    );
-    
-    if (!existingEntry) {
-      const allMilestones = Array.from(notesByMilestone.entries())
-        .filter(([_, { note: n }]) => n.id === note.id)
-        .map(([_, { milestone: m }]) => m);
-      
-      if (allMilestones.length > 0) {
-        categorized.push({
-          note,
-          relatedMilestones: allMilestones,
-          primaryMilestone: allMilestones[0],
-          isTriggered: true
-        });
-        processedNotes.add(note.id);
-      }
-    }
-  }
-  
-  // Then process remaining notes that didn't trigger milestones
+  // Process all notes exactly once
   notes.forEach(note => {
-    if (processedNotes.has(note.id)) return;
+    if (processedNoteIds.has(note.id)) return;
+    processedNoteIds.add(note.id);
     
-    const matches = analyzeMilestoneFromNote(note, milestones);
-    if (matches.length > 0) {
-      // Only suggest milestones that aren't already completed or used
-      const suggestedMilestones = matches
-        .filter(m => !m.completed && !notesByMilestone.has(m.id))
-        .slice(0, 3);
-        
-      if (suggestedMilestones.length > 0) {
-        categorized.push({
-          note,
-          relatedMilestones: suggestedMilestones,
-          primaryMilestone: suggestedMilestones[0],
-          isTriggered: false
-        });
-        processedNotes.add(note.id);
-        return;
+    // Check if this note triggered any milestones
+    const noteWithMilestones = noteToMilestones.get(note.id);
+    
+    if (noteWithMilestones?.milestones?.length > 0) {
+      // This note triggered milestones
+      categorized.push({
+        note: noteWithMilestones.note,
+        relatedMilestones: noteWithMilestones.milestones,
+        primaryMilestone: noteWithMilestones.milestones[0],
+        isTriggered: true
+      });
+    } else {
+      // Check for potential milestone matches
+      const matches = analyzeMilestoneFromNote(note, milestones);
+      if (matches.length > 0) {
+        // Only suggest milestones that aren't completed
+        const suggestedMilestones = matches
+          .filter(m => !m.completed)
+          .slice(0, 3);
+          
+        if (suggestedMilestones.length > 0) {
+          categorized.push({
+            note,
+            relatedMilestones: suggestedMilestones,
+            primaryMilestone: suggestedMilestones[0],
+            isTriggered: false
+          });
+          return;
+        }
       }
+      
+      // If we get here, no relevant milestones were found
+      uncategorized.push(note);
     }
-    
-    // If we get here, no relevant milestones were found
-    uncategorized.push(note);
   });
   
-  return { categorized, uncategorized };
+  // Sort both lists by date (newest first)
+  const sortByDate = (a, b) => new Date(b.date || 0) - new Date(a.date || 0);
+  
+  return { 
+    categorized: [...categorized].sort((a, b) => sortByDate(a.note, b.note)),
+    uncategorized: [...uncategorized].sort(sortByDate)
+  };
 };
 
 export const generateMilestoneInsights = (milestones, notes) => {
