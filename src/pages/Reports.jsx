@@ -248,12 +248,39 @@ const Reports = () => {
   const exportPDF = () => {
     const doc = new jsPDF();
     let yPosition = safeNumber(20);
-    const lineHeight = safeNumber(10);
-    const pageHeight = doc.internal.pageSize.height;
+    const lineHeight = safeNumber(8);
+    const pageHeight = doc.internal.pageSize.height - 20; // Add bottom margin
+    const leftMargin = safeNumber(20);
+    const rightMargin = safeNumber(20);
+    const maxWidth = doc.internal.pageSize.width - leftMargin - rightMargin;
+    
+    const addTextWithWrapping = (text, y, options = {}) => {
+      const { x = leftMargin, maxY = pageHeight, lineHeight: customLineHeight } = options;
+      const currentLineHeight = customLineHeight || lineHeight;
+      
+      // Split text into lines that fit within maxWidth
+      const splitText = doc.splitTextToSize(text, maxWidth - x + leftMargin);
+      
+      for (let i = 0; i < splitText.length; i++) {
+        // Check if we need a new page
+        if (y > maxY - currentLineHeight) {
+          doc.addPage();
+          y = 20; // Reset Y position for new page
+        }
+        
+        doc.text(splitText[i], x, y);
+        y += currentLineHeight;
+      }
+      
+      return y; // Return the new Y position
+    };
 
-    doc.setFontSize(safeNumber(16));
-    doc.text('Gaming Reports Summary', safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight) * safeNumber(2);
+    // Set up fonts and styles
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    yPosition = addTextWithWrapping('Gaming Reports Summary', yPosition, { lineHeight: lineHeight * 1.5 });
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
 
     const weeklyData = generateWeeklyData() || [];
     const gamesThisWeekLocal = gamesThisWeek || [];
@@ -275,41 +302,35 @@ const Reports = () => {
       return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg * 100) / 100));
     })();
 
-    doc.setFontSize(safeNumber(12));
-    doc.text(`Total Games This Week: ${gamesThisWeekLocal.length}`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight);
-    doc.text(`Completed This Week: ${gamesThisWeekLocal.filter(g => g.status === 'completed').length}`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight);
-    doc.text(`In Progress This Week: ${gamesThisWeekLocal.filter(g => g.status === 'playing').length}`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight);
+    // Add summary stats
+    yPosition = addTextWithWrapping(`• Total Games This Week: ${gamesThisWeekLocal.length}`, yPosition);
+    yPosition = addTextWithWrapping(`• Completed This Week: ${gamesThisWeekLocal.filter(g => g.status === 'completed').length}`, yPosition);
+    yPosition = addTextWithWrapping(`• In Progress This Week: ${gamesThisWeekLocal.filter(g => g.status === 'playing').length}`, yPosition);
     const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
-    doc.text(`Average Progress This Week: ${safeAverage}%`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight) * safeNumber(2);
+    yPosition = addTextWithWrapping(`• Average Progress This Week: ${safeAverage}%`, yPosition);
+    yPosition += safeNumber(lineHeight); // Add extra space
 
-    if (weeklyReport && weeklyReport.summary) {
+    if (weeklyReport?.summary) {
+      // Add section header
+      doc.setFont('helvetica', 'bold');
+      yPosition = addTextWithWrapping('WEEKLY REPORT SUMMARY', yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      
+      // Add summary with proper wrapping
+      yPosition = addTextWithWrapping(weeklyReport.summary, yPosition);
+      yPosition += safeNumber(lineHeight); // Add space after section
+
       if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      doc.text('Weekly Report Summary:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      const summaryLines = doc.splitTextToSize(weeklyReport.summary, safeNumber(170));
-      doc.text(summaryLines, safeNumber(20), yPosition);
-      yPosition += summaryLines.length * safeNumber(lineHeight) + safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('Highlights:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
+      // Add highlights section
+      doc.setFont('helvetica', 'bold');
+      yPosition = addTextWithWrapping('HIGHLIGHTS', yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      
       (weeklyReport.highlights || []).forEach((highlight) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${highlight}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
+        yPosition = addTextWithWrapping(`• ${highlight}`, yPosition);
       });
       yPosition += safeNumber(lineHeight);
 
@@ -317,15 +338,13 @@ const Reports = () => {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      doc.text('Progress:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
+      // Add progress section
+      doc.setFont('helvetica', 'bold');
+      yPosition = addTextWithWrapping('PROGRESS', yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      
       (weeklyReport.progress || []).forEach((prog) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${prog}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
+        yPosition = addTextWithWrapping(`• ${prog}`, yPosition);
       });
       yPosition += safeNumber(lineHeight);
 
@@ -333,15 +352,13 @@ const Reports = () => {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      doc.text('Insights:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
+      // Add insights section
+      doc.setFont('helvetica', 'bold');
+      yPosition = addTextWithWrapping('INSIGHTS', yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      
       (weeklyReport.insights || []).forEach((insight) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${insight}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
+        yPosition = addTextWithWrapping(`• ${insight}`, yPosition);
       });
       yPosition += safeNumber(lineHeight);
 
@@ -349,15 +366,13 @@ const Reports = () => {
         doc.addPage();
         yPosition = safeNumber(20);
       }
-      doc.text('Next Week Goals:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
+      // Add next week goals section
+      doc.setFont('helvetica', 'bold');
+      yPosition = addTextWithWrapping('NEXT WEEK GOALS', yPosition + 5);
+      doc.setFont('helvetica', 'normal');
+      
       (weeklyReport.nextWeekGoals || []).forEach((goal) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${goal}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
+        yPosition = addTextWithWrapping(`• ${goal}`, yPosition);
       });
     }
 
