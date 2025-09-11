@@ -14,7 +14,16 @@ const Reports = () => {
   const [games, setGames] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
   const [selectedWeek, setSelectedWeek] = useState(startOfWeek(new Date()));
-  const [weeklyReport, setWeeklyReport] = useState(null);
+  const [weeklyReport, setWeeklyReport] = useState({
+    summary: '',
+    highlights: [],
+    progress: [],
+    insights: [],
+    nextWeekGoals: [],
+    categoryAnalysis: {},
+    difficultyAnalysis: {},
+    recommendedFocus: []
+  });
   const [isGeneratingWeeklyReport, setIsGeneratingWeeklyReport] = useState(false);
   const [isEditingWeeklyReport, setIsEditingWeeklyReport] = useState(false);
   const [editedWeeklyReport, setEditedWeeklyReport] = useState(null);
@@ -785,7 +794,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               </button>
               <div className="flex items-center">
                 <div className="p-3 bg-violet-100 dark:bg-violet-900/20 rounded-lg">
-                  <BarChart3 className="h-6 w-6 text-violet-600 dark:text-violet-400" />
+                  <BarChart3 className="h-6 w-6 text-violet-600" />
                 </div>
                 <div className="ml-4">
                   <p className="text-sm font-medium text-slate-600 dark:text-slate-400">Games This Week</p>
@@ -939,7 +948,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
 
         {/* AI Weekly Report */}
-        {weeklyReport && (
+        {weeklyReport && weeklyReport.summary && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
