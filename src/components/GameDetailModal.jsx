@@ -301,9 +301,12 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       // Filter out the processed milestone
       const remainingUpdates = prev.filter(m => m.id !== milestoneId);
       
+      // Declare updatedMilestones here so it's available in the entire function
+      let updatedMilestones = [...localMilestones];
+      
       if (agree) {
-        // Create a deep copy of the current milestones to avoid reference issues
-        const updatedMilestones = localMilestones.map(milestone => {
+        // Update the milestones array
+        updatedMilestones = localMilestones.map(milestone => {
           if (milestone.id === milestoneId) {
             return {
               ...milestone,
@@ -351,11 +354,11 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
         setShowConfirmationModal(false);
         setPendingMilestoneUpdates([]);
         
+        // If we have updated milestones, use them, otherwise use localMilestones
+        const targetMilestones = agree ? updatedMilestones || localMilestones : localMilestones;
+        
         // Update categorized notes with the latest data
-        const categorized = categorizeNotesByMilestones(
-          updatedNotes,
-          agree ? updatedMilestones : localMilestones
-        );
+        const categorized = categorizeNotesByMilestones(updatedNotes, targetMilestones);
         setCategorizedNotes(categorized);
         
         toast.success('Note and milestone updates saved successfully!');
