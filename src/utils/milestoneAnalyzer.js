@@ -170,9 +170,16 @@ export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
       // Check for potential milestone matches
       const matches = analyzeMilestoneFromNote(note, milestones);
       if (matches.length > 0) {
-        // Only suggest milestones that aren't completed
+        // Get all milestone IDs that are already cleared by any note
+        const clearedMilestoneIds = new Set(
+          milestones
+            .filter(m => m.completed && m.triggeredByNote)
+            .map(m => m.id)
+        );
+        
+        // Only suggest milestones that aren't completed and aren't already cleared by any note
         const suggestedMilestones = matches
-          .filter(m => !m.completed)
+          .filter(m => !m.completed && !clearedMilestoneIds.has(m.id))
           .slice(0, 3);
           
         if (suggestedMilestones.length > 0) {
