@@ -37,7 +37,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
   const [milestoneInsights, setMilestoneInsights] = useState({});
   const [showAllMilestones, setShowAllMilestones] = useState(false);
-  const [showAllNotes, setShowAllNotes] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(true);
   const [hoursPlayed, setHoursPlayed] = useState('');
   const [minutesPlayed, setMinutesPlayed] = useState('');
   const [isEditingCover, setIsEditingCover] = useState(false);
@@ -1000,13 +1000,20 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                           onClick={() => setShowAllNotes(!showAllNotes)}
                           className="text-sm text-violet-600 hover:text-violet-700 font-medium"
                         >
-                          {showAllNotes ? 'Show Less' : `Show All Notes (${(game.notes || []).length})`}
+                          {showAllNotes ? 'Show Less' : `Show More (${(game.notes || []).length})`}
                         </button>
                       </div>
 
-                      <div className={`space-y-2 overflow-y-auto ${showAllNotes ? 'max-h-[70vh]' : 'max-h-64'}`}>
-                        {/* Categorized Notes with Related Milestones */}
-                        {categorizedNotes.categorized.map((noteData, index) => {
+                      <div className={`space-y-3 overflow-y-auto ${showAllNotes ? 'max-h-[70vh]' : 'max-h-64'}`}>
+                        {/* All Notes */}
+                        {[...(game.notes || [])].sort((a, b) => new Date(b.date) - new Date(a.date)).map((note, index) => {
+                          // Check if this note is in the categorized list
+                          const categorizedNote = categorizedNotes.categorized.find(cn => 
+                            cn.note.text === note.text && cn.note.date === note.date
+                          );
+                          
+                          // If it's a categorized note, use that data, otherwise treat as uncategorized
+                          const noteData = categorizedNote || { note, relatedMilestones: [] };
                           const noteIndex =
                             game.notes?.findIndex(
                               (n) => n.text === noteData.note.text && n.date === noteData.note.date
@@ -1014,8 +1021,12 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
 
                           return (
                             <div
-                              key={`cat-${index}`}
-                              className="p-3 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 rounded-lg relative border border-green-200 dark:border-green-800 hover:shadow-sm transition-shadow"
+                              key={`note-${index}`}
+                              className={`p-3 rounded-lg relative hover:shadow-sm transition-shadow ${
+                                categorizedNote 
+                                  ? 'bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-900/20 dark:to-blue-900/20 border border-green-200 dark:border-green-800'
+                                  : 'bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600'
+                              }`}
                             >
                               <p className="text-sm text-slate-900 dark:text-slate-100 mb-2">
                                 {noteData.note.text}
@@ -1033,17 +1044,16 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                 )}
                               </div>
 
-                              {/* Cleared Milestones */}
-                              {noteData.relatedMilestones && noteData.relatedMilestones.length > 0 && (
+                              {categorizedNote && (
                                 <div className="mt-2 space-y-1">
                                   <p className="text-xs font-medium text-slate-900 dark:text-slate-100 flex items-center">
                                     <AlertCircle className="h-3 w-3 mr-1" />
-                                    {noteData.isTriggered ? 'Milestones Cleared by This Note:' : 'Related Milestones:'}
+                                    {categorizedNote.isTriggered ? 'Milestones Cleared by This Note:' : 'Related Milestones:'}
                                   </p>
-                                  {noteData.relatedMilestones
+                                  {categorizedNote.relatedMilestones
                                     .filter(milestone => {
                                       // For triggered notes, only show completed milestones
-                                      if (noteData.isTriggered) {
+                                      if (categorizedNote.isTriggered) {
                                         return milestone.completed;
                                       }
                                       // For suggested milestones, only show uncompleted ones
@@ -1087,45 +1097,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                           );
                         })}
                         
-                        
-                        {/* Uncategorized Notes */}
-                        {categorizedNotes.uncategorized.map((note, index) => {
-                          const noteIndex =
-                            game.notes?.findIndex(
-                              (n) => n.text === note.text && n.date === note.date
-                            ) ?? -1;
-
-                          return (
-                            <div
-                              key={`uncat-${index}`}
-                              className="p-3 bg-slate-50 dark:bg-slate-700 rounded-lg relative hover:shadow-sm transition-shadow"
-                            >
-                              <p className="text-sm text-slate-900 dark:text-slate-100">{note.text}</p>
-                              <div className="flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 mt-1">
-                                <span>{safeFormat(note.date, "MMM d, yyyy")}</span>
-                                {(note.hoursPlayed || note.minutesPlayed) && (
-                                  <span className="text-violet-600 dark:text-violet-400 font-medium">
-                                    {note.hoursPlayed ? `${note.hoursPlayed}h` : ""}
-                                    {note.hoursPlayed && note.minutesPlayed ? " " : ""}
-                                    {note.minutesPlayed ? `${note.minutesPlayed}m` : ""}
-                                  </span>
-                                )}
-                              </div>
-                              <button
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  if (noteIndex >= 0) {
-                                    deleteNote(noteIndex);
-                                  }
-                                }}
-                                className="absolute top-2 right-2 p-1 bg-red-600 hover:bg-red-700 text-white rounded-full"
-                                title="Delete Note"
-                              >
-                                <Trash2 className="h-3 w-3" />
-                              </button>
-                            </div>
-                          );
-                        })}
+                        {/* Empty state when there are no notes */}
                         
                         {(game.notes || []).length === 0 && (
                           <p className="text-slate-500 dark:text-slate-400 text-center py-4">
