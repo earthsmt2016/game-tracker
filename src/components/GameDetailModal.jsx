@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import { X, CheckCircle, Circle, Calendar, Trophy, Target, FileText, Plus, Edit, Save, Download, Image, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
@@ -8,7 +9,15 @@ import { toast } from 'react-toastify';
 import { safeNumber, safeDivision } from '../utils/helpers';
 import jsPDF from 'jspdf';
 
-const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNotes, onStatusChange, onUpdateGame }) => {
+const GameDetailModal = ({ 
+  isOpen = false, 
+  onClose = () => {}, 
+  game = { id: '', title: '', notes: [], milestones: [] }, 
+  onUpdateProgress = () => {}, 
+  onUpdateNotes = () => {}, 
+  onStatusChange = () => {}, 
+  onUpdateGame = () => {} 
+}) => {
   const [milestones, setMilestones] = useState([]);
   const [report, setReport] = useState(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);
@@ -35,7 +44,17 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const getSafeNotes = () => {
     return game?.notes || [];
   };
-  const [milestoneInsights, setMilestoneInsights] = useState({});
+  const [milestoneInsights, setMilestoneInsights] = useState({
+    totalMilestones: 0,
+    completedMilestones: 0,
+    pendingMilestones: 0,
+    completionRate: 0,
+    categoryStats: {},
+    difficultyStats: {},
+    recentActivity: 0,
+    estimatedTimeRemaining: 0,
+    nextRecommendedMilestones: []
+  });
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(true);
   const [hoursPlayed, setHoursPlayed] = useState('');
@@ -47,35 +66,107 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   useEffect(() => {
     if (!game) return;
     
-    // Safely initialize all state based on game prop
-    const safeMilestones = Array.isArray(game.milestones) ? [...game.milestones] : [];
-    setLocalMilestones(safeMilestones);
-    setNewCoverUrl(game.image || '');
-    
-    // Initialize notes and insights
-    const notes = Array.isArray(game.notes) ? [...game.notes] : [];
-    const categorized = categorizeNotesByMilestones(notes, safeMilestones);
-    setCategorizedNotes(categorized);
-    
-    const insights = generateMilestoneInsights(safeMilestones, notes);
-    setMilestoneInsights(insights);
+    try {
+      // Safely initialize all state based on game prop
+      const safeMilestones = Array.isArray(game.milestones) ? [...game.milestones] : [];
+      setLocalMilestones(safeMilestones);
+      setNewCoverUrl(game.image || '');
+      
+      // Initialize notes and insights
+      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+      
+      // Safely categorize notes
+      let categorized;
+      try {
+        categorized = categorizeNotesByMilestones(notes, safeMilestones);
+      } catch (error) {
+        console.error('Error categorizing notes:', error);
+        categorized = { categorized: [], uncategorized: [...notes] };
+      }
+      setCategorizedNotes(categorized);
+      
+      // Safely generate insights with fallback
+      let insights;
+      try {
+        insights = generateMilestoneInsights(safeMilestones, notes);
+      } catch (error) {
+        console.error('Error generating milestone insights:', error);
+        insights = {
+          totalMilestones: safeMilestones.length,
+          completedMilestones: safeMilestones.filter(m => m.completed).length,
+          pendingMilestones: safeMilestones.filter(m => !m.completed).length,
+          completionRate: safeMilestones.length > 0 
+            ? (safeMilestones.filter(m => m.completed).length / safeMilestones.length) * 100 
+            : 0,
+          categoryStats: {},
+          difficultyStats: {},
+          recentActivity: 0,
+          estimatedTimeRemaining: 0,
+          nextRecommendedMilestones: []
+        };
+      }
+      setMilestoneInsights(prev => ({
+        ...prev,
+        ...insights
+      }));
+    } catch (error) {
+      console.error('Error initializing game details:', error);
+    }
   }, [game]);
 
   // Update categorized notes when milestones or notes change
   useEffect(() => {
-    console.log('Updating categorized notes...');
-    const notes = Array.isArray(game?.notes) ? [...game.notes] : [];
-    console.log('Current notes:', notes);
-    console.log('Current localMilestones:', localMilestones);
-    
-    const categorized = categorizeNotesByMilestones(notes, localMilestones);
-    console.log('Categorized notes result:', categorized);
-    setCategorizedNotes(categorized);
-    
-    // Update milestone insights
-    const insights = generateMilestoneInsights(localMilestones, notes);
-    console.log('Milestone insights:', insights);
-    setMilestoneInsights(insights);
+    try {
+      console.log('Updating categorized notes...');
+      const notes = Array.isArray(game?.notes) ? [...game.notes] : [];
+      
+      // Safely categorize notes
+      let categorized;
+      try {
+        categorized = categorizeNotesByMilestones(notes, localMilestones);
+        setCategorizedNotes(categorized);
+      } catch (error) {
+        console.error('Error in categorizeNotesByMilestones:', error);
+        setCategorizedNotes({ categorized: [], uncategorized: [...notes] });
+      }
+      
+      // Safely generate milestone insights
+      try {
+        const insights = generateMilestoneInsights(localMilestones, notes);
+        setMilestoneInsights(prev => ({
+          totalMilestones: localMilestones.length,
+          completedMilestones: localMilestones.filter(m => m.completed).length,
+          pendingMilestones: localMilestones.filter(m => !m.completed).length,
+          completionRate: localMilestones.length > 0 
+            ? (localMilestones.filter(m => m.completed).length / localMilestones.length) * 100 
+            : 0,
+          categoryStats: {},
+          difficultyStats: {},
+          recentActivity: 0,
+          estimatedTimeRemaining: 0,
+          nextRecommendedMilestones: [],
+          ...insights // Spread the generated insights last to override any defaults
+        }));
+      } catch (error) {
+        console.error('Error in generateMilestoneInsights:', error);
+        // Keep previous insights if available, otherwise use defaults
+        setMilestoneInsights(prev => ({
+          totalMilestones: prev?.totalMilestones || localMilestones.length,
+          completedMilestones: prev?.completedMilestones || localMilestones.filter(m => m.completed).length,
+          pendingMilestones: prev?.pendingMilestones || localMilestones.filter(m => !m.completed).length,
+          completionRate: prev?.completionRate || (localMilestones.length > 0 
+            ? (localMilestones.filter(m => m.completed).length / localMilestones.length) * 100 
+            : 0),
+          categoryStats: prev?.categoryStats || {},
+          difficultyStats: prev?.difficultyStats || {},
+          recentActivity: prev?.recentActivity || 0,
+          estimatedTimeRemaining: prev?.estimatedTimeRemaining || 0,
+          nextRecommendedMilestones: prev?.nextRecommendedMilestones || []
+        }));
+      }
+    } catch (error) {
+      console.error('Error in categorized notes effect:', error);
+    }
   }, [localMilestones, game?.notes]);
 
   const handleCoverUpdate = () => {
@@ -1511,6 +1602,40 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
       </AnimatePresence>
     </>
   );
+};
+
+GameDetailModal.propTypes = {
+  isOpen: PropTypes.bool,
+  onClose: PropTypes.func,
+  game: PropTypes.shape({
+    id: PropTypes.string,
+    title: PropTypes.string,
+    notes: PropTypes.array,
+    milestones: PropTypes.array,
+    image: PropTypes.string,
+    status: PropTypes.string
+  }),
+  onUpdateProgress: PropTypes.func,
+  onUpdateNotes: PropTypes.func,
+  onStatusChange: PropTypes.func,
+  onUpdateGame: PropTypes.func
+};
+
+GameDetailModal.defaultProps = {
+  isOpen: false,
+  onClose: () => {},
+  game: {
+    id: '',
+    title: 'Untitled Game',
+    notes: [],
+    milestones: [],
+    image: '',
+    status: 'not_started'
+  },
+  onUpdateProgress: () => {},
+  onUpdateNotes: () => {},
+  onStatusChange: () => {},
+  onUpdateGame: () => {}
 };
 
 export default GameDetailModal;
