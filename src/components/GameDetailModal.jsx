@@ -58,12 +58,18 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
 
   // Update categorized notes when milestones or notes change
   useEffect(() => {
+    console.log('Updating categorized notes...');
     const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+    console.log('Current notes:', notes);
+    console.log('Current localMilestones:', localMilestones);
+    
     const categorized = categorizeNotesByMilestones(notes, localMilestones);
+    console.log('Categorized notes result:', categorized);
     setCategorizedNotes(categorized);
     
     // Update milestone insights
     const insights = generateMilestoneInsights(localMilestones, notes);
+    console.log('Milestone insights:', insights);
     setMilestoneInsights(insights);
   }, [localMilestones, game.notes]);
 
@@ -152,6 +158,9 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const clearAllMilestones = () => {
+    console.log('clearAllMilestones called');
+    console.log('Current localMilestones before clear:', localMilestones);
+    
     const updatedMilestones = (localMilestones || []).map((m) => ({
       ...m,
       completed: false,
@@ -159,6 +168,8 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       triggeredByNote: undefined, // Explicitly set to undefined to ensure it's removed
       notes: []
     }));
+    
+    console.log('Clearing all milestones, updatedMilestones:', updatedMilestones);
     
     // Update local state - the useEffect will handle updating categorizedNotes
     setLocalMilestones(updatedMilestones);
@@ -168,6 +179,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       ...game,
       milestones: updatedMilestones
     };
+    console.log('Updated game object:', updatedGame);
     onUpdateGame(updatedGame);
   };
 
@@ -269,24 +281,60 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const handleMilestoneDecision = (milestoneId, agree) => {
-    setPendingMilestoneUpdates(prev => prev.filter(m => m.id !== milestoneId));
-    if (agree) {
-      const updatedMilestones = localMilestones.map(milestone =>
-        milestone.id === milestoneId
-          ? { ...milestone, completed: true, dateCompleted: new Date().toISOString(), triggeredByNote: newNote }
-          : milestone
-      );
-      setLocalMilestones(updatedMilestones);
+    setPendingMilestoneUpdates(prev => {
+      // Filter out the processed milestone
+      const remainingUpdates = prev.filter(m => m.id !== milestoneId);
       
-      const completedCount = updatedMilestones.filter(m => m.completed).length;
-      const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
-      onUpdateProgress(game.id, progress, updatedMilestones);
-    }
-    
-    // If no more pending updates, proceed with adding the note
-    if (pendingMilestoneUpdates.filter(m => m.id !== milestoneId).length === 0) {
-      confirmAddNote();
-    }
+      if (agree) {
+        // Find the milestone that was agreed to
+        const milestoneToUpdate = prev.find(m => m.id === milestoneId);
+        
+        if (milestoneToUpdate) {
+          // Create the new note that will be associated with the milestone
+          const newMilestoneNote = {
+            text: newNote,
+            date: new Date().toISOString()
+          };
+          
+          // Update the local milestones state
+          const updatedMilestones = localMilestones.map(milestone => {
+            if (milestone.id === milestoneId) {
+              // Add the note to the milestone's notes array
+              const updatedNotes = [...(milestone.notes || []), newMilestoneNote];
+              return {
+                ...milestone,
+                completed: true,
+                completedDate: new Date().toISOString(),
+                triggeredByNote: newNote,
+                notes: updatedNotes
+              };
+            }
+            return milestone;
+          });
+          
+          setLocalMilestones(updatedMilestones);
+          
+          // Update progress
+          const completedCount = updatedMilestones.filter(m => m.completed).length;
+          const progress = updatedMilestones.length > safeNumber(0) 
+            ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) 
+            : safeNumber(0);
+          
+          // Update the parent component with the new progress and milestones
+          onUpdateProgress(game.id, progress, updatedMilestones);
+        }
+      }
+      
+      // If no more pending updates, proceed with adding the note to the game's notes
+      if (remainingUpdates.length === 0) {
+        // Small delay to ensure state updates are processed
+        setTimeout(() => {
+          confirmAddNote();
+        }, 100);
+      }
+      
+      return remainingUpdates;
+    });
   };
 
   const confirmAddNote = () => {
@@ -966,36 +1014,27 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               </div>
 
                               {/* Cleared Milestones */}
-                              {(() => {
-                                const clearedMilestones = (localMilestones || []).filter(
-                                  (m) =>
-                                    m &&
-                                    m.completed &&
-                                    m.triggeredByNote &&
-                                    m.triggeredByNote === noteData.note.text
-                                );
-                                return clearedMilestones.length > 0 ? (
-                                  <div className="mt-2 space-y-1">
-                                    <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
-                                      <AlertCircle className="h-3 w-3 mr-1" />
-                                      Milestones Cleared by This Note:
-                                    </p>
-                                    {clearedMilestones.slice(0, 3).map((milestone) => (
-                                      <div
-                                        key={milestone.id}
-                                        className="text-xs text-slate-600 dark:text-slate-400 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800"
-                                      >
-                                        <span className="font-medium text-green-800 dark:text-green-300">
-                                          {milestone.title}
-                                        </span>
-                                        <span className="ml-2 text-green-600 dark:text-green-400">
-                                          ✓ Completed
-                                        </span>
-                                      </div>
-                                    ))}
-                                  </div>
-                                ) : null;
-                              })()}
+                              {noteData.isTriggered ? (
+                                <div className="mt-2 space-y-1">
+                                  <p className="text-xs font-medium text-green-700 dark:text-green-300 flex items-center">
+                                    <AlertCircle className="h-3 w-3 mr-1" />
+                                    Milestones Cleared by This Note:
+                                  </p>
+                                  {noteData.relatedMilestones.map((milestone) => (
+                                    <div
+                                      key={milestone.id}
+                                      className="text-xs text-slate-600 dark:text-slate-400 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800"
+                                    >
+                                      <span className="font-medium text-green-800 dark:text-green-300">
+                                        {milestone.title}
+                                      </span>
+                                      <span className="ml-2 text-green-600 dark:text-green-400">
+                                        {milestone.completed ? '✓ Completed' : 'Pending'}
+                                      </span>
+                                    </div>
+                                  ))}
+                                </div>
+                              ) : null}
 
                               <button
                                 onClick={(e) => {

@@ -7,9 +7,9 @@ export const analyzeMilestoneFromNote = (note, milestones) => {
   const noteText = note.text.toLowerCase();
   const noteWords = noteText.split(/\s+/);
   
-  // Enhanced keyword matching with scoring
+  // Enhanced keyword matching with scoring - include all milestones, not just uncompleted ones
   const potentialMilestones = milestones
-    .filter(milestone => !milestone.completed)
+    .filter(milestone => milestone) // Just filter out any null/undefined milestones
     .map(milestone => {
       let score = 0;
       const titleWords = milestone.title.toLowerCase().split(/\s+/);
@@ -110,15 +110,43 @@ export const categorizeNotesByMilestones = (notes, milestones) => {
   const uncategorized = [];
   
   notes.forEach(note => {
-    const matches = analyzeMilestoneFromNote(note, milestones);
-    if (matches.length > 0) {
+    // First, check for explicitly triggered milestones (completed by this note)
+    const triggeredMilestones = [];
+    
+    // Check for milestones that were triggered by this note
+    milestones.forEach(milestone => {
+      if (milestone && milestone.triggeredByNote) {
+        // Handle both direct string comparison and object comparison
+        if (typeof milestone.triggeredByNote === 'string') {
+          if (milestone.triggeredByNote === note.text) {
+            triggeredMilestones.push(milestone);
+          }
+        } else if (milestone.triggeredByNote.text === note.text && 
+                  milestone.triggeredByNote.date === note.date) {
+          triggeredMilestones.push(milestone);
+        }
+      }
+    });
+    
+    if (triggeredMilestones.length > 0) {
       categorized.push({
         note,
-        relatedMilestones: matches.slice(0, 3), // Top 3 matches
-        primaryMilestone: matches[0]
+        relatedMilestones: triggeredMilestones,
+        primaryMilestone: triggeredMilestones[0],
+        isTriggered: true
       });
     } else {
-      uncategorized.push(note);
+      // If no explicitly triggered milestones, try to find related ones
+      const matches = analyzeMilestoneFromNote(note, milestones);
+      if (matches.length > 0) {
+        categorized.push({
+          note,
+          relatedMilestones: matches.slice(0, 3), // Top 3 matches
+          primaryMilestone: matches[0]
+        });
+      } else {
+        uncategorized.push(note);
+      }
     }
   });
   
