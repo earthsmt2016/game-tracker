@@ -583,165 +583,149 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
   };
 
   const exportPDF = () => {
+    if (!game) return;
+    
     const doc = new jsPDF();
-    let yPosition = safeNumber(20);
-    const lineHeight = safeNumber(10);
-    const pageHeight = doc.internal.pageSize.height;
-
-    doc.setFontSize(safeNumber(16));
-    doc.text(`Game Report: ${game.title}`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight) * safeNumber(2);
-
-    doc.setFontSize(safeNumber(12));
-    doc.text(`Platform: ${game.platform}`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight);
-    doc.text(`Last Played: ${safeFormat(game.lastPlayed, 'MMM d, yyyy')}`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight);
-    doc.text(`Progress: ${safeProgressPercentage}%`, safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight) * safeNumber(2);
-
-    if (report) {
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('AI Report Summary:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      const summaryLines = doc.splitTextToSize(report.summary, safeNumber(170));
-      doc.text(summaryLines, safeNumber(20), yPosition);
-      yPosition += summaryLines.length * safeNumber(lineHeight) + safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('Key Highlights:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      report.highlights.forEach((highlight, index) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
+    const pageWidth = doc.internal.pageSize.getWidth();
+    const pageHeight = doc.internal.pageSize.getHeight();
+    const margin = 20;
+    const lineHeight = 7;
+    let yPosition = margin;
+    
+    // Helper function to add text with word wrap and page breaks
+    const addText = (text, x, y, maxWidth, isBold = false) => {
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+      const splitText = doc.splitTextToSize(text, maxWidth);
+      let linesDrawn = 0;
+      
+      for (let i = 0; i < splitText.length; i++) {
+        // Check if we need a new page
+        if (y > pageHeight - margin) {
           doc.addPage();
-          yPosition = safeNumber(20);
+          y = margin;
         }
-        doc.text(`- ${highlight}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
-      });
-      yPosition += safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
+        
+        doc.text(splitText[i], x, y);
+        y += lineHeight;
+        linesDrawn++;
       }
-      doc.text('Next Steps:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      report.nextSteps.forEach((step, index) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${step}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
-      });
-      yPosition += safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
+      
+      return { y, linesDrawn };
+    };
+    
+    // Helper to check and add new page if needed
+    const checkNewPage = (requiredSpace) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
         doc.addPage();
-        yPosition = safeNumber(20);
+        yPosition = margin;
+        return true;
       }
-      doc.text('Detailed Analysis:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      const analysisLines = doc.splitTextToSize(report.detailedAnalysis, safeNumber(170));
-      doc.text(analysisLines, safeNumber(20), yPosition);
-      yPosition += analysisLines.length * safeNumber(lineHeight) + safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('Achievements:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      report.achievements.forEach((achievement, index) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${achievement}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
-      });
-      yPosition += safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('Challenges Faced:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      report.challenges.forEach((challenge, index) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${challenge}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
-      });
-      yPosition += safeNumber(lineHeight);
-
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('Future Goals:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
-      report.futureGoals.forEach((goal, index) => {
-        if (yPosition + safeNumber(lineHeight) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
-        doc.text(`- ${goal}`, safeNumber(20), yPosition);
-        yPosition += safeNumber(lineHeight);
-      });
-    }
-
-    // Add notes
-    if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-      doc.addPage();
-      yPosition = safeNumber(20);
-    }
-    doc.text('Notes:', safeNumber(20), yPosition);
-    yPosition += safeNumber(lineHeight);
-    (game.notes || []).forEach((note, index) => {
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text(`${safeFormat(note.date, 'MMM d, yyyy')}: ${note.text}`, safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
+      return false;
+    };
+    
+    // Add title
+    doc.setFontSize(20);
+    yPosition = addText(game.title, margin, yPosition, pageWidth - margin * 2, true).y + 10;
+    
+    // Add date
+    doc.setFontSize(12);
+    yPosition = addText(`Generated on: ${new Date().toLocaleDateString()}`, margin, yPosition, pageWidth - margin * 2).y + 5;
+    
+    // Add progress
+    doc.setFontSize(14);
+    yPosition = addText(`Progress: ${safeProgressPercentage}%`, margin, yPosition, pageWidth - margin * 2).y + 10;
+    
+    // Add milestones section
+    checkNewPage(20);
+    doc.setFontSize(16);
+    yPosition = addText('Milestones:', margin, yPosition, pageWidth - margin * 2, true).y + 5;
+    
+    doc.setFontSize(12);
+    (localMilestones || []).forEach((milestone, index) => {
+      checkNewPage(15);
+      
+      const status = milestone.completed ? '✓' : '◯';
+      const milestoneText = `${status} ${milestone.title}${milestone.difficulty ? ` (${milestone.difficulty})` : ''}`;
+      yPosition = addText(milestoneText, margin + 5, yPosition, pageWidth - margin * 2 - 5).y + 5;
     });
-
+    
+    // Add notes section
+    if (game.notes && game.notes.length > 0) {
+      checkNewPage(25);
+      doc.setFontSize(16);
+      yPosition = addText('Notes:', margin, yPosition, pageWidth - margin * 2, true).y + 5;
+      
+      doc.setFontSize(12);
+      game.notes.forEach((note, index) => {
+        checkNewPage(30);
+        
+        const noteDate = new Date(note.date).toLocaleDateString();
+        yPosition = addText(`[${noteDate}]`, margin + 5, yPosition, pageWidth - margin * 2 - 5).y + 2;
+        const result = addText(note.text, margin + 10, yPosition, pageWidth - margin * 2 - 10);
+        yPosition = result.y + 8;
+      });
+    }
+    
+    // Add report if exists
+    if (report) {
+      checkNewPage(25);
+      doc.setFontSize(16);
+      yPosition = addText('AI Report:', margin, yPosition, pageWidth - margin * 2, true).y + 5;
+      
+      doc.setFontSize(12);
+      const reportSections = [
+        { title: 'Summary', content: report.summary },
+        { title: 'Highlights', content: report.highlights?.join('\n• ') || '' },
+        { title: 'Next Steps', content: report.nextSteps?.join('\n• ') || '' },
+        { title: 'Detailed Analysis', content: report.detailedAnalysis || '' },
+        { title: 'Achievements', content: report.achievements?.join('\n• ') || '' },
+        { title: 'Challenges Faced', content: report.challenges?.join('\n• ') || '' },
+        { title: 'Future Goals', content: report.futureGoals?.join('\n• ') || '' }
+      ].filter(section => section.content);
+      
+      reportSections.forEach(section => {
+        checkNewPage(30);
+        
+        // Add section title
+        const titleResult = addText(section.title + ':', margin, yPosition, pageWidth - margin * 2, true);
+        yPosition = titleResult.y + 2;
+        
+        // Add section content
+        const contentResult = addText(section.content, margin + 5, yPosition, pageWidth - margin * 2 - 5);
+        yPosition = contentResult.y + 8;
+      });
+    }
+    
     // Add report screenshots
     if (reportScreenshots.length > 0) {
-      if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
-        doc.addPage();
-        yPosition = safeNumber(20);
-      }
-      doc.text('Report Screenshots:', safeNumber(20), yPosition);
-      yPosition += safeNumber(lineHeight);
+      checkNewPage(30);
+      doc.setFontSize(16);
+      yPosition = addText('Screenshots:', margin, yPosition, pageWidth - margin * 2, true).y + 10;
+      
       reportScreenshots.forEach((screenshot, index) => {
-        if (yPosition + safeNumber(60) > pageHeight) {
-          doc.addPage();
-          yPosition = safeNumber(20);
-        }
         try {
-          doc.addImage(screenshot, 'JPEG', safeNumber(20), yPosition, safeNumber(50), safeNumber(50));
-          yPosition += safeNumber(60);
+          const imgWidth = 150;
+          const imgHeight = (150 * 9) / 16; // 16:9 aspect ratio
+          
+          // Check if we need a new page for this image
+          if (yPosition + imgHeight > pageHeight - margin) {
+            doc.addPage();
+            yPosition = margin;
+          }
+          
+          doc.addImage(screenshot, 'JPEG', margin, yPosition, imgWidth, imgHeight);
+          yPosition += imgHeight + 10;
         } catch (e) {
           console.error('Error adding report screenshot to PDF:', e);
-          doc.text(`Screenshot ${index + 1} could not be embedded`, safeNumber(20), yPosition);
-          yPosition += safeNumber(lineHeight);
+          checkNewPage(15);
+          yPosition = addText(`Screenshot ${index + 1} could not be embedded`, margin, yPosition, pageWidth - margin * 2).y + 5;
         }
       });
     }
 
-    doc.save(`${game?.title || ''}-report.pdf`);
+    // Save the PDF with a timestamp in the filename
+    const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
+    doc.save(`${game.title || 'game'}-report-${timestamp}.pdf`);
     toast.success('PDF exported successfully!');
   };
 
