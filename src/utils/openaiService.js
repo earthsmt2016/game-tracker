@@ -372,6 +372,9 @@ export const generateGameReport = async (gameTitle, milestones, notes, gamesThis
     throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file with a valid OpenAI API key.');
   }
 
+    // Initialize OpenAI client
+    const openai = getOpenAIClient();
+
   try {
     const notesText = Array.isArray(notes) ? notes.map(note => note.text).join(' ') : '';
     const totalMilestones = Array.isArray(milestones) ? milestones.length : safeNumber(0);
