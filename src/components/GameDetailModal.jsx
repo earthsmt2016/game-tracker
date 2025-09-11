@@ -460,6 +460,38 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     toast.success('Report screenshot deleted!');
   };
 
+  const disassociateMilestoneFromNote = (milestoneId, noteText) => {
+    if (!game?.id) return;
+    
+    // Update the milestone to remove the triggeredByNote reference
+    const updatedMilestones = localMilestones.map(milestone => {
+      if (milestone.id === milestoneId && milestone.triggeredByNote === noteText) {
+        return {
+          ...milestone,
+          triggeredByNote: undefined,
+          lastUpdated: new Date().toISOString()
+        };
+      }
+      return milestone;
+    });
+    
+    // Update local state
+    setLocalMilestones(updatedMilestones);
+    
+    // Update parent component
+    const completedCount = updatedMilestones.filter(m => m.completed).length;
+    const progress = updatedMilestones.length > 0 
+      ? (completedCount / updatedMilestones.length) * 100 
+      : 0;
+    onUpdateProgress(game.id, progress, updatedMilestones);
+    
+    // Update categorized notes
+    const categorized = categorizeNotesByMilestones(game.notes || [], updatedMilestones);
+    setCategorizedNotes(categorized);
+    
+    toast.success('Milestone disassociated from note!');
+  };
+
   const deleteNote = (noteIndex) => {
     if (!game?.id) return;
     
@@ -1130,17 +1162,27 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                   {categorizedNote.relatedMilestones
                                     .filter(milestone => milestone.completed) // Only show completed milestones
                                     .map((milestone) => (
-                                    <div
-                                      key={milestone.id}
-                                      className="text-xs rounded px-2 py-1 border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
-                                    >
-                                      <div className="font-medium text-slate-900 dark:text-slate-100">
-                                        {milestone.title}
+                                      <div
+                                        key={milestone.id}
+                                        className="group relative text-xs rounded px-2 py-1 border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 hover:pr-6 transition-all"
+                                      >
+                                        <div className="font-medium text-slate-900 dark:text-slate-100">
+                                          {milestone.title}
+                                        </div>
+                                        <div className="mt-1 text-sm text-green-600 dark:text-green-400 flex justify-between items-center">
+                                          <span>✓ Cleared by this note</span>
+                                          <button
+                                            onClick={(e) => {
+                                              e.stopPropagation();
+                                              disassociateMilestoneFromNote(milestone.id, noteData.note.text);
+                                            }}
+                                            className="opacity-0 group-hover:opacity-100 absolute right-1 top-1 p-0.5 text-slate-400 hover:text-red-500 transition-colors"
+                                            title="Disassociate milestone from this note"
+                                          >
+                                            <X className="h-3 w-3" />
+                                          </button>
+                                        </div>
                                       </div>
-                                      <div className="mt-1 text-sm text-green-600 dark:text-green-400">
-                                        ✓ Cleared by this note
-                                      </div>
-                                    </div>
                                     ))}
                                 </div>
                               )}
