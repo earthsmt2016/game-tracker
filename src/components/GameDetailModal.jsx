@@ -145,10 +145,11 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       ...m,
       completed: false,
       completedDate: null,
-      triggeredByNote: null,
+      triggeredByNote: undefined, // Explicitly set to undefined to ensure it's removed
       notes: []
     }));
     
+    // Update local state first
     setLocalMilestones(updatedMilestones);
     
     // Update the parent component's state
@@ -158,14 +159,14 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     };
     onUpdateGame(updatedGame);
     
-    // Force a re-render and update of categorized notes
+    // Update categorized notes and insights after clearing all milestones
     if (game.notes && game.notes.length > 0) {
       // Use setTimeout to ensure state updates have completed
       setTimeout(() => {
-        const { categorized, uncategorized } = categorizeNotesByMilestones(updatedGame.notes, updatedMilestones);
+        const { categorized, uncategorized } = categorizeNotesByMilestones(game.notes, updatedMilestones);
         setCategorizedNotes({ categorized, uncategorized });
         
-        // Update milestone insights after clearing all milestones
+        // Update milestone insights
         const insights = analyzeMilestoneProgress(updatedMilestones);
         setMilestoneInsights(insights);
       }, 0);
