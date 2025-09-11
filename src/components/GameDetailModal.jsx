@@ -783,11 +783,26 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                   <div className="mb-6">
                     <div className="aspect-video bg-gradient-to-br from-violet-600 to-indigo-500 rounded-lg overflow-hidden mb-4 relative group">
                       <img
-                        src={newCoverUrl || `https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=338&fit=crop&crop=center`}
+                        src={newCoverUrl || game.image || `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title)}`}
                         alt={game.title}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          e.target.src = `https://images.unsplash.com/photo-1511512578047-dfb367046420?w=600&h=338&fit=crop&crop=center`;
+                          // If the current source is already the fallback, try a different approach
+                          if (e.target.src.includes('source.unsplash.com')) {
+                            e.target.src = `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title + ' ' + game.platform)}`;
+                          } else if (e.target.src.includes('source.unsplash.com') || !game.image) {
+                            // If still failing, use a generic game cover
+                            e.target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=450&fit=crop&crop=center';
+                          } else {
+                            // First fallback: Try the Unsplash API with game title
+                            e.target.src = `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title)}`;
+                          }
+                        }}
+                        onLoad={(e) => {
+                          // If image loads but is too small, try to find a better one
+                          if (e.target.naturalWidth < 200 || e.target.naturalHeight < 100) {
+                            e.target.src = `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title + ' ' + game.platform)}`;
+                          }
                         }}
                       />
                       {!isEditingCover && (
