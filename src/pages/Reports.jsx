@@ -10,6 +10,38 @@ import { generateWeeklyReport } from '../utils/openaiService';
 import { toast } from 'react-toastify';
 import { safeNumber, safeDivision } from '../utils/helpers';
 
+// --- Normalizers to keep React children safe --- //
+const toStringArray = (v) => {
+  if (!v) return [];
+  if (Array.isArray(v)) {
+    return v.map(item =>
+      typeof item === 'string'
+        ? item
+        : (item && typeof item === 'object' ? JSON.stringify(item) : String(item))
+    );
+  }
+  return [String(v)];
+};
+
+const normalizeWeeklyReport = (raw) => {
+  const r = raw || {};
+  // Support APIs that use either `progress` or `nextSteps`
+  const progress = r.progress ?? r.nextSteps ?? [];
+  return {
+    summary:
+      typeof r.summary === 'string'
+        ? r.summary
+        : JSON.stringify(r.summary ?? ''),
+    highlights: toStringArray(r.highlights),
+    progress: toStringArray(progress),
+    insights: toStringArray(r.insights),
+    nextWeekGoals: toStringArray(r.nextWeekGoals),
+    categoryAnalysis: r.categoryAnalysis ?? {},
+    difficultyAnalysis: r.difficultyAnalysis ?? {},
+    recommendedFocus: toStringArray(r.recommendedFocus),
+  };
+};
+
 const Reports = () => {
   const [games, setGames] = useState([]);
   const [selectedPeriod, setSelectedPeriod] = useState('week');
@@ -223,18 +255,38 @@ const Reports = () => {
     doc.text('Gaming Reports Summary', safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight) * safeNumber(2);
 
+    const weeklyData = generateWeeklyData() || [];
+    const gamesThisWeekLocal = gamesThisWeek || [];
+    const playingGamesThisWeek = gamesThisWeekLocal.filter(g => g.status === 'playing');
+    const averageProgressThisWeek = (() => {
+      const playingCount = safeNumber(playingGamesThisWeek.length);
+      if (playingCount === safeNumber(0)) return safeNumber(0);
+      
+      const sum = (Array.isArray(playingGamesThisWeek) ? playingGamesThisWeek : []).reduce((acc, g) => {
+        const p = safeNumber(g.progress);
+        const safeP = (Number.isFinite(p) && !isNaN(p)) ? p : safeNumber(0);
+        return safeNumber(acc) + safeP;
+      }, safeNumber(0));
+      
+      const safeSum = (Number.isFinite(sum) && !isNaN(sum)) ? sum : safeNumber(0);
+      const avg = safeDivision(safeSum, playingCount);
+      const safeAvg = (Number.isFinite(avg) && !isNaN(avg)) ? avg : safeNumber(0);
+      
+      return Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeAvg * 100) / 100));
+    })();
+
     doc.setFontSize(safeNumber(12));
-    doc.text(`Total Games This Week: ${gamesThisWeek.length}`, safeNumber(20), yPosition);
+    doc.text(`Total Games This Week: ${gamesThisWeekLocal.length}`, safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
-    doc.text(`Completed This Week: ${gamesThisWeek.filter(g => g.status === 'completed').length}`, safeNumber(20), yPosition);
+    doc.text(`Completed This Week: ${gamesThisWeekLocal.filter(g => g.status === 'completed').length}`, safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
-    doc.text(`In Progress This Week: ${gamesThisWeek.filter(g => g.status === 'playing').length}`, safeNumber(20), yPosition);
+    doc.text(`In Progress This Week: ${gamesThisWeekLocal.filter(g => g.status === 'playing').length}`, safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
     const safeAverage = Number.isFinite(averageProgressThisWeek) && !isNaN(averageProgressThisWeek) ? averageProgressThisWeek : safeNumber(0);
     doc.text(`Average Progress This Week: ${safeAverage}%`, safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight) * safeNumber(2);
 
-    if (weeklyReport) {
+    if (weeklyReport && weeklyReport.summary) {
       if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
@@ -251,7 +303,7 @@ const Reports = () => {
       }
       doc.text('Highlights:', safeNumber(20), yPosition);
       yPosition += safeNumber(lineHeight);
-      weeklyReport.highlights.forEach((highlight, index) => {
+      (weeklyReport.highlights || []).forEach((highlight) => {
         if (yPosition + safeNumber(lineHeight) > pageHeight) {
           doc.addPage();
           yPosition = safeNumber(20);
@@ -267,7 +319,7 @@ const Reports = () => {
       }
       doc.text('Progress:', safeNumber(20), yPosition);
       yPosition += safeNumber(lineHeight);
-      weeklyReport.progress.forEach((prog, index) => {
+      (weeklyReport.progress || []).forEach((prog) => {
         if (yPosition + safeNumber(lineHeight) > pageHeight) {
           doc.addPage();
           yPosition = safeNumber(20);
@@ -283,7 +335,7 @@ const Reports = () => {
       }
       doc.text('Insights:', safeNumber(20), yPosition);
       yPosition += safeNumber(lineHeight);
-      weeklyReport.insights.forEach((insight, index) => {
+      (weeklyReport.insights || []).forEach((insight) => {
         if (yPosition + safeNumber(lineHeight) > pageHeight) {
           doc.addPage();
           yPosition = safeNumber(20);
@@ -299,7 +351,7 @@ const Reports = () => {
       }
       doc.text('Next Week Goals:', safeNumber(20), yPosition);
       yPosition += safeNumber(lineHeight);
-      weeklyReport.nextWeekGoals.forEach((goal, index) => {
+      (weeklyReport.nextWeekGoals || []).forEach((goal) => {
         if (yPosition + safeNumber(lineHeight) > pageHeight) {
           doc.addPage();
           yPosition = safeNumber(20);
@@ -310,7 +362,7 @@ const Reports = () => {
     }
 
     // Add notes and screenshots from games this week
-    gamesThisWeek.forEach(game => {
+    gamesThisWeekLocal.forEach(game => {
       if (game.notes && game.notes.length > safeNumber(0)) {
         if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
           doc.addPage();
@@ -318,7 +370,7 @@ const Reports = () => {
         }
         doc.text(`Notes for ${game.title}:`, safeNumber(20), yPosition);
         yPosition += safeNumber(lineHeight);
-        game.notes.forEach((note, index) => {
+        game.notes.forEach((note) => {
           if (yPosition + safeNumber(lineHeight) * safeNumber(2) > pageHeight) {
             doc.addPage();
             yPosition = safeNumber(20);
@@ -345,7 +397,7 @@ const Reports = () => {
   };
 
   const exportWeeklyReportTXT = () => {
-    if (!weeklyReport) {
+    if (!weeklyReport || !weeklyReport.summary) {
       toast.error('No weekly report to export!');
       return;
     }
@@ -356,16 +408,16 @@ Summary:
 ${weeklyReport.summary}
 
 Highlights:
-${weeklyReport.highlights.map(h => `- ${h}`).join('\n')}
+${(weeklyReport.highlights || []).map(h => `- ${h}`).join('\n')}
 
 Progress:
-${weeklyReport.progress.map(p => `- ${p}`).join('\n')}
+${(weeklyReport.progress || []).map(p => `- ${p}`).join('\n')}
 
 Insights:
-${weeklyReport.insights.map(i => `- ${i}`).join('\n')}
+${(weeklyReport.insights || []).map(i => `- ${i}`).join('\n')}
 
 Next Week Goals:
-${weeklyReport.nextWeekGoals.map(g => `- ${g}`).join('\n')}
+${(weeklyReport.nextWeekGoals || []).map(g => `- ${g}`).join('\n')}
 
 Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game.notes) ? game.notes.filter(n => n.screenshot).length : safeNumber(0)) + (Array.isArray(game.reportScreenshots) ? game.reportScreenshots.length : safeNumber(0)), safeNumber(0))} screenshots from notes and reports attached
     `.trim();
@@ -381,7 +433,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
   };
 
   const exportWeeklyReportPDF = () => {
-    if (!weeklyReport) {
+    if (!weeklyReport || !weeklyReport.summary) {
       toast.error('No weekly report to export!');
       return;
     }
@@ -403,7 +455,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
     doc.text('Highlights:', safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
-    weeklyReport.highlights.forEach((highlight) => {
+    (weeklyReport.highlights || []).forEach((highlight) => {
       if (yPosition + safeNumber(lineHeight) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
@@ -415,7 +467,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
     doc.text('Progress:', safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
-    weeklyReport.progress.forEach((prog) => {
+    (weeklyReport.progress || []).forEach((prog) => {
       if (yPosition + safeNumber(lineHeight) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
@@ -427,7 +479,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
     doc.text('Insights:', safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
-    weeklyReport.insights.forEach((insight) => {
+    (weeklyReport.insights || []).forEach((insight) => {
       if (yPosition + safeNumber(lineHeight) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
@@ -439,7 +491,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
     doc.text('Next Week Goals:', safeNumber(20), yPosition);
     yPosition += safeNumber(lineHeight);
-    weeklyReport.nextWeekGoals.forEach((goal) => {
+    (weeklyReport.nextWeekGoals || []).forEach((goal) => {
       if (yPosition + safeNumber(lineHeight) > pageHeight) {
         doc.addPage();
         yPosition = safeNumber(20);
@@ -461,7 +513,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
       }
       doc.text('Screenshots:', safeNumber(20), yPosition);
       yPosition += safeNumber(lineHeight);
-      allScreenshots.forEach((screenshot, index) => {
+      allScreenshots.forEach((screenshot) => {
         if (yPosition + safeNumber(60) > pageHeight) {
           doc.addPage();
           yPosition = safeNumber(20);
@@ -499,20 +551,21 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
     
     try {
       console.log('[DEBUG] Calling generateWeeklyReport...');
-      const report = await generateWeeklyReport(gamesThisWeek, weekStart, weekEnd);
-      
-      if (!report) {
+      const raw = await generateWeeklyReport(gamesThisWeek, weekStart, weekEnd);
+      if (!raw) {
         throw new Error('Received empty report from API');
       }
-      
-      console.log('[DEBUG] Report generated successfully:', report);
-      
-      // Validate required report fields
+
+      const report = normalizeWeeklyReport(raw);
+      console.log('[DEBUG] Report generated successfully (normalized):', report);
+
+      // Optional: sanity check
       const requiredFields = ['summary', 'highlights', 'progress', 'insights', 'nextWeekGoals'];
-      const missingFields = requiredFields.filter(field => !report[field]);
-      
-      if (missingFields.length > 0) {
-        console.warn('[DEBUG] Report is missing some fields:', missingFields);
+      const missing = requiredFields.filter(
+        k => report[k] == null || (Array.isArray(report[k]) && report[k].length === 0)
+      );
+      if (missing.length > 0) {
+        console.warn('[DEBUG] Report missing or empty fields:', missing);
       }
       
       setWeeklyReport(report);
@@ -528,14 +581,14 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
       
       toast.error(`Failed to generate report: ${error.message || 'Unknown error'}`);
       
-      // Provide fallback report if possible
-      const fallbackReport = {
+      // Provide fallback report (already normalized)
+      const fallbackReport = normalizeWeeklyReport({
         summary: 'Weekly report generation failed. Using fallback data.',
         highlights: ['Check console for detailed error logs'],
         progress: ['Could not generate progress data'],
         insights: ['Error occurred during report generation'],
         nextWeekGoals: ['Try generating the report again']
-      };
+      });
       
       setWeeklyReport(fallbackReport);
       setEditedWeeklyReport(fallbackReport);
@@ -562,7 +615,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
     } else {
       setSelectedWeek(prev => addWeeks(prev, safeNumber(1)));
     }
-    setWeeklyReport(null); // Reset report when changing week
+    setWeeklyReport({ summary: '', highlights: [], progress: [], insights: [], nextWeekGoals: [], categoryAnalysis: {}, difficultyAnalysis: {}, recommendedFocus: [] });
     setEditedWeeklyReport(null);
   };
 
@@ -948,7 +1001,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
 
 
         {/* AI Weekly Report */}
-        {weeklyReport && weeklyReport.summary && (
+        {(weeklyReport?.summary ?? '').trim() && (
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -997,8 +1050,8 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                 <h4 className="font-semibold mb-2">Summary</h4>
                 {isEditingWeeklyReport ? (
                   <textarea
-                    value={editedWeeklyReport.summary}
-                    onChange={(e) => setEditedWeeklyReport({ ...editedWeeklyReport, summary: e.target.value })}
+                    value={editedWeeklyReport?.summary ?? ''}
+                    onChange={(e) => setEditedWeeklyReport({ ...(editedWeeklyReport ?? {}), summary: e.target.value })}
                     rows={3}
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                   />
@@ -1009,21 +1062,21 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               <div>
                 <h4 className="font-semibold mb-2">Highlights</h4>
                 {isEditingWeeklyReport ? (
-                  editedWeeklyReport.highlights.map((highlight, index) => (
+                  (editedWeeklyReport?.highlights ?? []).map((highlight, index) => (
                     <input
                       key={index}
                       value={highlight}
                       onChange={(e) => {
-                        const newHighlights = [...editedWeeklyReport.highlights];
-                        newHighlights[index] = e.target.value;
-                        setEditedWeeklyReport({ ...editedWeeklyReport, highlights: newHighlights });
+                        const list = [...(editedWeeklyReport?.highlights ?? [])];
+                        list[index] = e.target.value;
+                        setEditedWeeklyReport({ ...(editedWeeklyReport ?? {}), highlights: list });
                       }}
                       className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                     />
                   ))
                 ) : (
                   <ul className="list-disc list-inside space-y-3">
-                    {weeklyReport.highlights.map((highlight, index) => (
+                    {(weeklyReport.highlights ?? []).map((highlight, index) => (
                       <li key={index} className="break-words text-slate-100/90 leading-relaxed">{highlight}</li>
                     ))}
                   </ul>
@@ -1032,21 +1085,21 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               <div>
                 <h4 className="font-semibold mb-2">Progress</h4>
                 {isEditingWeeklyReport ? (
-                  editedWeeklyReport.progress.map((prog, index) => (
+                  (editedWeeklyReport?.progress ?? []).map((prog, index) => (
                     <input
                       key={index}
                       value={prog}
                       onChange={(e) => {
-                        const newProgress = [...editedWeeklyReport.progress];
-                        newProgress[index] = e.target.value;
-                        setEditedWeeklyReport({ ...editedWeeklyReport, progress: newProgress });
+                        const list = [...(editedWeeklyReport?.progress ?? [])];
+                        list[index] = e.target.value;
+                        setEditedWeeklyReport({ ...(editedWeeklyReport ?? {}), progress: list });
                       }}
                       className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                     />
                   ))
                 ) : (
                   <ul className="list-disc list-inside space-y-3">
-                    {weeklyReport.progress.map((prog, index) => (
+                    {(weeklyReport.progress ?? []).map((prog, index) => (
                       <li key={index} className="break-words text-slate-100/90 leading-relaxed">{prog}</li>
                     ))}
                   </ul>
@@ -1055,21 +1108,21 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               <div>
                 <h4 className="font-semibold mb-2">Insights</h4>
                 {isEditingWeeklyReport ? (
-                  editedWeeklyReport.insights.map((insight, index) => (
+                  (editedWeeklyReport?.insights ?? []).map((insight, index) => (
                     <input
                       key={index}
                       value={insight}
                       onChange={(e) => {
-                        const newInsights = [...editedWeeklyReport.insights];
-                        newInsights[index] = e.target.value;
-                        setEditedWeeklyReport({ ...editedWeeklyReport, insights: newInsights });
+                        const list = [...(editedWeeklyReport?.insights ?? [])];
+                        list[index] = e.target.value;
+                        setEditedWeeklyReport({ ...(editedWeeklyReport ?? {}), insights: list });
                       }}
                       className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                     />
                   ))
                 ) : (
                   <ul className="list-disc list-inside space-y-3">
-                    {weeklyReport.insights.map((insight, index) => (
+                    {(weeklyReport.insights ?? []).map((insight, index) => (
                       <li key={index} className="break-words text-slate-100/90 leading-relaxed">{insight}</li>
                     ))}
                   </ul>
@@ -1078,21 +1131,21 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
               <div>
                 <h4 className="font-semibold mb-2">Next Week Goals</h4>
                 {isEditingWeeklyReport ? (
-                  editedWeeklyReport.nextWeekGoals.map((goal, index) => (
+                  (editedWeeklyReport?.nextWeekGoals ?? []).map((goal, index) => (
                     <input
                       key={index}
                       value={goal}
                       onChange={(e) => {
-                        const newGoals = [...editedWeeklyReport.nextWeekGoals];
-                        newGoals[index] = e.target.value;
-                        setEditedWeeklyReport({ ...editedWeeklyReport, nextWeekGoals: newGoals });
+                        const list = [...(editedWeeklyReport?.nextWeekGoals ?? [])];
+                        list[index] = e.target.value;
+                        setEditedWeeklyReport({ ...(editedWeeklyReport ?? {}), nextWeekGoals: list });
                       }}
                       className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                     />
                   ))
                 ) : (
                   <ul className="list-disc list-inside space-y-3">
-                    {weeklyReport.nextWeekGoals.map((goal, index) => (
+                    {(weeklyReport.nextWeekGoals ?? []).map((goal, index) => (
                       <li key={index} className="break-words text-slate-100/90 leading-relaxed">{goal}</li>
                     ))}
                   </ul>
