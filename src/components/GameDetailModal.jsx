@@ -56,6 +56,17 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     setMilestoneInsights(insights);
   }, [game]);
 
+  // Update categorized notes when milestones or notes change
+  useEffect(() => {
+    const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+    const categorized = categorizeNotesByMilestones(notes, localMilestones);
+    setCategorizedNotes(categorized);
+    
+    // Update milestone insights
+    const insights = generateMilestoneInsights(localMilestones, notes);
+    setMilestoneInsights(insights);
+  }, [localMilestones, game.notes]);
+
   const handleCoverUpdate = () => {
     if (!newCoverUrl.trim()) {
       toast.error('Please enter a valid image URL');
@@ -140,7 +151,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     }
   };
 
-  const clearAllMilestones = async () => {
+  const clearAllMilestones = () => {
     const updatedMilestones = (localMilestones || []).map((m) => ({
       ...m,
       completed: false,
@@ -149,7 +160,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       notes: []
     }));
     
-    // Update local state first
+    // Update local state - the useEffect will handle updating categorizedNotes
     setLocalMilestones(updatedMilestones);
     
     // Update the parent component's state
@@ -158,19 +169,6 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       milestones: updatedMilestones
     };
     onUpdateGame(updatedGame);
-    
-    // Update categorized notes and insights after clearing all milestones
-    if (game.notes && game.notes.length > 0) {
-      // Use setTimeout to ensure state updates have completed
-      setTimeout(() => {
-        const { categorized, uncategorized } = categorizeNotesByMilestones(game.notes, updatedMilestones);
-        setCategorizedNotes({ categorized, uncategorized });
-        
-        // Update milestone insights
-        const insights = analyzeMilestoneProgress(updatedMilestones);
-        setMilestoneInsights(insights);
-      }, 0);
-    }
   };
 
   const regenerateMilestones = async () => {
