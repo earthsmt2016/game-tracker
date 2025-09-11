@@ -1050,26 +1050,18 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                     <AlertCircle className="h-3 w-3 mr-1" />
                                     {categorizedNote.isTriggered ? 'Milestones Cleared by This Note:' : 'Related Milestones:'}
                                   </p>
-                                  {categorizedNote.relatedMilestones.map((milestone) => (
+                                  {categorizedNote.relatedMilestones
+                                    .filter(milestone => milestone.completed) // Only show completed milestones
+                                    .map((milestone) => (
                                     <div
                                       key={milestone.id}
-                                      className={`text-xs rounded px-2 py-1 border ${
-                                        milestone.completed 
-                                          ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
-                                          : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
-                                      }`}
+                                      className="text-xs rounded px-2 py-1 border bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800"
                                     >
                                       <div className="font-medium text-slate-900 dark:text-slate-100">
                                         {milestone.title}
                                       </div>
-                                      <div className={`mt-1 text-sm ${
-                                        milestone.completed 
-                                          ? 'text-green-600 dark:text-green-400'
-                                          : 'text-red-600 dark:text-red-400'
-                                      }`}>
-                                        {milestone.completed 
-                                          ? '✓ Cleared by this note' 
-                                          : '✗ Not cleared by this note'}
+                                      <div className="mt-1 text-sm text-green-600 dark:text-green-400">
+                                        ✓ Cleared by this note
                                       </div>
                                     </div>
                                     ))}
