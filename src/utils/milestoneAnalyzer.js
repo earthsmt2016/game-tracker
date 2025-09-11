@@ -122,6 +122,7 @@ export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
   milestones.forEach(milestone => {
     if (!milestone?.triggeredByNote) return;
     
+    // Extract the note text that triggered this milestone
     const noteText = typeof milestone.triggeredByNote === 'string' 
       ? milestone.triggeredByNote 
       : milestone.triggeredByNote.text;
@@ -129,7 +130,15 @@ export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
     if (!noteText) return;
     
     // Find the original note object that triggered this milestone
-    const originalNote = notes.find(n => n.text === noteText);
+    // We need to find the most recent note that matches this text
+    const matchingNotes = notes.filter(n => n.text === noteText);
+    if (matchingNotes.length === 0) return;
+    
+    // If there are multiple notes with the same text, use the most recent one
+    const originalNote = matchingNotes.reduce((latest, current) => {
+      return (!latest || new Date(current.date) > new Date(latest.date)) ? current : latest;
+    }, null);
+    
     if (!originalNote) return;
     
     if (!noteToMilestones.has(originalNote.id)) {

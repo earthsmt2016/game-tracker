@@ -1034,30 +1034,37 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                               </div>
 
                               {/* Cleared Milestones */}
-                              {noteData.isTriggered && noteData.relatedMilestones && noteData.relatedMilestones.length > 0 && (
+                              {noteData.relatedMilestones && noteData.relatedMilestones.length > 0 && (
                                 <div className="mt-2 space-y-1">
                                   <p className="text-xs font-medium text-slate-900 dark:text-slate-100 flex items-center">
                                     <AlertCircle className="h-3 w-3 mr-1" />
-                                    Milestones Cleared by This Note:
+                                    {noteData.isTriggered ? 'Milestones Cleared by This Note:' : 'Related Milestones:'}
                                   </p>
                                   {noteData.relatedMilestones
                                     .filter(milestone => {
-                                      // Only show milestones that were actually triggered by this note
-                                      const isTriggeredByThisNote = 
-                                        (typeof milestone.triggeredByNote === 'string' && milestone.triggeredByNote === noteData.note.text) ||
-                                        (milestone.triggeredByNote?.text === noteData.note.text);
-                                      return isTriggeredByThisNote && milestone.completed;
+                                      // For triggered notes, only show completed milestones
+                                      if (noteData.isTriggered) {
+                                        return milestone.completed;
+                                      }
+                                      // For suggested milestones, only show uncompleted ones
+                                      return !milestone.completed;
                                     })
                                     .map((milestone) => (
                                       <div
                                         key={milestone.id}
-                                        className="text-xs text-slate-900 dark:text-slate-100 bg-green-50 dark:bg-green-900/20 rounded px-2 py-1 border border-green-200 dark:border-green-800"
+                                        className={`text-xs text-slate-900 dark:text-slate-100 rounded px-2 py-1 border ${
+                                          milestone.completed 
+                                            ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800'
+                                            : 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800'
+                                        }`}
                                       >
                                         <span className="font-medium text-slate-900 dark:text-slate-100">
                                           {milestone.title}
                                         </span>
                                         <span className="ml-2 text-slate-700 dark:text-slate-300">
-                                          ✓ Cleared by this note
+                                          {milestone.completed 
+                                            ? '✓ Cleared by this note' 
+                                            : 'Suggested milestone'}
                                         </span>
                                       </div>
                                     ))}
