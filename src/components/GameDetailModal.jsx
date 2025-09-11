@@ -30,6 +30,11 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingMilestoneUpdates, setPendingMilestoneUpdates] = useState([]);
   const [categorizedNotes, setCategorizedNotes] = useState({ categorized: [], uncategorized: [] });
+  
+  // Safely get notes array
+  const getSafeNotes = () => {
+    return game?.notes || [];
+  };
   const [milestoneInsights, setMilestoneInsights] = useState({});
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(false);
@@ -59,7 +64,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   // Update categorized notes when milestones or notes change
   useEffect(() => {
     console.log('Updating categorized notes...');
-    const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+    const notes = Array.isArray(game?.notes) ? [...game.notes] : [];
     console.log('Current notes:', notes);
     console.log('Current localMilestones:', localMilestones);
     
@@ -71,7 +76,7 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
     const insights = generateMilestoneInsights(localMilestones, notes);
     console.log('Milestone insights:', insights);
     setMilestoneInsights(insights);
-  }, [localMilestones, game.notes]);
+  }, [localMilestones, game?.notes]);
 
   const handleCoverUpdate = () => {
     if (!newCoverUrl.trim()) {
@@ -250,33 +255,33 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const handleAddNote = () => {
-    if (newNote.trim()) {
-      const note = {
-        text: newNote,
-        date: new Date().toISOString(),
-        hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
-        minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
-      };
-      
-      // Use enhanced milestone analysis
-      const suggestedMilestones = analyzeMilestoneFromNote(note, localMilestones);
+    if (!game?.id || !newNote.trim()) return;
+    
+    const note = {
+      text: newNote,
+      date: new Date().toISOString(),
+      hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
+      minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
+    };
+    
+    // Use enhanced milestone analysis
+    const suggestedMilestones = analyzeMilestoneFromNote(note, localMilestones);
 
-      if (suggestedMilestones.length > 0) {
-        setPendingMilestoneUpdates(suggestedMilestones);
-        setShowConfirmationModal(true);
-      } else {
-        // No milestones to suggest, add note directly
-        const updatedNotes = [...(game.notes || []), note];
-        onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
-        setNewNote('');
-        setHoursPlayed('');
-        setMinutesPlayed('');
-        toast.success('Note added successfully!');
-        
-        // Update categorized notes
-        const categorized = categorizeNotesByMilestones(updatedNotes, localMilestones);
-        setCategorizedNotes(categorized);
-      }
+    if (suggestedMilestones.length > 0) {
+      setPendingMilestoneUpdates(suggestedMilestones);
+      setShowConfirmationModal(true);
+    } else {
+      // No milestones to suggest, add note directly
+      const updatedNotes = [...getSafeNotes(), note];
+      onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
+      setNewNote('');
+      setHoursPlayed('');
+      setMinutesPlayed('');
+      toast.success('Note added successfully!');
+      
+      // Update categorized notes
+      const categorized = categorizeNotesByMilestones(updatedNotes, localMilestones);
+      setCategorizedNotes(categorized);
     }
   };
 
@@ -338,13 +343,16 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const confirmAddNote = () => {
+    if (!game?.id) return;
+    
     const note = {
       text: newNote,
       date: new Date().toISOString(),
       hoursPlayed: hoursPlayed ? parseFloat(hoursPlayed) : undefined,
       minutesPlayed: minutesPlayed ? parseFloat(minutesPlayed) : undefined
     };
-    const updatedNotes = [...(game.notes || []), note];
+    
+    const updatedNotes = [...getSafeNotes(), note];
     onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
     setNewNote('');
     setHoursPlayed('');
@@ -380,8 +388,13 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const deleteNote = (noteIndex) => {
+    if (!game?.id) return;
+    
     if (window.confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-      const updatedNotes = [...(game.notes || [])];
+      const currentNotes = getSafeNotes();
+      if (noteIndex < 0 || noteIndex >= currentNotes.length) return;
+      
+      const updatedNotes = [...currentNotes];
       // If the note is associated with any milestones, clear that association
       const updatedMilestones = (localMilestones || []).map(milestone => {
         if (milestone.triggeredByNote === updatedNotes[noteIndex]?.text) {
@@ -394,6 +407,10 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
       setLocalMilestones(updatedMilestones);
       toast.success('Note deleted successfully!');
+      
+      // Update categorized notes
+      const categorized = categorizeNotesByMilestones(updatedNotes, updatedMilestones);
+      setCategorizedNotes(categorized);
     }
   };
 
