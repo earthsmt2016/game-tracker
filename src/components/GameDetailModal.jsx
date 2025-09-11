@@ -1162,7 +1162,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                   value={editedReport.summary}
                                   onChange={(e) => setEditedReport({ ...editedReport, summary: e.target.value })}
                                   rows={3}
-                                  className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white dark:bg-slate-700 text-black dark:text-slate-100"
+                                  className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white text-black dark:bg-slate-700 dark:text-slate-100"
                                 />
                               </div>
                               <div>
@@ -1176,7 +1176,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                       newHighlights[index] = e.target.value;
                                       setEditedReport({ ...editedReport, highlights: newHighlights });
                                     }}
-                                    className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white dark:bg-slate-700 text-black dark:text-slate-100"
+                                    className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white text-black dark:bg-slate-700 dark:text-slate-100"
                                   />
                                 ))}
                               </div>
@@ -1191,7 +1191,7 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                       newSteps[index] = e.target.value;
                                       setEditedReport({ ...editedReport, nextSteps: newSteps });
                                     }}
-                                    className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white dark:bg-slate-700 text-black dark:text-slate-100"
+                                    className="w-full px-3 py-2 mb-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 bg-white text-black dark:bg-slate-700 dark:text-slate-100"
                                   />
                                 ))}
                               </div>
