@@ -1,6 +1,44 @@
 import OpenAI from 'openai';
 import { safeNumber, safeDivision, safeArrayFilter, safePercentage } from './helpers';
 
+// Helper function to parse JSON with retry and error handling
+const parseJsonWithRetry = async (jsonString, maxRetries = 3) => {
+  let lastError = null;
+  
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return JSON.parse(jsonString);
+    } catch (error) {
+      lastError = error;
+      console.warn(`[DEBUG] JSON parse attempt ${i + 1} failed, trying to fix...`);
+      
+      // Try to fix common JSON issues
+      jsonString = jsonString
+        // Remove markdown code blocks
+        .replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/gm, '$1')
+        // Remove trailing commas
+        .replace(/,(\s*[}\]])/g, '$1')
+        // Add quotes around unquoted keys
+        .replace(/([\{\[,]\s*)([a-zA-Z0-9_\-]+?)\s*:/g, '$1"$2":')
+        // Replace single quotes with double quotes
+        .replace(/'/g, '"')
+        // Fix escaped quotes
+        .replace(/\\"/g, '"')
+        // Remove comments
+        .replace(/\/\*[\s\S]*?\*\/|([^\\:]|^)\/\/.*$/gm, '')
+        // Remove trailing commas in arrays and objects
+        .replace(/,(\s*[}\]])/g, '$1');
+      
+      // If we're on the last try, log the problematic content
+      if (i === maxRetries - 1) {
+        console.error('[DEBUG] Failed to parse JSON after all retries. Content:', jsonString);
+      }
+    }
+  }
+  
+  throw new Error(`Failed to parse JSON after ${maxRetries} attempts: ${lastError.message}`);
+};
+
 // Helper function to clean and validate JSON content
 const cleanAndParseJson = (jsonString) => {
   try {
@@ -604,34 +642,87 @@ Return only the JSON object, no additional text.`;
     // Initialize OpenAI client
     const openai = getOpenAIClient();
 
-    const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
-      messages: [{ role: 'user', content: prompt }],
-      max_tokens: safeNumber(1200),
-      temperature: safeNumber(0.8),
-    });
-
-    const content = response.choices[safeNumber(0)].message.content.trim();
-    
-    // Parse the JSON response
-    const report = JSON.parse(content);
-    return {
-      summary: typeof report.summary === 'string' ? report.summary : 'Weekly summary not available',
-      highlights: Array.isArray(report.highlights) ? report.highlights.map(h => typeof h === 'string' ? h : 'Highlight') : [],
-      progress: Array.isArray(report.progress) ? report.progress.map(p => typeof p === 'string' ? p : 'Progress') : [],
-      insights: Array.isArray(report.insights) ? report.insights.map(i => typeof i === 'string' ? i : 'Insight') : [],
-      nextWeekGoals: Array.isArray(report.nextWeekGoals) ? report.nextWeekGoals.map(g => typeof g === 'string' ? g : 'Goal') : [],
-      categoryAnalysis: typeof report.categoryAnalysis === 'object' ? report.categoryAnalysis : {},
-      difficultyAnalysis: typeof report.difficultyAnalysis === 'object' ? report.difficultyAnalysis : {},
-      recommendedFocus: Array.isArray(report.recommendedFocus) ? report.recommendedFocus.map(r => typeof r === 'string' ? r : 'Recommendation') : [],
-      weeklyStats: {
-        totalMilestones: totalMilestonesThisWeek,
-        completedMilestones: completedMilestonesThisWeek,
-        totalNotes: totalNotesThisWeek,
-        categoryProgress,
-        difficultyProgress
+    // Add system message to ensure valid JSON response
+    const messages = [
+      {
+        role: 'system',
+        content: 'You are a helpful assistant that generates detailed gaming reports. Your response MUST be a valid JSON object with the following structure: { "summary": "...", "highlights": ["..."], "progress": ["..."], "insights": ["..."], "nextWeekGoals": ["..."], "categoryAnalysis": {...}, "difficultyAnalysis": {...}, "recommendedFocus": [...] }'
+      },
+      {
+        role: 'user',
+        content: prompt + '\n\nIMPORTANT: Your response MUST be valid JSON. Do not include any markdown formatting, code blocks, or additional text outside the JSON object.'
       }
-    };
+    ];
+
+    console.log('[DEBUG] Sending request to OpenAI with messages:', JSON.stringify(messages, null, 2));
+    
+    try {
+      const response = await openai.chat.completions.create({
+        model: 'gpt-3.5-turbo',
+        messages: messages,
+        response_format: { type: 'json_object' },
+        max_tokens: safeNumber(1200),
+        temperature: safeNumber(0.7),
+      });
+
+      const content = response.choices[0]?.message?.content?.trim();
+      
+      if (!content) {
+        throw new Error('Empty response from OpenAI API');
+      }
+      
+      console.log('[DEBUG] Raw OpenAI response:', content);
+      
+      // Try to extract JSON from markdown code blocks if present
+      let jsonContent = content;
+      const jsonMatch = content.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+      if (jsonMatch && jsonMatch[1]) {
+        jsonContent = jsonMatch[1].trim();
+        console.log('[DEBUG] Extracted JSON from markdown code block');
+      }
+      
+      // Clean and parse the JSON with retry logic
+      const report = await parseJsonWithRetry(jsonContent);
+      console.log('[DEBUG] Successfully parsed JSON response:', report);
+      
+      // Validate required fields
+      const requiredFields = ['summary', 'highlights', 'progress', 'insights', 'nextWeekGoals'];
+      const missingFields = requiredFields.filter(field => !(field in report));
+      
+      if (missingFields.length > 0) {
+        console.warn('[DEBUG] Missing required fields in response:', missingFields);
+        // Add default values for missing fields
+        missingFields.forEach(field => {
+          if (field === 'highlights' || field === 'progress' || field === 'insights' || field === 'nextWeekGoals') {
+            report[field] = [];
+          } else if (field === 'categoryAnalysis' || field === 'difficultyAnalysis') {
+            report[field] = {};
+          } else {
+            report[field] = '';
+          }
+        });
+      }
+      
+      // Add weekly stats to the report
+      return {
+        ...report,
+        weeklyStats: {
+          totalMilestones: totalMilestonesThisWeek,
+          completedMilestones: completedMilestonesThisWeek,
+          totalNotes: totalNotesThisWeek,
+          categoryProgress,
+          difficultyProgress
+        }
+      };
+      
+    } catch (error) {
+      console.error('[DEBUG] Error in OpenAI API call:', {
+        error: error.message,
+        stack: error.stack,
+        response: error.response?.data
+      });
+      throw error;
+    }
   } catch (error) {
     console.error('OpenAI API Error in generateWeeklyReport:', error);
     console.error('Error details:', {
