@@ -777,15 +777,6 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100 flex items-center">
                           <Trophy className="h-5 w-5 mr-2 text-indigo-500" />
                           AI-Generated Milestones
-                          {localMilestones.length > 0 && (
-                            <button
-                              onClick={clearAllMilestones}
-                              className="ml-3 text-xs bg-red-600 hover:bg-red-700 text-white px-2 py-1 rounded-md transition-colors"
-                              title="Clear All Milestones"
-                            >
-                              Clear All
-                            </button>
-                          )}
                         </h3>
                         <button
                           onClick={regenerateMilestones}
