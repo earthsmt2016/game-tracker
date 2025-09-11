@@ -286,11 +286,43 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
   };
 
   const handleMilestoneDecision = (milestoneId, agree) => {
-    console.log('handleMilestoneDecision called with:', { milestoneId, agree });
-    console.log('Current localMilestones:', localMilestones);
+    // Start with current milestones
+    let updatedMilestones = [...localMilestones];
     
-    setPendingMilestoneUpdates(prev => {
-      // Create the note object first to ensure consistency
+    if (agree) {
+      // Update the specific milestone that was confirmed
+      updatedMilestones = updatedMilestones.map(milestone => {
+        if (milestone.id === milestoneId) {
+          return {
+            ...milestone,
+            completed: true,
+            completedDate: new Date().toISOString(),
+            triggeredByNote: newNote, // Store just the note text for simpler comparison
+            lastUpdated: new Date().toISOString()
+          };
+        }
+        return milestone;
+      });
+      
+      // Update local state with the new milestones
+      setLocalMilestones(updatedMilestones);
+      
+      // Calculate progress
+      const completedCount = updatedMilestones.filter(m => m.completed).length;
+      const progress = updatedMilestones.length > 0 
+        ? (completedCount / updatedMilestones.length) * 100 
+        : 0;
+      
+      // Update parent component with the new state
+      onUpdateProgress(game.id, progress, updatedMilestones);
+    }
+    
+    // Filter out the processed milestone
+    const remainingUpdates = pendingMilestoneUpdates.filter(m => m.id !== milestoneId);
+    
+    // If no more pending updates, add the note and clean up
+    if (remainingUpdates.length === 0) {
+      // Create the note object
       const noteToAdd = {
         text: newNote,
         date: new Date().toISOString(),
@@ -302,81 +334,24 @@ const GameDetailModal = ({ isOpen, onClose, game, onUpdateProgress, onUpdateNote
       // Create the updated notes array with the new note
       const updatedNotes = [...getSafeNotes(), noteToAdd];
       
-      // Filter out the processed milestone
-      const remainingUpdates = prev.filter(m => m.id !== milestoneId);
+      // Update notes in parent component
+      onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
       
-      // Declare updatedMilestones here so it's available in the entire function
-      let updatedMilestones = [...localMilestones];
-      let shouldUpdateParent = false;
+      // Update categorized notes
+      const categorized = categorizeNotesByMilestones(updatedNotes, updatedMilestones);
+      setCategorizedNotes(categorized);
       
-      if (agree) {
-        console.log('Updating milestone:', milestoneId);
-        // Update the milestones array
-        updatedMilestones = localMilestones.map(milestone => {
-          if (milestone.id === milestoneId) {
-            shouldUpdateParent = true;
-            return {
-              ...milestone,
-              completed: true,
-              completedDate: new Date().toISOString(),
-              // Store the full note object for better reference
-              triggeredByNote: { 
-                text: noteToAdd.text,
-                date: noteToAdd.date,
-                id: noteToAdd.id
-              },
-              // Update the notes array for this milestone
-              notes: [
-                ...(milestone.notes || []),
-                { ...noteToAdd, id: `milestone-note-${Date.now()}` }
-              ],
-              lastUpdated: new Date().toISOString()
-            };
-          }
-          return { ...milestone }; // Ensure we don't mutate the original
-        });
-        
-        // Update local state with the new milestones
-        setLocalMilestones(updatedMilestones);
-        
-        // Calculate progress
-        const completedCount = updatedMilestones.filter(m => m.completed).length;
-        const progress = updatedMilestones.length > 0 
-          ? (completedCount / updatedMilestones.length) * 100 
-          : 0;
-        
-        // Update parent component with the new state
-        if (shouldUpdateParent) {
-          console.log('Calling onUpdateProgress with:', { 
-            progress, 
-            milestones: updatedMilestones,
-            updatedMilestone: updatedMilestones.find(m => m.id === milestoneId)
-          });
-          onUpdateProgress(game.id, progress, updatedMilestones);
-        }
-        
-        // Update notes in parent component
-        onUpdateNotes(game.id, updatedNotes, report, reportScreenshots);
-        
-        // Update categorized notes immediately
-        const categorized = categorizeNotesByMilestones(updatedNotes, updatedMilestones);
-        setCategorizedNotes(categorized);
-      }
+      // Reset form fields
+      setNewNote('');
+      setHoursPlayed('');
+      setMinutesPlayed('');
+      setShowConfirmationModal(false);
       
-      // If no more pending updates, clean up the UI
-      if (remainingUpdates.length === 0) {
-        // Reset form fields
-        setNewNote('');
-        setHoursPlayed('');
-        setMinutesPlayed('');
-        setShowConfirmationModal(false);
-        setPendingMilestoneUpdates([]);
-        
-        toast.success('Note and milestone updates saved successfully!');
-      }
-      
-      return remainingUpdates;
-    });
+      toast.success('Note added and milestones updated!');
+    }
+    
+    // Update pending updates for the next confirmation
+    setPendingMilestoneUpdates(remainingUpdates);
   };
 
   const confirmAddNote = () => {
