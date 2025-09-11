@@ -953,7 +953,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: safeNumber(0.9) }}
-            className="bg-gradient-to-r from-indigo-600 to-purple-500 rounded-xl p-6 mt-8 text-slate-100"
+            className="bg-gradient-to-r from-indigo-600 to-purple-500 rounded-xl p-6 mt-8 text-slate-100 overflow-hidden"
           >
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold">AI Weekly Report</h3>
@@ -992,7 +992,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                 )}
               </div>
             </div>
-            <div className="space-y-6">
+            <div className="space-y-6 max-h-[70vh] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-400/30 scrollbar-track-transparent">
               <div>
                 <h4 className="font-semibold mb-2">Summary</h4>
                 {isEditingWeeklyReport ? (
@@ -1003,7 +1003,7 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                     className="w-full px-3 py-2 border border-slate-300 dark:border-slate-600 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-violet-500 focus:border-violet-500 dark:bg-slate-700 dark:text-slate-100"
                   />
                 ) : (
-                  <p className="whitespace-pre-wrap break-words">{weeklyReport.summary}</p>
+                  <p className="whitespace-pre-wrap break-words text-slate-100/90 leading-relaxed">{weeklyReport.summary}</p>
                 )}
               </div>
               <div>
@@ -1022,9 +1022,9 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                     />
                   ))
                 ) : (
-                  <ul className="list-disc list-inside space-y-2">
+                  <ul className="list-disc list-inside space-y-3">
                     {weeklyReport.highlights.map((highlight, index) => (
-                      <li key={index} className="break-words">{highlight}</li>
+                      <li key={index} className="break-words text-slate-100/90 leading-relaxed">{highlight}</li>
                     ))}
                   </ul>
                 )}
@@ -1045,9 +1045,9 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                     />
                   ))
                 ) : (
-                  <ul className="list-disc list-inside space-y-2">
+                  <ul className="list-disc list-inside space-y-3">
                     {weeklyReport.progress.map((prog, index) => (
-                      <li key={index} className="break-words">{prog}</li>
+                      <li key={index} className="break-words text-slate-100/90 leading-relaxed">{prog}</li>
                     ))}
                   </ul>
                 )}
@@ -1068,9 +1068,9 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                     />
                   ))
                 ) : (
-                  <ul className="list-disc list-inside space-y-2">
+                  <ul className="list-disc list-inside space-y-3">
                     {weeklyReport.insights.map((insight, index) => (
-                      <li key={index} className="break-words">{insight}</li>
+                      <li key={index} className="break-words text-slate-100/90 leading-relaxed">{insight}</li>
                     ))}
                   </ul>
                 )}
@@ -1091,9 +1091,9 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
                     />
                   ))
                 ) : (
-                  <ul className="list-disc list-inside space-y-2">
+                  <ul className="list-disc list-inside space-y-3">
                     {weeklyReport.nextWeekGoals.map((goal, index) => (
-                      <li key={index} className="break-words">{goal}</li>
+                      <li key={index} className="break-words text-slate-100/90 leading-relaxed">{goal}</li>
                     ))}
                   </ul>
                 )}
