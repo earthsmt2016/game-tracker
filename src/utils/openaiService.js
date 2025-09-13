@@ -91,7 +91,7 @@ if (!import.meta.env.VITE_OPENAI_API_KEY) {
   console.error('OpenAI API key is not set. Please add VITE_OPENAI_API_KEY to your .env file');
 }
 
-export const generateMilestones = async (gameTitle) => {
+export const generateMilestones = async (gameTitle, platform = 'PC') => {
   // Validate API key before making request
   if (!import.meta.env.VITE_OPENAI_API_KEY) {
     console.error('OpenAI API key is missing or not configured properly');
@@ -99,6 +99,32 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
+    // Platform-specific details
+    const platformDetails = {
+      'PC': {
+        controls: 'keyboard and mouse',
+        features: ['high FPS targets', 'graphics settings', 'key rebinding', 'ultrawide support'],
+        achievements: ['Achieve 60+ FPS in demanding areas', 'Complete a boss fight using only keyboard controls', 'Max out all graphics settings while maintaining 30 FPS']
+      },
+      'PlayStation 5': {
+        controls: 'DualSense controller',
+        features: ['haptic feedback', 'adaptive triggers', '3D audio', 'Activity Cards'],
+        achievements: ['Experience haptic feedback during web-swinging', 'Use adaptive triggers for web-shooting', 'Utilize Activity Cards to jump into specific missions']
+      },
+      'Xbox Series X|S': {
+        controls: 'Xbox controller',
+        features: ['Quick Resume', 'Xbox Game Pass', 'Smart Delivery'],
+        achievements: ['Use Quick Resume to jump back into the game', 'Achieve 60 FPS in Performance Mode']
+      },
+      'Nintendo Switch': {
+        controls: 'Joy-Con or Pro Controller',
+        features: ['handheld mode', 'HD Rumble', 'local co-op'],
+        achievements: ['Play in handheld mode for 30 minutes', 'Experience HD Rumble during combat']
+      }
+    };
+    
+    const platformInfo = platformDetails[platform] || platformDetails['PC'];
+    
     // Special handling for specific games
     let gameSpecificPrompt = '';
     
@@ -111,14 +137,20 @@ export const generateMilestones = async (gameTitle) => {
 
 Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`;
     } else if (gameTitle.toLowerCase().includes('spider-man 2') || gameTitle.toLowerCase().includes('spiderman 2')) {
-      gameSpecificPrompt = `For Marvel's Spider-Man 2, create highly specific milestones that include:
+      gameSpecificPrompt = `For Marvel's Spider-Man 2 (${platform} version), create highly specific milestones that include:
+- Platform-specific features: ${platformInfo.features.join(', ')}
+- ${platform} controls: ${platformInfo.controls}
+- Platform achievements: ${platformInfo.achievements.slice(0, 2).join('; ')}
 - Full names of all major characters (e.g., "Peter Parker/Spider-Man", "Miles Morales/Spider-Man", "Kraven the Hunter", "Venom/Eddie Brock")
 - Specific locations in New York (e.g., "Empire State University", "Oscorp Tower", "Fisk Tower")
 - Names of specific missions and operations (e.g., "The Flame" missions, "Spider-Bot" collection)
 - Specific abilities and suit powers (e.g., "Symbiote Surge", "Venom Blast", "Web Wings")
 - Specific story events and twists (e.g., "The Symbiote's Influence", "The Lizard Transformation")
+- PC-specific features (e.g., "Achieve 60+ FPS in Times Square", "Complete a web-swinging sequence using keyboard/mouse controls")
 
-For boss fights, always specify which villain you're fighting and any unique mechanics (e.g., "Defeat Sandman in the Financial District using environmental attacks").`;
+For boss fights, always specify which villain you're fighting and any unique mechanics (e.g., "Defeat Sandman in the Financial District using environmental attacks").
+
+Note: This is for the PC version, so you can reference PC-specific features, controls, and optimizations.`;
     }
 
     const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate EXACTLY 15 key milestones that cover the main story progression and major gameplay moments. Each milestone must be specific, detailed, and reference actual characters, locations, and events from the game.
