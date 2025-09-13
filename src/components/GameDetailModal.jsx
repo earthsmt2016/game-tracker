@@ -224,6 +224,40 @@ const GameDetailModal = ({
     setIsEditingCover(false);
   };
 
+  const addCustomMilestone = () => {
+    if (!newMilestoneTitle.trim()) {
+      toast.error('Please enter a title for the milestone');
+      return;
+    }
+
+    const newMilestone = {
+      id: `custom-${Date.now()}`,
+      title: newMilestoneTitle.trim(),
+      description: newMilestoneDescription.trim() || '',
+      completed: false,
+      category: 'custom',
+      difficulty: 'medium',
+      estimatedTime: 30, // Default 30 minutes
+      createdAt: new Date().toISOString()
+    };
+
+    const updatedMilestones = [...localMilestones, newMilestone];
+    setLocalMilestones(updatedMilestones);
+    
+    // Update parent component
+    const completedCount = updatedMilestones.filter(m => m.completed).length;
+    const progress = updatedMilestones.length > 0 
+      ? (completedCount / updatedMilestones.length) * 100 
+      : 0;
+    onUpdateProgress(game.id, progress, updatedMilestones);
+
+    // Reset form
+    setNewMilestoneTitle('');
+    setNewMilestoneDescription('');
+    
+    toast.success('Custom milestone added successfully!');
+  };
+
   const safeMilestones = Array.isArray(localMilestones) ? localMilestones : [];
   const completedMilestones = safeMilestones.filter(m => m && m.completed).length;
   const totalMilestones = safeMilestones.length;
