@@ -78,23 +78,35 @@ if (!import.meta.env.VITE_OPENAI_API_KEY) {
 }
 
 // 🔑 NEW: helper to pad milestones if fewer than 15
+// 🔑 Smarter helper to pad milestones if fewer than 15
 const padMilestones = (milestones, gameTitle) => {
   const variations = ['Time Trial', 'Collectibles Run', 'No-Hit Challenge', 'S-Rank Attempt'];
   let i = 0;
+
   while (milestones.length < 15 && milestones.length > 0) {
     const base = milestones[milestones.length % milestones.length];
     const variation = variations[i % variations.length];
+
+    // Calculate correct progression and percentage
+    const newOrder = milestones.length + 1;
+    const newPercentage = Math.round((newOrder / 15) * 100);
+
+    // Clean description so it doesn't duplicate twists
+    let cleanDescription = base.description.replace(/ — with a twist.*$/, '');
+
     const clone = {
       ...base,
       id: `milestone-${Date.now()}-${milestones.length}`,
       title: `${base.title} (${variation})`,
-      description: `${base.description} — with a twist: ${variation}.`,
-      progressionOrder: milestones.length + 1,
-      gamePercentage: Math.round(((milestones.length + 1) / 15) * 100)
+      description: `${cleanDescription} (variation: ${variation}).`,
+      progressionOrder: newOrder,
+      gamePercentage: newPercentage
     };
+
     milestones.push(clone);
     i++;
   }
+
   return milestones;
 };
 

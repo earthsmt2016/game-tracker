@@ -27,22 +27,14 @@ const GameDetailModal = ({
   const [newMilestoneTitle, setNewMilestoneTitle] = useState('');
   const [newMilestoneDescription, setNewMilestoneDescription] = useState('');
   const [localMilestones, setLocalMilestones] = useState([]);
-  
-  // Initialize local state when component mounts or game changes
-  useEffect(() => {
-    if (game) {
-      setLocalMilestones([...(game.milestones || [])]);
-    }
-  }, [game]);
   const [isRegeneratingMilestones, setIsRegeneratingMilestones] = useState(false);
   const [showConfirmationModal, setShowConfirmationModal] = useState(false);
   const [pendingMilestoneUpdates, setPendingMilestoneUpdates] = useState([]);
   const [categorizedNotes, setCategorizedNotes] = useState({ categorized: [], uncategorized: [] });
-  
-  // Safely get notes array
-  const getSafeNotes = () => {
-    return game?.notes || [];
-  };
+  const [showAllMilestones, setShowAllMilestones] = useState(false);
+  const [showAllNotes, setShowAllNotes] = useState(true);
+  const [isEditingCover, setIsEditingCover] = useState(false);
+  const [newCoverUrl, setNewCoverUrl] = useState('');
   const [milestoneInsights, setMilestoneInsights] = useState({
     totalMilestones: 0,
     completedMilestones: 0,
@@ -54,14 +46,58 @@ const GameDetailModal = ({
     estimatedTimeRemaining: 0,
     nextRecommendedMilestones: []
   });
-  const [showAllMilestones, setShowAllMilestones] = useState(false);
-  const [showAllNotes, setShowAllNotes] = useState(true);
   const [hoursPlayed, setHoursPlayed] = useState('');
   const [minutesPlayed, setMinutesPlayed] = useState('');
-  const [isEditingCover, setIsEditingCover] = useState(false);
-  const [newCoverUrl, setNewCoverUrl] = useState('');
 
-  // Initialize state when component mounts or game changes
+  useEffect(() => {
+    if (game) {
+      setLocalMilestones([...(game.milestones || [])]);
+      setNewCoverUrl(game.image || '');
+      
+      // Initialize categorized notes
+      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+      const categorized = categorizeNotesByMilestones(notes, game.milestones || []);
+      setCategorizedNotes(categorized);
+    }
+  }, [game]);
+
+  const getSafeNotes = () => {
+    return game?.notes || [];
+  };
+
+  const regenerateMilestones = async () => {
+    if (!window.confirm('This will clear all existing milestones and generate new ones. Are you sure?')) {
+      return;
+    }
+    
+    setIsRegeneratingMilestones(true);
+    try {
+      // Clear existing milestones
+      setLocalMilestones([]);
+      
+      // Generate new milestones
+      const newMilestones = await generateMilestones(game.title);
+      
+      // Update local state with new milestones
+      setLocalMilestones(newMilestones);
+      
+      // Reset progress to 0 since we're starting fresh
+      onUpdateProgress(game.id, 0, newMilestones);
+      
+      // Re-categorize notes with new milestones
+      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
+      const categorized = categorizeNotesByMilestones(notes, newMilestones);
+      setCategorizedNotes(categorized);
+      
+      toast.success('Milestones cleared and regenerated successfully!');
+    } catch (error) {
+      console.error('Error regenerating milestones:', error);
+      toast.error('Failed to regenerate milestones. Please try again.');
+    } finally {
+      setIsRegeneratingMilestones(false);
+    }
+  };
+
   useEffect(() => {
     if (!game) return;
     
@@ -113,7 +149,6 @@ const GameDetailModal = ({
     }
   }, [game]);
 
-  // Update categorized notes when milestones or notes change
   useEffect(() => {
     try {
       console.log('Updating categorized notes...');
@@ -192,8 +227,12 @@ const GameDetailModal = ({
   const safeMilestones = Array.isArray(localMilestones) ? localMilestones : [];
   const completedMilestones = safeMilestones.filter(m => m && m.completed).length;
   const totalMilestones = safeMilestones.length;
-  const progressPercentage = totalMilestones > safeNumber(0) ? safeDivision(safeNumber(completedMilestones), safeNumber(totalMilestones)) * safeNumber(100) : safeNumber(0);
-  const safeProgressPercentage = Number.isFinite(progressPercentage) && !isNaN(progressPercentage) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(progressPercentage)))) : safeNumber(0);
+  const progressPercentage = totalMilestones > safeNumber(0) 
+    ? safeDivision(safeNumber(completedMilestones), safeNumber(totalMilestones)) * safeNumber(100) 
+    : safeNumber(0);
+  const safeProgressPercentage = Number.isFinite(progressPercentage) && !isNaN(progressPercentage) 
+    ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(progressPercentage)))) 
+    : safeNumber(0);
 
   const safeFormat = (dateStr, formatStr) => {
     try {
@@ -220,96 +259,12 @@ const GameDetailModal = ({
     const progress = updatedMilestones.length > safeNumber(0) 
       ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) 
       : safeNumber(0);
-
+    
+    // Update progress in parent component
     onUpdateProgress(game.id, progress, updatedMilestones);
-  };
-
-  const deleteMilestone = (milestoneId) => {
-    const updatedMilestones = localMilestones.filter(m => m.id !== milestoneId);
-    setLocalMilestones(updatedMilestones);
-    const completedCount = updatedMilestones.filter(m => m.completed).length;
-    const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
-    onUpdateProgress(game.id, progress, updatedMilestones);
-    toast.success('Milestone deleted!');
-  };
-
-  const addCustomMilestone = () => {
-    if (newMilestoneTitle.trim() && newMilestoneDescription.trim()) {
-      const newMilestone = {
-        id: Date.now(),
-        title: newMilestoneTitle,
-        description: newMilestoneDescription,
-        completed: false
-      };
-      const updatedMilestones = [...localMilestones, newMilestone];
-      setLocalMilestones(updatedMilestones);
-      const completedCount = updatedMilestones.filter(m => m.completed).length;
-      const progress = updatedMilestones.length > safeNumber(0) ? safeDivision(safeNumber(completedCount), safeNumber(updatedMilestones.length)) * safeNumber(100) : safeNumber(0);
-      onUpdateProgress(game.id, progress, updatedMilestones);
-      setNewMilestoneTitle('');
-      setNewMilestoneDescription('');
-      toast.success('Custom milestone added!');
-    }
-  };
-
-  const clearAllMilestones = () => {
-    console.log('clearAllMilestones called');
-    console.log('Current localMilestones before clear:', localMilestones);
     
-    const updatedMilestones = (localMilestones || []).map((m) => ({
-      ...m,
-      completed: false,
-      completedDate: null,
-      triggeredByNote: undefined, // Explicitly set to undefined to ensure it's removed
-      notes: []
-    }));
-    
-    console.log('Clearing all milestones, updatedMilestones:', updatedMilestones);
-    
-    // Update local state - the useEffect will handle updating categorizedNotes
-    setLocalMilestones(updatedMilestones);
-    
-    // Update the parent component's state
-    const updatedGame = {
-      ...game,
-      milestones: updatedMilestones
-    };
-    console.log('Updated game object:', updatedGame);
-    onUpdateGame(updatedGame);
-  };
-
-  const regenerateMilestones = async () => {
-    if (localMilestones.length > 0) {
-      if (!window.confirm('This will replace all existing milestones. Are you sure?')) {
-        return;
-      }
-    }
-    
-    setIsRegeneratingMilestones(true);
-    try {
-      const newMilestones = await generateMilestones(game.title);
-      // Update local state immediately for better UX
-      setLocalMilestones(newMilestones);
-      
-      // Then update the parent component
-      const completedCount = newMilestones.filter(m => m.completed).length;
-      const progress = newMilestones.length > safeNumber(0) 
-        ? safeDivision(safeNumber(completedCount), safeNumber(newMilestones.length)) * safeNumber(100) 
-        : safeNumber(0);
-      
-      // Update parent with the new milestones
-      onUpdateProgress(game.id, progress, newMilestones);
-      
-      // Re-categorize notes with new milestones
-      const notes = Array.isArray(game.notes) ? [...game.notes] : [];
-      const categorized = categorizeNotesByMilestones(notes, newMilestones);
-      setCategorizedNotes(categorized);
-      
-      toast.success('Milestones regenerated successfully!');
-    } catch (error) {
-      console.error('Error regenerating milestones:', error);
-      toast.error('Failed to regenerate milestones. Please try again.');
-    } finally {
+    // Reset regeneration state if needed
+    if (isRegeneratingMilestones) {
       setIsRegeneratingMilestones(false);
     }
   };
