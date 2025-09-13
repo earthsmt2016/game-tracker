@@ -315,22 +315,38 @@ Generate 15 milestones in the exact format shown above. The response must be val
       throw new Error('Failed to parse milestones. Please check the OpenAI API response.');
     }
     
-    // Validate each milestone has required fields
+    // Process each milestone with default values and validation
     const validatedMilestones = milestones.map((milestone, index) => {
-      const requiredFields = ['title', 'description', 'action', 'team', 'gamePercentage', 'storyPath'];
-      const missingFields = requiredFields.filter(field => !(field in milestone));
+      // Default values for all required fields
+      const defaultMilestone = {
+        id: `milestone-${Date.now()}-${index}`,
+        title: `Milestone ${index + 1}`,
+        description: `Complete this milestone in ${gameTitle}`,
+        action: `Complete this objective in ${gameTitle}`,
+        team: 'General',
+        gamePercentage: Math.min(100, Math.max(1, Math.round((index + 1) * (100 / 15)))),
+        storyPath: 'Main Story',
+        prerequisites: '',
+        reward: '',
+        category: 'gameplay',
+        difficulty: 'medium',
+        estimatedTime: 30,
+        progressionOrder: index + 1,
+        completed: false,
+        dateCompleted: null,
+        triggeredByNote: null
+      };
       
-      if (missingFields.length > 0) {
-        console.error(`Milestone #${index + 1} is missing required fields:`, missingFields);
-        console.error('Milestone data:', milestone);
-        throw new Error(`Invalid milestone format: Missing required fields: ${missingFields.join(', ')}`);
-      }
-
-      // Ensure gamePercentage is a number between 1-100
-      const percentage = parseInt(milestone.gamePercentage, 10);
+      // Merge with provided milestone, using defaults for any missing fields
+      const processedMilestone = { ...defaultMilestone, ...milestone };
+      
+      // Ensure gamePercentage is a valid number between 1-100
+      const percentage = parseInt(processedMilestone.gamePercentage, 10);
       if (isNaN(percentage) || percentage < 1 || percentage > 100) {
-        console.error(`Invalid gamePercentage for milestone: ${milestone.title}`, milestone.gamePercentage);
-        throw new Error(`Invalid gamePercentage: ${milestone.gamePercentage}. Must be a number between 1-100`);
+        console.warn(`Invalid gamePercentage for milestone: ${processedMilestone.title}, defaulting to calculated value`);
+        processedMilestone.gamePercentage = defaultMilestone.gamePercentage;
+      } else {
+        processedMilestone.gamePercentage = percentage;
       }
 
       return {
