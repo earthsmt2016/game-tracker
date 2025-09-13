@@ -137,18 +137,51 @@ export const generateMilestones = async (gameTitle, platform = 'PC') => {
 
 Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`;
     } else if (gameTitle.toLowerCase().includes('spider-man 2') || gameTitle.toLowerCase().includes('spiderman 2')) {
-      gameSpecificPrompt = `For Marvel's Spider-Man 2 (${platform} version), create highly specific milestones that include:
-- Platform-specific features: ${platformInfo.features.join(', ')}
-- ${platform} controls: ${platformInfo.controls}
-- Platform achievements: ${platformInfo.achievements.slice(0, 2).join('; ')}
-- Full names of all major characters (e.g., "Peter Parker/Spider-Man", "Miles Morales/Spider-Man", "Kraven the Hunter", "Venom/Eddie Brock")
-- Specific locations in New York (e.g., "Empire State University", "Oscorp Tower", "Fisk Tower")
-- Names of specific missions and operations (e.g., "The Flame" missions, "Spider-Bot" collection)
-- Specific abilities and suit powers (e.g., "Symbiote Surge", "Venom Blast", "Web Wings")
-- Specific story events and twists (e.g., "The Symbiote's Influence", "The Lizard Transformation")
-- PC-specific features (e.g., "Achieve 60+ FPS in Times Square", "Complete a web-swinging sequence using keyboard/mouse controls")
+      gameSpecificPrompt = `For Marvel's Spider-Man 2 (${platform} version), create highly specific, story-driven milestones that include:
 
-For boss fights, always specify which villain you're fighting and any unique mechanics (e.g., "Defeat Sandman in the Financial District using environmental attacks").
+1. CHARACTER-SPECIFIC MILESTONES:
+- Peter Parker/Spider-Man: Focus on symbiote storyline, relationship with MJ, and tech development
+- Miles Morales/Spider-Man: Personal growth, Harlem community, and unique bio-electric powers
+- Supporting characters: MJ Watson, Ganke Lee, Rio Morales, J. Jonah Jameson
+- Villains: Kraven the Hunter, Venom/Eddie Brock, Lizard/Dr. Curt Connors, Sandman/Flint Marko
+
+2. LOCATION-BASED MILESTONES:
+- Specific NYC boroughs (Harlem, Midtown, Financial District, etc.)
+- Landmarks: Avengers Tower, Sanctum Sanctorum, FEAST Center, ESU
+- Villain hideouts and secret bases
+
+3. STORY ARC MILESTONES:
+- "The Hunt Begins": Kraven's arrival in NYC
+- "Suit of Rage": Peter gets the black suit
+- "The Lizard's Lair": Dr. Connors' transformation and rampage
+- "Symbiote Takeover": Venom's emergence
+- "Maximum Venom": Final confrontation
+
+4. MECHANICS & FEATURES:
+- Web Wings traversal
+- Symbiote abilities and combat mechanics
+- Dual-protagonist switching
+- Puzzle-solving with both Spider-Men's abilities
+- Stealth missions with MJ
+- Science minigames
+
+5. BOSS FIGHTS:
+- Kraven the Hunter: Hunter's Gauntlet in Central Park
+- Lizard: Sewer chase and lab battle
+- Venom: Multiple encounters with escalating threat
+- Sandman: Dynamic sand-based combat scenarios
+
+6. SIDE CONTENT:
+- Friendly Neighborhood Spider-App missions
+- Research stations
+- Photo opportunities
+- Collectibles (Spider-Bots, backpacks, landmarks)
+
+7. CHARACTER DEVELOPMENT:
+- Peter's struggle with the symbiote
+- Miles' leadership growth
+- MJ's investigative journalism
+- Villain motivations and backstories
 
 Note: This is for the PC version, so you can reference PC-specific features, controls, and optimizations.`;
     }
@@ -159,6 +192,13 @@ ${gameSpecificPrompt}
 
 IMPORTANT:
 - Return EXACTLY 15 milestone objects in a JSON array
+- The 15th and final milestone MUST be a 100% completion milestone with:
+  - title: "100% Completion - Master of [Game]"
+  - description: "Complete all main story missions, side quests, collectibles, and achieve all possible in-game objectives"
+  - gamePercentage: 100
+  - difficulty: "expert"
+  - category: "completion"
+  - reward: "Platinum Trophy/Achievement and ultimate bragging rights"
 - Each milestone MUST include the 'team' field with the team name
 - Include team name in the title (e.g., "[Team Rose] Complete Tutorial")
 - Keep titles under 15 words (be more descriptive if needed) and descriptions under 3 sentences
