@@ -99,27 +99,40 @@ export const generateMilestones = async (gameTitle) => {
   }
 
   try {
-    // Special handling for team-based games like Sonic Heroes
-    const teamBasedPrompt = gameTitle.toLowerCase().includes('sonic heroes') 
-      ? `For Sonic Heroes, ensure you create milestones for all four teams in this order of progression:
+    // Special handling for specific games
+    let gameSpecificPrompt = '';
+    
+    if (gameTitle.toLowerCase().includes('sonic heroes')) {
+      gameSpecificPrompt = `For Sonic Heroes, ensure you create milestones for all four teams in this order of progression:
 1. Team Rose (easiest)
 2. Team Sonic (standard difficulty)
 3. Team Dark (harder)
 4. Team Chaotix (hardest))
 
-Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`
-      : '';
+Distribute milestones evenly across all teams, showing their parallel stories. Include team-specific challenges and ensure the difficulty increases with each team.`;
+    } else if (gameTitle.toLowerCase().includes('spider-man 2') || gameTitle.toLowerCase().includes('spiderman 2')) {
+      gameSpecificPrompt = `For Marvel's Spider-Man 2, create highly specific milestones that include:
+- Full names of all major characters (e.g., "Peter Parker/Spider-Man", "Miles Morales/Spider-Man", "Kraven the Hunter", "Venom/Eddie Brock")
+- Specific locations in New York (e.g., "Empire State University", "Oscorp Tower", "Fisk Tower")
+- Names of specific missions and operations (e.g., "The Flame" missions, "Spider-Bot" collection)
+- Specific abilities and suit powers (e.g., "Symbiote Surge", "Venom Blast", "Web Wings")
+- Specific story events and twists (e.g., "The Symbiote's Influence", "The Lizard Transformation")
 
-    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate EXACTLY 15 key milestones that cover the main story progression and major gameplay moments. Each milestone must be meaningful, concise, and clearly indicate the team it belongs to in the title (e.g., "[Team Rose] Complete Tutorial").
+For boss fights, always specify which villain you're fighting and any unique mechanics (e.g., "Defeat Sandman in the Financial District using environmental attacks").`;
+    }
 
-${teamBasedPrompt}
+    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". Generate EXACTLY 15 key milestones that cover the main story progression and major gameplay moments. Each milestone must be specific, detailed, and reference actual characters, locations, and events from the game.
+
+${gameSpecificPrompt}
 
 IMPORTANT:
 - Return EXACTLY 15 milestone objects in a JSON array
 - Each milestone MUST include the 'team' field with the team name
 - Include team name in the title (e.g., "[Team Rose] Complete Tutorial")
-- Keep titles under 10 words and descriptions under 2 sentences
-- Focus on major story beats and key progression points
+- Keep titles under 15 words (be more descriptive if needed) and descriptions under 3 sentences
+- Focus on specific story beats with named characters, locations, and key events
+- For boss fights, specify the villain's name and any unique mechanics
+- For story missions, include the mission name and key characters involved
 - Ensure milestones are properly ordered by progression (1-15)
 - Do not include markdown or additional text outside the JSON
 - Each milestone must include all required fields
@@ -128,12 +141,7 @@ Required fields for each milestone:
 - title: string
 - description: string
 - action: string
-- category: string (story/exploration/gameplay/completion)
-- difficulty: string (easy/medium/hard/expert)
-- estimatedTime: number
-- progressionOrder: number
 - team: string
-- storyPath: string
 - gamePercentage: number (1-100)
 - prerequisites: string
 - reward: string
@@ -141,6 +149,8 @@ Required fields for each milestone:
 RULES:
 1. You MUST return EXACTLY 15 milestones - no more, no less
 2. Each milestone must have ALL required fields
+3. For Spider-Man 2, always include specific character names (e.g., "Peter Parker", "Miles Morales", "Kraven"), locations (e.g., "Oscorp Tower", "Empire State University"), and mission names where applicable
+4. Avoid generic descriptions - be specific about what happens in each milestone
 3. progressionOrder must be unique and sequential from 1 to 15
 4. gamePercentage should be roughly evenly distributed from 1-100%
 5. estimatedTime should be realistic (15-60 minutes)
