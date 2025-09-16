@@ -50,7 +50,17 @@ const cleanAndParseJson = (jsonString) => {
   try {
     return JSON.parse(jsonString);
   } catch (e) {
-    console.warn('Initial parse failed, trying to clean JSON...');
+    console.warn('Initial parse failed, trying to clean JSON...', e);
+  }
+
+  try {
+    // Try to extract JSON from markdown code blocks if present
+    const jsonMatch = jsonString.match(/```(?:json)?\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[1]);
+    }
+  } catch (e) {
+    console.warn('Failed to parse JSON from markdown code block, trying other methods...');
   }
 
   // Clean common issues
@@ -61,12 +71,18 @@ const cleanAndParseJson = (jsonString) => {
     .replace(/[^}]*$/, '}')
     // Fix unescaped quotes in text
     .replace(/([^\\])"(?=\s*:)/g, '$1\\"')
+    // Fix unescaped single quotes
+    .replace(/([^\\])'(?=\s*:)/g, '$1\\\'')
     // Fix unescaped newlines
-    .replace(/([^\\])\n/g, '$1\\n')
+    .replace(/([^\\])\n/g, '\\n')
     // Fix unescaped tabs
     .replace(/\t/g, '\\t')
     // Remove trailing commas
-    .replace(/,\s*([}\]])/g, '$1');
+    .replace(/,\s*([}\]])/g, '$1')
+    // Fix unescaped backslashes
+    .replace(/\\([^"'\\/bfnrtu])/g, '\\\\$1')
+    // Fix unescaped control characters
+    .replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 
   try {
     return JSON.parse(cleaned);
@@ -260,40 +276,49 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
     let responseContent = response.choices[0]?.message?.content;
     if (!responseContent) throw new Error('Empty response from OpenAI API');
 
-    console.log('Raw response content:', responseContent);
+    console.log('Raw response content (first 500 chars):', responseContent.substring(0, 500) + '...');
 
     // First try to parse directly
     let parsed;
     try {
       // If the response is already a string that starts with {, try parsing it directly
-      if (typeof responseContent === 'string' && responseContent.trim().startsWith('{')) {
-        try {
-          parsed = JSON.parse(responseContent);
-        } catch (parseError) {
-          console.warn('Direct JSON parse failed, trying to clean...', parseError);
-          // Try to clean and parse
+      if (typeof responseContent === 'string') {
+        const trimmed = responseContent.trim();
+        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
+          try {
+            parsed = JSON.parse(trimmed);
+            console.log('Successfully parsed JSON directly');
+          } catch (parseError) {
+            console.warn('Direct JSON parse failed, trying to clean...', parseError);
+            // Try to clean and parse
+            parsed = cleanAndParseJson(responseContent);
+          }
+        } else {
+          // Otherwise, try to clean and parse
           parsed = cleanAndParseJson(responseContent);
         }
       } else {
-        // Otherwise, try to clean and parse
-        parsed = cleanAndParseJson(responseContent);
+        // If not a string, use as is
+        parsed = responseContent;
       }
     } catch (err) {
       console.warn('Initial JSON parse failed, trying to extract JSON...', err);
       // Try to extract JSON from the response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+      const jsonMatch = responseContent.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
       if (jsonMatch) {
         const jsonStr = jsonMatch[0];
-        console.log('Extracted JSON string for parsing:', jsonStr.substring(0, 100) + '...');
+        console.log('Extracted JSON string for parsing (first 200 chars):', jsonStr.substring(0, 200) + '...');
         try {
           parsed = JSON.parse(jsonStr);
+          console.log('Successfully parsed extracted JSON');
         } catch (finalErr) {
-          console.error('Final JSON parse failed at position:', finalErr.message);
-          // Log the problematic area
+          console.error('Final JSON parse failed:', finalErr.message);
+          // Log more context around the error
           const position = parseInt(finalErr.message.match(/position (\d+)/)?.[1] || '0');
-          const start = Math.max(0, position - 20);
-          const end = Math.min(jsonStr.length, position + 20);
+          const start = Math.max(0, position - 50);
+          const end = Math.min(jsonStr.length, position + 50);
           console.error('Problem area:', jsonStr.substring(start, end));
+          console.error('Full response length:', responseContent.length);
           throw new Error('Failed to parse milestones from API response after multiple attempts');
         }
       } else {
