@@ -43,20 +43,31 @@ const formatTime = (minutes) => {
 // Helper function to clean and validate JSON content
 const cleanAndParseJson = (jsonString) => {
   try {
-    let cleaned = jsonString.replace(/[\x00-\x09\x0B\x0C\x0E-\x1F\x7F-\x9F]/g, '');
-    
-    cleaned = cleaned
-      .replace(/([\{\,]\s*)([a-zA-Z0-9_]+)(\s*:)/g, '$1"$2"$3')
-      .replace(/:\s*'([^']*)'/g, ': "$1"')
-      .replace(/([^\\])\\n/g, '$1\\\\n')
-      .replace(/,\s*([}\]])/g, '$1')
-      .replace(/([^\\])\\u/g, '$1\\\\u')
-      .replace(/\\"/g, '\\"')
-      .replace(/\n/g, '\\n')
-      .replace(/\r/g, '\\r')
-      .replace(/\t/g, '\\t');
-    
-    return JSON.parse(cleaned);
+    // First try to parse directly in case it's already valid JSON
+    if (typeof jsonString === 'string') {
+      try {
+        return JSON.parse(jsonString);
+      } catch (e) {
+        // If direct parse fails, try cleaning
+        let cleaned = jsonString
+          // Remove any characters before the first {
+          .replace(/^[^{]*/, '')
+          // Remove any characters after the last }
+          .replace(/[^}]*$/, '}')
+          // Fix unescaped quotes
+          .replace(/([^\\])\\"/g, '$1\\\\"')
+          .replace(/([^\\])\'/g, '$1\\\'')
+          // Remove trailing commas
+          .replace(/,\s*([}\]])/g, '$1')
+          // Fix unescaped newlines
+          .replace(/([^\\])\n/g, '$1\\n')
+          // Fix unescaped tabs
+          .replace(/\t/g, '\\t');
+
+        return JSON.parse(cleaned);
+      }
+    }
+    return jsonString;
   } catch (error) {
     console.error('Failed to clean and parse JSON:', error);
     console.error('Original content:', jsonString);
@@ -249,40 +260,29 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
 
     console.log('Raw response content:', responseContent);
 
-    // Clean the response content
-    let cleanedContent = responseContent
-      .replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/gm, '$1') // Remove markdown code blocks
-      .replace(/[‘’]/g, "'") // Replace smart quotes
-      .replace(/[“”]/g, '"')
-      .replace(/\n/g, '\\n') // Escape newlines
-      .trim();
-
-    console.log('Cleaned content:', cleanedContent);
-
+    // First try to parse directly
     let parsed;
     try {
-      // First try parsing directly
-      parsed = JSON.parse(cleanedContent);
+      // If the response is already a string that starts with {, try parsing it directly
+      if (typeof responseContent === 'string' && responseContent.trim().startsWith('{')) {
+        parsed = JSON.parse(responseContent);
+      } else {
+        // Otherwise, try to clean and parse
+        parsed = cleanAndParseJson(responseContent);
+      }
     } catch (err) {
-      console.warn('Initial JSON parse failed, trying to clean and parse...', err);
-      try {
-        // If direct parse fails, try cleaning more aggressively
-        parsed = cleanAndParseJson(cleanedContent);
-      } catch (cleanErr) {
-        console.error('Failed to parse JSON after cleaning:', cleanErr);
-        console.error('Response content that failed to parse:', cleanedContent);
-        // As a last resort, try to extract JSON from the response
-        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
-        if (jsonMatch) {
-          try {
-            parsed = JSON.parse(jsonMatch[0]);
-          } catch (finalErr) {
-            console.error('Final JSON parse attempt failed:', finalErr);
-            throw new Error('Failed to parse milestones from API response after multiple attempts');
-          }
-        } else {
-          throw new Error('No valid JSON found in the API response');
+      console.warn('Initial JSON parse failed, trying to extract JSON...', err);
+      // Try to extract JSON from the response
+      const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          parsed = JSON.parse(jsonMatch[0]);
+        } catch (finalErr) {
+          console.error('Final JSON parse attempt failed:', finalErr);
+          throw new Error('Failed to parse milestones from API response after multiple attempts');
         }
+      } else {
+        throw new Error('No valid JSON found in the API response');
       }
     }
 
