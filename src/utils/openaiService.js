@@ -69,6 +69,10 @@ const cleanAndParseJson = (jsonString) => {
     .replace(/^[^{]*/, '')
     // Remove any characters after the last }
     .replace(/[^}]*$/, '}')
+    // Fix empty arrays with trailing commas
+    .replace(/\[\s*,/g, '[')
+    // Fix arrays with missing closing brackets
+    .replace(/(\[\s*[^\]\s]+\s*),\s*([^\]]*\])/g, '$1,$2')
     // Fix unescaped quotes in text
     .replace(/([^\\])"(?=\s*:)/g, '$1\\"')
     // Fix unescaped single quotes
@@ -77,10 +81,12 @@ const cleanAndParseJson = (jsonString) => {
     .replace(/([^\\])\n/g, '\\n')
     // Fix unescaped tabs
     .replace(/\t/g, '\\t')
-    // Remove trailing commas
+    // Remove trailing commas before } or ]
     .replace(/,\s*([}\]])/g, '$1')
     // Fix unescaped backslashes
     .replace(/\\([^"'\\/bfnrtu])/g, '\\\\$1')
+    // Fix malformed arrays (like achievementIds)
+    .replace(/"achievementIds"\s*:\s*\[\s*\]?/g, '"achievementIds": []')
     // Fix unescaped control characters
     .replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 
@@ -328,17 +334,74 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
 
     let milestones = [];
     try {
-      if (Array.isArray(parsed)) {
-        milestones = parsed.slice(0, 15);
-      } else if (parsed?.milestones && Array.isArray(parsed.milestones)) {
-        milestones = parsed.milestones.slice(0, 15);
-      } else if (typeof parsed === 'object' && parsed !== null) {
-        // If it's a single milestone object
-        milestones = [parsed];
+      // Safely extract milestones from different response formats
+      const extractMilestones = (data) => {
+        if (!data) return [];
+        
+        // Handle array of milestones
+        if (Array.isArray(data)) {
+          return data.slice(0, 15).map(m => ({
+            ...m,
+            // Ensure achievementIds is always a valid array
+            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : []
+          }));
+        }
+        
+        // Handle object with milestones array
+        if (data.milestones && Array.isArray(data.milestones)) {
+          return data.milestones.slice(0, 15).map(m => ({
+            ...m,
+            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : []
+          }));
+        }
+        
+        // Handle single milestone object
+        if (typeof data === 'object' && data !== null) {
+          return [{
+            ...data,
+            achievementIds: Array.isArray(data.achievementIds) ? data.achievementIds : []
+          }];
+        }
+        
+        return [];
+      };
+      
+      milestones = extractMilestones(parsed);
+      
+      if (milestones.length === 0) {
+        console.warn('No valid milestones found in response, attempting to recover...');
+        // Try to find any array that might contain milestones
+        const findNestedArray = (obj) => {
+          if (!obj || typeof obj !== 'object') return null;
+          
+          for (const [key, value] of Object.entries(obj)) {
+            if (Array.isArray(value) && value.length > 0 && value[0].title) {
+              return value;
+            }
+            if (typeof value === 'object') {
+              const found = findNestedArray(value);
+              if (found) return found;
+            }
+          }
+          return null;
+        };
+        
+        const possibleMilestones = findNestedArray(parsed);
+        if (possibleMilestones) {
+          milestones = possibleMilestones.slice(0, 15).map(m => ({
+            ...m,
+            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : []
+          }));
+        }
       }
     } catch (e) {
       console.error('Error extracting milestones:', e);
-      throw new Error('Invalid milestone format received from API');
+      // If we have some milestones but hit an error, continue with what we have
+      if (milestones.length > 0) {
+        console.warn('Partial milestone data recovered, continuing with', milestones.length, 'milestones');
+      } else {
+        throw new Error('Invalid milestone format received from API');
+      }
     }
 
     console.log(`Successfully extracted ${milestones.length} milestones:`, JSON.stringify(milestones, null, 2));
