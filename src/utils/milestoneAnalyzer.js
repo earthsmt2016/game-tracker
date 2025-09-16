@@ -110,13 +110,35 @@ export const getTriggeredMilestones = (notes, milestones) => {
   return triggeredMilestones.sort((a, b) => b.confidence - a.confidence);
 };
 
+// Helper function to ensure milestone data is properly formatted
+const formatMilestone = (milestone) => {
+  if (!milestone) return null;
+  
+  return {
+    ...milestone,
+    // Ensure category is a string, not an object
+    category: milestone.category?.primary || milestone.category || 'gameplay',
+    // Ensure difficulty is a string
+    difficulty: milestone.difficulty?.rating ? 
+      (milestone.difficulty.rating <= 2 ? 'easy' : 
+       milestone.difficulty.rating <= 3 ? 'medium' : 
+       milestone.difficulty.rating <= 4 ? 'hard' : 'expert') :
+      (milestone.difficulty || 'medium'),
+    // Ensure triggeredByNote is properly formatted
+    triggeredByNote: milestone.triggeredByNote || null
+  };
+};
+
 export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
   if (!Array.isArray(notes) || !Array.isArray(milestones)) {
     console.error('Invalid input to categorizeNotesByMilestones:', { notes, milestones });
     return { categorized: [], uncategorized: [...(notes || [])] };
   }
+  
+  // Format all milestones to ensure consistent data structure
+  const formattedMilestones = milestones.map(formatMilestone).filter(Boolean);
 
-  console.log('Categorizing notes. Total notes:', notes.length, 'Total milestones:', milestones.length);
+  console.log('Categorizing notes. Total notes:', notes.length, 'Total milestones:', formattedMilestones.length);
   
   const categorized = [];
   const uncategorized = [];
@@ -126,7 +148,7 @@ export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
   const noteToMilestones = new Map();
   
   // Build a map of note text to the milestones it triggered
-  milestones.forEach(milestone => {
+  formattedMilestones.forEach(milestone => {
     if (!milestone?.triggeredByNote) return;
     
     // Extract the note text that triggered this milestone
@@ -174,12 +196,12 @@ export const categorizeNotesByMilestones = (notes = [], milestones = []) => {
         isTriggered: true
       });
     } else {
-      // Check for potential milestone matches
-      const matches = analyzeMilestoneFromNote(note, milestones);
+      // Check for potential milestone matches with formatted milestones
+      const matches = analyzeMilestoneFromNote(note, formattedMilestones);
       if (matches.length > 0) {
         // Get all milestone IDs that are already cleared by any note
         const clearedMilestoneIds = new Set(
-          milestones
+          formattedMilestones
             .filter(m => m.completed && m.triggeredByNote)
             .map(m => m.id)
         );
