@@ -131,16 +131,21 @@ export const generateMilestones = async (gameTitle, platform = 'PC') => {
     const prompt = `You are a professional game designer creating milestones for "${gameTitle}" (${platform}).
 
 GENERATION RULES:
-1. Create EXACTLY 15 milestones with smooth difficulty progression
-2. Each milestone must be unique and meaningful
-3. Include a mix of story, exploration, and combat challenges
-4. Ensure milestones are specific to the game's mechanics and setting
-5. Distribute milestones evenly across the game's progression
+1. Create EXACTLY 15 unique and distinct milestones with clear progression
+2. Each milestone must represent a significant, unique event or achievement
+3. Include a balanced mix of:
+   - Main story progression points
+   - Major side quests or optional content
+   - Key item/ability unlocks
+   - Boss battles or major encounters
+   - Exploration milestones
+4. Ensure milestones are specific to the game's mechanics, setting, and narrative
+5. Distribute milestones to represent natural progression through the game
 
 MILESTONE STRUCTURE:
 {
-  "title": "[Action] [Specific Objective] in [Location]",
-  "description": "2-3 sentences explaining the challenge and narrative significance",
+  "title": "[Specific, unique objective that clearly indicates progress]",
+  "description": "2-3 sentences explaining the challenge, narrative significance, and what makes this milestone unique",
   "action": "Complete|Defeat|Collect|Achieve|Master|Discover|Unlock|Rescue|Escape|Upgrade",
   "category": {
     "primary": "story|exploration|combat|puzzle|boss|collection|upgrade|achievement",
@@ -179,15 +184,37 @@ MILESTONE STRUCTURE:
     "manualChecks": ["screenshot_required", "save_file_hash"],
     "achievementIds": ["related_achievement_ids"]
   },
-  "tags": ["tutorial", "boss", "speedrun", "100%", "challenge"]
+  "tags": ["tutorial", "boss", "story", "side_quest", "exploration", "upgrade", "collection", "achievement", "challenge"]
 }
 
 PROGRESSION FLOW:
-1-3: Tutorial & Introduction (basic mechanics)
-4-7: Early Game (core loop, initial challenges)
-8-10: Mid Game (ability upgrades, side content)
-11-14: Late Game (advanced challenges, endgame)
-15: 100% Completion (all collectibles, achievements, etc.)
+1-3: Introduction & Tutorial (0-20%)
+   - Basic controls and mechanics
+   - First major story beat
+   - First significant challenge or boss
+
+4-7: Early Game (20-45%)
+   - Core gameplay loop established
+   - First major story developments
+   - Introduction to key mechanics
+   - First major side content
+
+8-10: Mid Game (45-70%)
+   - Story midpoint
+   - Major ability/upgrade unlocks
+   - More challenging encounters
+   - Significant side content
+
+11-14: Late Game (70-95%)
+   - Climactic story events
+   - Most challenging content
+   - Final upgrades/abilities
+   - Endgame preparation
+
+15: Finale & Completion (95-100%)
+   - Final story mission/ending
+   - Post-game content
+   - 100% completion (if applicable)
 
 ${gameSpecificPrompt}
 
