@@ -128,10 +128,12 @@ export const generateMilestones = async (gameTitle, platform = 'PC') => {
     }
 
     // Advanced milestone generation system
-    const prompt = `You are a professional game designer creating milestones for "${gameTitle}" (${platform}).
+    const prompt = `You are a professional game designer creating milestones for "${gameTitle}" (${platform}). 
+
+IMPORTANT: Only include milestones that are specific to this exact game. Do not include any content from sequels, prequels, or other games in the series unless explicitly part of this game. Focus only on the main content of "${gameTitle}".
 
 GENERATION RULES:
-1. Create EXACTLY 15 unique and distinct milestones with clear progression
+1. Create EXACTLY 15 unique and distinct milestones with clear progression, focusing ONLY on content from "${gameTitle}"
 2. Each milestone must represent a significant, unique event or achievement
 3. Include a balanced mix of:
    - Main story progression points
@@ -139,7 +141,7 @@ GENERATION RULES:
    - Key item/ability unlocks
    - Boss battles or major encounters
    - Exploration milestones
-4. Ensure milestones are specific to the game's mechanics, setting, and narrative
+4. Ensure milestones are specific to "${gameTitle}"'s mechanics, setting, and narrative. Do not reference events, characters, or locations from sequels, DLCs, or other games in the series.
 5. Distribute milestones to represent natural progression through the game
 
 MILESTONE STRUCTURE:
@@ -218,7 +220,9 @@ PROGRESSION FLOW:
 
 ${gameSpecificPrompt}
 
-Return ONLY a valid JSON array with 15 milestone objects, no markdown or additional text.`;
+Return ONLY a valid JSON array with 15 milestone objects, no markdown or additional text.
+
+VERIFICATION: Before finalizing, double-check that all milestones are specific to "${gameTitle}" and do not reference any sequel or DLC content.`;
 
     console.log(`Generating milestones for: ${gameTitle}`);
     const openai = getOpenAIClient();
