@@ -1089,12 +1089,18 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                     )}
                                     {milestone.difficulty && (
                                       <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${
-                                        milestone.difficulty === 'easy' ? 'bg-green-100 text-green-800' :
-                                        milestone.difficulty === 'medium' ? 'bg-yellow-100 text-yellow-800' :
-                                        milestone.difficulty === 'hard' ? 'bg-orange-100 text-orange-800' :
+                                        (typeof milestone.difficulty === 'string' ? milestone.difficulty : milestone.difficulty.rating <= 2) ? 'bg-green-100 text-green-800' :
+                                        (typeof milestone.difficulty === 'string' ? milestone.difficulty : milestone.difficulty.rating <= 3) ? 'bg-yellow-100 text-yellow-800' :
+                                        (typeof milestone.difficulty === 'string' ? milestone.difficulty : milestone.difficulty.rating <= 4) ? 'bg-orange-100 text-orange-800' :
                                         'bg-red-100 text-red-800'
                                       }`}>
-                                        {milestone.difficulty.charAt(0).toUpperCase() + milestone.difficulty.slice(1)}
+                                        {(() => {
+                                          if (typeof milestone.difficulty === 'string') {
+                                            return milestone.difficulty.charAt(0).toUpperCase() + milestone.difficulty.slice(1);
+                                          } else {
+                                            return `Difficulty: ${milestone.difficulty.rating}/5`;
+                                          }
+                                        })()}
                                       </span>
                                     )}
                                   </div>
