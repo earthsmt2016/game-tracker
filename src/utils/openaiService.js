@@ -127,20 +127,33 @@ export const generateMilestones = async (gameTitle, platform = 'PC') => {
       gameSpecificPrompt = `For Marvel's Spider-Man 2 (${platform}), include character-specific, story, and villain milestones.`;
     }
 
-    // 🔑 FIX #1: Prompt updated
-    const prompt = `You are a gaming expert with deep knowledge of "${gameTitle}". 
-Generate EXACTLY 15 key milestones that cover the main story progression and major gameplay moments. 
-If fewer unique levels, bosses, or events exist, REUSE them with varied objectives (speed-run, collectibles, no-hit, rank challenges) until you reach 15 milestones.
+    // Enhanced milestone generation prompt
+    const prompt = `As a professional game designer, create 15 detailed milestones for "${gameTitle}" (${platform}).
+
+CRITICAL REQUIREMENTS:
+1. Must return EXACTLY 15 milestone objects in a JSON array
+2. Final milestone (15) must be 100% completion
+3. Each milestone must include:
+   - title: Specific and descriptive (e.g., "Defeat Maliketh in Crumbling Farum Azula")
+   - description: 2-3 sentences explaining the challenge and narrative significance
+   - action: Complete|Defeat|Collect|Achieve|Master|Discover|Unlock|Rescue|Escape
+   - category: story|exploration|combat|puzzle|boss|collection|upgrade|achievement
+   - difficulty: easy|medium|hard|expert
+   - estimatedTime: 15-120 minutes
+   - steps: 3-5 specific, measurable objectives
+   - prerequisites: Any required milestones
+   - rewards: Items, abilities, or story progression
+
+PROGRESSION FLOW:
+1-3: Tutorial & Introduction (basic mechanics)
+4-7: Early Game (core loop, initial challenges)
+8-10: Mid Game (ability upgrades, side content)
+11-14: Late Game (advanced challenges, endgame)
+15: 100% Completion
 
 ${gameSpecificPrompt}
 
-IMPORTANT:
-- Return EXACTLY 15 milestone objects in a JSON array
-- The 15th milestone must always be a 100% completion milestone with gamePercentage 100
-- Each milestone must include: title, description, action, team, gamePercentage, prerequisites, reward
-- progressionOrder must go 1–15
-- gamePercentage should scale roughly 1–100
-- Do not include markdown, return only raw JSON.`;
+Return ONLY valid JSON, no markdown or additional text.`;
 
     console.log(`Generating milestones for: ${gameTitle}`);
     const openai = getOpenAIClient();
