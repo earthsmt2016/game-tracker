@@ -42,36 +42,38 @@ const formatTime = (minutes) => {
 
 // Helper function to clean and validate JSON content
 const cleanAndParseJson = (jsonString) => {
-  try {
-    // First try to parse directly in case it's already valid JSON
-    if (typeof jsonString === 'string') {
-      try {
-        return JSON.parse(jsonString);
-      } catch (e) {
-        // If direct parse fails, try cleaning
-        let cleaned = jsonString
-          // Remove any characters before the first {
-          .replace(/^[^{]*/, '')
-          // Remove any characters after the last }
-          .replace(/[^}]*$/, '}')
-          // Fix unescaped quotes
-          .replace(/([^\\])\\"/g, '$1\\\\"')
-          .replace(/([^\\])\'/g, '$1\\\'')
-          // Remove trailing commas
-          .replace(/,\s*([}\]])/g, '$1')
-          // Fix unescaped newlines
-          .replace(/([^\\])\n/g, '$1\\n')
-          // Fix unescaped tabs
-          .replace(/\t/g, '\\t');
+  if (!jsonString) {
+    throw new Error('Empty JSON string provided');
+  }
 
-        return JSON.parse(cleaned);
-      }
-    }
-    return jsonString;
-  } catch (error) {
-    console.error('Failed to clean and parse JSON:', error);
-    console.error('Original content:', jsonString);
-    throw new Error('Failed to parse JSON response after cleaning');
+  // First, try to parse directly
+  try {
+    return JSON.parse(jsonString);
+  } catch (e) {
+    console.warn('Initial parse failed, trying to clean JSON...');
+  }
+
+  // Clean common issues
+  let cleaned = jsonString
+    // Remove any characters before the first {
+    .replace(/^[^{]*/, '')
+    // Remove any characters after the last }
+    .replace(/[^}]*$/, '}')
+    // Fix unescaped quotes in text
+    .replace(/([^\\])"(?=\s*:)/g, '$1\\"')
+    // Fix unescaped newlines
+    .replace(/([^\\])\n/g, '$1\\n')
+    // Fix unescaped tabs
+    .replace(/\t/g, '\\t')
+    // Remove trailing commas
+    .replace(/,\s*([}\]])/g, '$1');
+
+  try {
+    return JSON.parse(cleaned);
+  } catch (e) {
+    console.error('Failed to parse JSON after cleaning:', e);
+    console.error('Problem area:', cleaned.substring(e.offset - 20, e.offset + 20));
+    throw new Error(`Failed to parse JSON: ${e.message}`);
   }
 };
 
@@ -265,7 +267,13 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
     try {
       // If the response is already a string that starts with {, try parsing it directly
       if (typeof responseContent === 'string' && responseContent.trim().startsWith('{')) {
-        parsed = JSON.parse(responseContent);
+        try {
+          parsed = JSON.parse(responseContent);
+        } catch (parseError) {
+          console.warn('Direct JSON parse failed, trying to clean...', parseError);
+          // Try to clean and parse
+          parsed = cleanAndParseJson(responseContent);
+        }
       } else {
         // Otherwise, try to clean and parse
         parsed = cleanAndParseJson(responseContent);
@@ -275,10 +283,17 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
       // Try to extract JSON from the response
       const jsonMatch = responseContent.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
+        const jsonStr = jsonMatch[0];
+        console.log('Extracted JSON string for parsing:', jsonStr.substring(0, 100) + '...');
         try {
-          parsed = JSON.parse(jsonMatch[0]);
+          parsed = JSON.parse(jsonStr);
         } catch (finalErr) {
-          console.error('Final JSON parse attempt failed:', finalErr);
+          console.error('Final JSON parse failed at position:', finalErr.message);
+          // Log the problematic area
+          const position = parseInt(finalErr.message.match(/position (\d+)/)?.[1] || '0');
+          const start = Math.max(0, position - 20);
+          const end = Math.min(jsonStr.length, position + 20);
+          console.error('Problem area:', jsonStr.substring(start, end));
           throw new Error('Failed to parse milestones from API response after multiple attempts');
         }
       } else {
@@ -287,17 +302,21 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
     }
 
     let milestones = [];
-    // Handle different possible response formats
-    if (Array.isArray(parsed)) {
-      milestones = parsed.slice(0, 15); // Take first 15 if array
-    } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
-      milestones = parsed.milestones.slice(0, 15);
-    } else if (typeof parsed === 'object' && parsed !== null) {
-      // If it's a single milestone object, put it in an array
-      milestones = [parsed];
+    try {
+      if (Array.isArray(parsed)) {
+        milestones = parsed.slice(0, 15);
+      } else if (parsed?.milestones && Array.isArray(parsed.milestones)) {
+        milestones = parsed.milestones.slice(0, 15);
+      } else if (typeof parsed === 'object' && parsed !== null) {
+        // If it's a single milestone object
+        milestones = [parsed];
+      }
+    } catch (e) {
+      console.error('Error extracting milestones:', e);
+      throw new Error('Invalid milestone format received from API');
     }
 
-    console.log(`Successfully extracted ${milestones.length} milestones`);
+    console.log(`Successfully extracted ${milestones.length} milestones:`, JSON.stringify(milestones, null, 2));
 
     // 🔑 FIX #2: pad if fewer than 15
     if (milestones.length < 15) {
