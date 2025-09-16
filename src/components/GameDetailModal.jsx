@@ -72,22 +72,41 @@ const GameDetailModal = ({
     
     setIsRegeneratingMilestones(true);
     try {
-      // Clear existing milestones
+      // Clear existing milestones in parent component first
+      onUpdateGame({
+        ...game,
+        milestones: [],
+        progress: 0
+      });
+      
+      // Clear local state
       setLocalMilestones([]);
       
       // Generate new milestones
       const newMilestones = await generateMilestones(game.title);
       
-      // Update local state with new milestones
+      // Update both local and parent state with new milestones
       setLocalMilestones(newMilestones);
-      
-      // Reset progress to 0 since we're starting fresh
-      onUpdateProgress(game.id, 0, newMilestones);
+      onUpdateGame({
+        ...game,
+        milestones: newMilestones,
+        progress: 0
+      });
       
       // Re-categorize notes with new milestones
       const notes = Array.isArray(game.notes) ? [...game.notes] : [];
       const categorized = categorizeNotesByMilestones(notes, newMilestones);
       setCategorizedNotes(categorized);
+      
+      // Update milestone insights
+      setMilestoneInsights({
+        ...milestoneInsights,
+        totalMilestones: newMilestones.length,
+        completedMilestones: 0,
+        pendingMilestones: newMilestones.length,
+        completionRate: 0,
+        nextRecommendedMilestones: newMilestones.slice(0, 3) // Show first 3 as recommended
+      });
       
       toast.success('Milestones cleared and regenerated successfully!');
     } catch (error) {

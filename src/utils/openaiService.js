@@ -127,33 +127,71 @@ export const generateMilestones = async (gameTitle, platform = 'PC') => {
       gameSpecificPrompt = `For Marvel's Spider-Man 2 (${platform}), include character-specific, story, and villain milestones.`;
     }
 
-    // Enhanced milestone generation prompt
-    const prompt = `As a professional game designer, create 15 detailed milestones for "${gameTitle}" (${platform}).
+    // Advanced milestone generation system
+    const prompt = `You are a professional game designer creating milestones for "${gameTitle}" (${platform}).
 
-CRITICAL REQUIREMENTS:
-1. Must return EXACTLY 15 milestone objects in a JSON array
-2. Final milestone (15) must be 100% completion
-3. Each milestone must include:
-   - title: Specific and descriptive (e.g., "Defeat Maliketh in Crumbling Farum Azula")
-   - description: 2-3 sentences explaining the challenge and narrative significance
-   - action: Complete|Defeat|Collect|Achieve|Master|Discover|Unlock|Rescue|Escape
-   - category: story|exploration|combat|puzzle|boss|collection|upgrade|achievement
-   - difficulty: easy|medium|hard|expert
-   - estimatedTime: 15-120 minutes
-   - steps: 3-5 specific, measurable objectives
-   - prerequisites: Any required milestones
-   - rewards: Items, abilities, or story progression
+GENERATION RULES:
+1. Create EXACTLY 15 milestones with smooth difficulty progression
+2. Each milestone must be unique and meaningful
+3. Include a mix of story, exploration, and combat challenges
+4. Ensure milestones are specific to the game's mechanics and setting
+5. Distribute milestones evenly across the game's progression
+
+MILESTONE STRUCTURE:
+{
+  "title": "[Action] [Specific Objective] in [Location]",
+  "description": "2-3 sentences explaining the challenge and narrative significance",
+  "action": "Complete|Defeat|Collect|Achieve|Master|Discover|Unlock|Rescue|Escape|Upgrade",
+  "category": {
+    "primary": "story|exploration|combat|puzzle|boss|collection|upgrade|achievement",
+    "secondary": "[optional secondary category]"
+  },
+  "difficulty": {
+    "rating": 1-5,
+    "factors": ["skill", "time", "knowledge"]
+  },
+  "estimatedTime": 15-120,
+  "prerequisites": ["milestone_id_or_name"],
+  "rewards": ["item_name", "ability_unlock", "story_progression"],
+  "steps": [
+    {
+      "description": "Specific, measurable objective",
+      "metrics": {
+        "type": "count|time|combo|precision",
+        "target": "number or condition"
+      }
+    }
+  ],
+  "metrics": {
+    "primary": {
+      "type": "time|score|combo|collection",
+      "target": "specific target value"
+    },
+    "secondary": [
+      {
+        "type": "damage_taken|items_used|accuracy",
+        "target": "optimal value"
+      }
+    ]
+  },
+  "validation": {
+    "autoTracked": true|false,
+    "manualChecks": ["screenshot_required", "save_file_hash"],
+    "achievementIds": ["related_achievement_ids"]
+  },
+  "tags": ["tutorial", "boss", "speedrun", "100%", "challenge"]
+}
 
 PROGRESSION FLOW:
 1-3: Tutorial & Introduction (basic mechanics)
 4-7: Early Game (core loop, initial challenges)
 8-10: Mid Game (ability upgrades, side content)
 11-14: Late Game (advanced challenges, endgame)
-15: 100% Completion
+15: 100% Completion (all collectibles, achievements, etc.)
 
 ${gameSpecificPrompt}
 
-Return ONLY valid JSON, no markdown or additional text.`;
+Return ONLY a valid JSON array with 15 milestone objects, no markdown or additional text.`;
 
     console.log(`Generating milestones for: ${gameTitle}`);
     const openai = getOpenAIClient();
