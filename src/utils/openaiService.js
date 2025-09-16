@@ -297,7 +297,12 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
       };
     });
 
-    return validatedMilestones.sort((a, b) => a.progressionOrder - b.progressionOrder);
+    // Sort by progressionOrder first, then by gamePercentage if progressionOrder is equal
+    return validatedMilestones.sort((a, b) => {
+      const orderDiff = (a.progressionOrder || 0) - (b.progressionOrder || 0);
+      if (orderDiff !== 0) return orderDiff;
+      return (a.gamePercentage || 0) - (b.gamePercentage || 0);
+    });
   } catch (error) {
     console.error('OpenAI API Error in generateMilestones:', error);
     throw error;
