@@ -226,10 +226,16 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
 
     console.log(`Generating milestones for: ${gameTitle}`);
     const openai = getOpenAIClient();
+    
+    // Enhanced system message to ensure proper JSON format
+    const systemMessage = `You are a helpful assistant that generates detailed game milestones in JSON format. 
+    Your response MUST be a valid JSON object with a 'milestones' array containing exactly 15 milestone objects.
+    Each milestone must have a title, description, and progressionOrder field.`;
+
     const response = await openai.chat.completions.create({
       model: 'gpt-3.5-turbo',
       messages: [
-        { role: 'system', content: 'You are a helpful assistant that generates detailed game milestones in JSON format.' },
+        { role: 'system', content: systemMessage },
         { role: 'user', content: prompt }
       ],
       max_tokens: 4000,
@@ -238,20 +244,58 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
     });
 
     console.log('OpenAI API response received successfully');
-    const responseContent = response.choices[0]?.message?.content;
+    let responseContent = response.choices[0]?.message?.content;
     if (!responseContent) throw new Error('Empty response from OpenAI API');
+
+    console.log('Raw response content:', responseContent);
+
+    // Clean the response content
+    let cleanedContent = responseContent
+      .replace(/^```(?:json)?\s*([\s\S]*?)\s*```$/gm, '$1') // Remove markdown code blocks
+      .replace(/[‘’]/g, "'") // Replace smart quotes
+      .replace(/[“”]/g, '"')
+      .replace(/\n/g, '\\n') // Escape newlines
+      .trim();
+
+    console.log('Cleaned content:', cleanedContent);
 
     let parsed;
     try {
-      parsed = JSON.parse(responseContent);
+      // First try parsing directly
+      parsed = JSON.parse(cleanedContent);
     } catch (err) {
-      parsed = cleanAndParseJson(responseContent);
+      console.warn('Initial JSON parse failed, trying to clean and parse...', err);
+      try {
+        // If direct parse fails, try cleaning more aggressively
+        parsed = cleanAndParseJson(cleanedContent);
+      } catch (cleanErr) {
+        console.error('Failed to parse JSON after cleaning:', cleanErr);
+        console.error('Response content that failed to parse:', cleanedContent);
+        // As a last resort, try to extract JSON from the response
+        const jsonMatch = cleanedContent.match(/\{[\s\S]*\}/);
+        if (jsonMatch) {
+          try {
+            parsed = JSON.parse(jsonMatch[0]);
+          } catch (finalErr) {
+            console.error('Final JSON parse attempt failed:', finalErr);
+            throw new Error('Failed to parse milestones from API response after multiple attempts');
+          }
+        } else {
+          throw new Error('No valid JSON found in the API response');
+        }
+      }
     }
 
     let milestones = [];
-    if (Array.isArray(parsed)) milestones = parsed;
-    else if (parsed.milestones && Array.isArray(parsed.milestones)) milestones = parsed.milestones;
-    else milestones = [parsed];
+    // Handle different possible response formats
+    if (Array.isArray(parsed)) {
+      milestones = parsed.slice(0, 15); // Take first 15 if array
+    } else if (parsed.milestones && Array.isArray(parsed.milestones)) {
+      milestones = parsed.milestones.slice(0, 15);
+    } else if (typeof parsed === 'object' && parsed !== null) {
+      // If it's a single milestone object, put it in an array
+      milestones = [parsed];
+    }
 
     console.log(`Successfully extracted ${milestones.length} milestones`);
 
