@@ -343,7 +343,15 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
           return data.slice(0, 15).map(m => ({
             ...m,
             // Ensure achievementIds is always a valid array
-            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : []
+            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : [],
+            // Ensure category is a string, not an object
+            category: m.category?.primary || m.category || 'gameplay',
+            // Ensure difficulty is a string
+            difficulty: m.difficulty?.rating ? 
+              (m.difficulty.rating <= 2 ? 'easy' : 
+               m.difficulty.rating <= 3 ? 'medium' : 
+               m.difficulty.rating <= 4 ? 'hard' : 'expert') :
+              m.difficulty || 'medium'
           }));
         }
         
@@ -351,7 +359,15 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
         if (data.milestones && Array.isArray(data.milestones)) {
           return data.milestones.slice(0, 15).map(m => ({
             ...m,
-            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : []
+            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : [],
+            // Ensure category is a string, not an object
+            category: m.category?.primary || m.category || 'gameplay',
+            // Ensure difficulty is a string
+            difficulty: m.difficulty?.rating ? 
+              (m.difficulty.rating <= 2 ? 'easy' : 
+               m.difficulty.rating <= 3 ? 'medium' : 
+               m.difficulty.rating <= 4 ? 'hard' : 'expert') :
+              m.difficulty || 'medium'
           }));
         }
         
@@ -359,7 +375,15 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
         if (typeof data === 'object' && data !== null) {
           return [{
             ...data,
-            achievementIds: Array.isArray(data.achievementIds) ? data.achievementIds : []
+            achievementIds: Array.isArray(data.achievementIds) ? data.achievementIds : [],
+            // Ensure category is a string, not an object
+            category: data.category?.primary || data.category || 'gameplay',
+            // Ensure difficulty is a string
+            difficulty: data.difficulty?.rating ? 
+              (data.difficulty.rating <= 2 ? 'easy' : 
+               data.difficulty.rating <= 3 ? 'medium' : 
+               data.difficulty.rating <= 4 ? 'hard' : 'expert') :
+              data.difficulty || 'medium'
           }];
         }
         
@@ -390,7 +414,15 @@ VERIFICATION: Before finalizing, double-check that all milestones are specific t
         if (possibleMilestones) {
           milestones = possibleMilestones.slice(0, 15).map(m => ({
             ...m,
-            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : []
+            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : [],
+            // Ensure category is a string, not an object
+            category: m.category?.primary || m.category || 'gameplay',
+            // Ensure difficulty is a string
+            difficulty: m.difficulty?.rating ? 
+              (m.difficulty.rating <= 2 ? 'easy' : 
+               m.difficulty.rating <= 3 ? 'medium' : 
+               m.difficulty.rating <= 4 ? 'hard' : 'expert') :
+              m.difficulty || 'medium'
           }));
         }
       }
