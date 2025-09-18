@@ -72,7 +72,7 @@ const GameSearch = ({ onAddGame }) => {
       console.error('Failed to fetch game details:', err);
       toast.error('Failed to load game details');
     }
-  }, [getGameDetails, onGameSelect]);
+  }, [getGameDetails]);
 
   return (
     <div className="game-search-container p-4 bg-gray-50 rounded-lg shadow">

@@ -1,16 +1,39 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameSearch from '../components/GameSearch';
+import { toast } from 'react-toastify';
 
 const GameDatabase = () => {
   const navigate = useNavigate();
   const [selectedGame, setSelectedGame] = useState(null);
 
-  const handleGameSelect = (game) => {
-    setSelectedGame(game);
-    // You can add the game to your tracked games here
-    console.log('Selected game:', game);
-  };
+  const handleAddGame = useCallback((newGame) => {
+    try {
+      // Get existing games from localStorage
+      const existingGames = JSON.parse(localStorage.getItem('gameTracker_games') || '[]');
+      
+      // Check if game already exists
+      const gameExists = existingGames.some(game => game.id === newGame.id);
+      
+      if (gameExists) {
+        toast.warning('This game is already in your library!');
+        return;
+      }
+      
+      // Add the new game
+      const updatedGames = [...existingGames, newGame];
+      localStorage.setItem('gameTracker_games', JSON.stringify(updatedGames));
+      
+      toast.success(`${newGame.title} has been added to your library!`);
+      setSelectedGame(null);
+      
+      // Optionally navigate back to the home page
+      // navigate('/');
+    } catch (error) {
+      console.error('Error adding game:', error);
+      toast.error('Failed to add game to library');
+    }
+  }, []);
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -23,7 +46,7 @@ const GameDatabase = () => {
         </div>
 
         <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <GameSearch onGameSelect={handleGameSelect} />
+          <GameSearch onAddGame={handleAddGame} />
         </div>
 
         {selectedGame && (
@@ -31,11 +54,27 @@ const GameDatabase = () => {
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-2xl font-bold">Selected Game</h2>
               <button
-                onClick={() => {
-                  // Add to your tracked games
-                  // You'll need to implement this function
-                  console.log('Add to tracked games:', selectedGame);
-                  // navigate('/games'); // Navigate to games list after adding
+                onClick={async () => {
+                  try {
+                    // Format the game data to match our expected structure
+                    const gameToAdd = {
+                      id: `rawg-${selectedGame.id}`,
+                      title: selectedGame.name,
+                      platform: selectedGame.platforms?.map(p => p.platform.name).join(', ') || 'Unknown',
+                      status: 'not_started',
+                      progress: 0,
+                      coverImage: selectedGame.background_image || '',
+                      lastPlayed: new Date().toISOString(),
+                      milestones: [],
+                      notes: [],
+                      rawgData: selectedGame
+                    };
+                    
+                    handleAddGame(gameToAdd);
+                  } catch (error) {
+                    console.error('Error adding game:', error);
+                    toast.error('Failed to add game to library');
+                  }
                 }}
                 className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
               >
