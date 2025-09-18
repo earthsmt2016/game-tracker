@@ -17,6 +17,19 @@ const GameDetailModal = ({
   onStatusChange = () => {}, 
   onUpdateGame = () => {} 
 }) => {
+  // Debug: Log game and milestones when they change
+  useEffect(() => {
+    console.log('GameDetailModal received game:', {
+      id: game?.id,
+      title: game?.title,
+      milestoneCount: game?.milestones?.length || 0,
+      milestones: game?.milestones,
+      hasRawgData: !!game?.rawgData,
+      rawgAchievements: game?.rawgData?.achievements ? 
+        `Found ${game.rawgData.achievements.length} achievements from RAWG` : 
+        'No RAWG achievements'
+    });
+  }, [game]);
   const [milestones, setMilestones] = useState([]);
   const [report, setReport] = useState(null);
   const [isGeneratingReport, setIsGeneratingReport] = useState(false);

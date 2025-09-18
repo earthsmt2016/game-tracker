@@ -20,24 +20,37 @@ const Home = () => {
   useEffect(() => {
     try {
       const savedGames = localStorage.getItem('gameTracker_games');
+      console.log('Loading games from localStorage:', savedGames);
       if (savedGames) {
         const parsed = JSON.parse(savedGames);
         if (!Array.isArray(parsed)) {
+          console.warn('Games data is not an array:', parsed);
           setGames([]);
           return;
         }
         // Sanitize data to prevent NaN errors
-        const sanitizedGames = parsed.map(game => ({
-          ...game,
-          progress: (() => {
-            const p = Number(game.progress);
-            return (Number.isFinite(p) && !isNaN(p)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(p))) : safeNumber(0);
-          })(),
-          milestones: Array.isArray(game.milestones) ? game.milestones : [],
-          notes: Array.isArray(game.notes) ? game.notes : [],
-          reportScreenshots: Array.isArray(game.reportScreenshots) ? game.reportScreenshots : []
-        }));
+        const sanitizedGames = parsed.map(game => {
+          const sanitizedGame = {
+            ...game,
+            progress: (() => {
+              const p = Number(game.progress);
+              return (Number.isFinite(p) && !isNaN(p)) ? Math.max(safeNumber(0), Math.min(safeNumber(100), safeNumber(p))) : safeNumber(0);
+            })(),
+            milestones: Array.isArray(game.milestones) ? game.milestones : [],
+            notes: Array.isArray(game.notes) ? game.notes : [],
+            reportScreenshots: Array.isArray(game.reportScreenshots) ? game.reportScreenshots : []
+          };
+          console.log('Loaded game with milestones:', {
+            id: sanitizedGame.id,
+            title: sanitizedGame.title,
+            milestoneCount: sanitizedGame.milestones?.length || 0,
+            milestones: sanitizedGame.milestones
+          });
+          return sanitizedGame;
+        });
         setGames(sanitizedGames);
+      } else {
+        console.log('No saved games found in localStorage');
       }
     } catch (error) {
       console.error('Error loading games from localStorage:', error);
@@ -50,6 +63,12 @@ const Home = () => {
     if (gameId && games.length > 0) {
       const game = games.find(g => g.id === gameId);
       if (game) {
+        console.log('Setting selected game from URL:', {
+          id: game.id,
+          title: game.title,
+          milestoneCount: game.milestones?.length || 0,
+          milestones: game.milestones
+        });
         setSelectedGame(game);
         setIsDetailModalOpen(true);
       } else if (gameId.startsWith('rawg-')) {
@@ -58,6 +77,12 @@ const Home = () => {
           const gameExists = games.some(g => g.id === gameId);
           if (gameExists) {
             const foundGame = games.find(g => g.id === gameId);
+            console.log('Found RAWG game after initial load:', {
+              id: foundGame.id,
+              title: foundGame.title,
+              milestoneCount: foundGame.milestones?.length || 0,
+              milestones: foundGame.milestones
+            });
             setSelectedGame(foundGame);
             setIsDetailModalOpen(true);
           } else if (isInitialLoad) {
@@ -67,6 +92,8 @@ const Home = () => {
         };
         
         checkGame();
+      } else {
+        console.warn(`Game with ID ${gameId} not found in games list`);
       }
       setIsInitialLoad(false);
     }
@@ -121,6 +148,14 @@ const Home = () => {
   };
 
   const handleViewDetails = (game) => {
+    console.log('Viewing game details:', {
+      id: game.id,
+      title: game.title,
+      milestoneCount: game.milestones?.length || 0,
+      milestones: game.milestones,
+      rawgData: game.rawgData ? 'RAWG data exists' : 'No RAWG data',
+      rawgAchievements: game.rawgData?.achievements || 'No achievements in RAWG data'
+    });
     setSelectedGame(game);
     setIsDetailModalOpen(true);
     // Update the URL to include the game ID
