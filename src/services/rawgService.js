@@ -39,10 +39,17 @@ export const searchGames = async (query, page = 1, pageSize = 10) => {
       page_size: pageSize.toString()
     });
 
-    const url = `${API_BASE_URL}/games?${params}`;
-    const response = await fetch(getUrl(url));
+    const url = import.meta.env.DEV
+      ? `${CORS_PROXY}${API_BASE_URL}/games?${params}`
+      : `${API_BASE_URL}/games?${params}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
-    const data = await response.json();
+    const data = await handleResponse(response);
     return data.results || [];
   } catch (error) {
     console.error('Error in searchGames:', error);
