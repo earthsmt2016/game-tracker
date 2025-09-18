@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Menu, X, GamepadIcon, BarChart3, Download, Upload } from 'lucide-react';
+import { Menu, X, GamepadIcon, BarChart3, Search } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
 
 const Header = () => {
@@ -9,6 +9,7 @@ const Header = () => {
   const navigation = [
     { name: 'Games', href: '/', icon: GamepadIcon },
     { name: 'Reports', href: '/reports', icon: BarChart3 },
+    { name: 'Game Database', href: '/game-database', icon: Search },
   ];
 
   const isActive = (path) => location.pathname === path;

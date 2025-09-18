@@ -7,6 +7,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
 import Home from './src/pages/Home.jsx';
 import Reports from './src/pages/Reports.jsx';
+import GameDatabase from './src/pages/GameDatabase.jsx';
 import NotFound from './src/pages/NotFound.jsx';
 
 export default function App() {
@@ -17,6 +18,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/reports" element={<Reports />} />
+            <Route path="/game-database" element={<GameDatabase />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <ToastContainer
