@@ -6,20 +6,21 @@ import {
   getGameScreenshots as getGameScreenshotsService,
   getSimilarGames as getSimilarGamesService
 } from '../services/rawgService';
+import { generateMilestones } from '../utils/openaiService';
 
 export const useRawg = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
-  const transformGameData = (gameData, achievements = []) => {
+  const transformGameData = async (gameData, achievements = []) => {
     // Sort achievements by completion percentage (rarest first) if available
     const hasAchievements = achievements && achievements.length > 0;
     const sortedAchievements = hasAchievements 
       ? [...achievements].sort((a, b) => (a.percent || 0) - (b.percent || 0))
       : [];
 
-    // Create default milestones if no achievements are available
-    const defaultMilestones = [
+    // Function to generate default milestones (moved to a separate function to avoid code duplication)
+    const getDefaultMilestones = () => [
       {
         id: `milestone-${Date.now()}-1`,
         title: 'Complete the tutorial',
@@ -51,6 +52,23 @@ export const useRawg = () => {
         estimatedTime: 600
       }
     ];
+    
+    // If no achievements, try to generate AI milestones
+    let milestones = [];
+    if (!hasAchievements) {
+      try {
+        const platform = gameData.platforms?.[0]?.platform?.name || 'PC';
+        const aiMilestones = await generateMilestones(gameData.name, platform);
+        if (aiMilestones && aiMilestones.length > 0) {
+          milestones = aiMilestones;
+        } else {
+          milestones = getDefaultMilestones();
+        }
+      } catch (aiError) {
+        console.warn('Failed to generate AI milestones, using defaults', aiError);
+        milestones = getDefaultMilestones();
+      }
+    }
 
     return {
       id: `rawg-${gameData.id}`,
@@ -215,8 +233,8 @@ export const useRawg = () => {
         getGameScreenshotsService(gameId).catch(() => [])  // Return empty array if screenshots fail
       ]);
 
-      // Transform the game data with the fetched information
-      const gameData = transformGameData(gameDetails, achievements);
+      // Transform the game data with the fetched information (this now includes AI milestone generation)
+      const gameData = await transformGameData(gameDetails, achievements);
       
       // If we have screenshots, use the first one as the cover image
       if (screenshots && screenshots.length > 0) {
@@ -224,19 +242,6 @@ export const useRawg = () => {
         const fullSizeScreenshot = screenshots.find(s => s.width > 600);
         if (fullSizeScreenshot) {
           gameData.coverImage = fullSizeScreenshot.image || gameData.coverImage;
-        }
-      }
-
-      // Generate AI milestones if no achievements were found
-      if (!achievements || achievements.length === 0) {
-        try {
-          const platform = gameDetails.platforms?.[0]?.platform?.name || 'PC';
-          const aiMilestones = await generateMilestones(gameDetails.name, platform);
-          if (aiMilestones && aiMilestones.length > 0) {
-            gameData.milestones = aiMilestones;
-          }
-        } catch (aiError) {
-          console.warn('Failed to generate AI milestones, using defaults', aiError);
         }
       }
 
