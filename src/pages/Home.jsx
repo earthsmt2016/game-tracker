@@ -255,59 +255,56 @@ const Home = () => {
     );
     setGames(updatedGames);
     saveGamesToLocalStorage(updatedGames);
+    return updatedGames;
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <div className="min-h-screen flex flex-col">
       <Header />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8 flex justify-between items-center">
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Game Tracker</h1>
-            <p className="text-slate-600 dark:text-slate-400">Track your gaming progress and achievements.</p>
+      <main className="flex-grow bg-gray-50 pt-20">
+        <div className="container mx-auto px-4 py-4">
+          <div className="mb-8 flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-slate-900 dark:text-slate-100 mb-2">Game Tracker</h1>
+              <p className="text-slate-600 dark:text-slate-400">Track your gaming progress and achievements.</p>
+            </div>
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="inline-flex items-center space-x-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
+            >
+              <span>Add Game</span>
+            </button>
           </div>
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center space-x-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 text-white font-medium rounded-lg transition-colors focus:outline-none focus:ring-2 focus:ring-violet-500"
-          >
-            <span>Add Game</span>
-          </button>
-        </div>
 
-        <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Average Progress</h2>
-          <p className="text-2xl font-bold text-violet-600">{safeTotalScore}%</p>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {games
-            .sort((a, b) => {
-              // First sort by status: playing games first, then completed
-              if (a.status !== b.status) {
-                if (a.status === 'playing') return -1;
-                if (b.status === 'playing') return 1;
-                if (a.status === 'completed') return -1;
-                if (b.status === 'completed') return 1;
-              }
-              // Then sort alphabetically by title within each status
-              return a.title.localeCompare(b.title);
-            })
-            .map((game) => (
-              <GameCard
-                key={game.id}
-                game={game}
-                onStatusChange={handleStatusChange}
-                onViewDetails={handleViewDetails}
-                onDeleteGame={handleDeleteGame}
-              />
-            ))}
-        </div>
-
-        {games.length === safeNumber(0) && (
-          <div className="text-center py-12">
-            <p className="text-slate-500 dark:text-slate-400">No games added yet. Click "Add Game" to get started!</p>
+          <div className="mb-6 p-4 bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700">
+            <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-2">Average Progress</h2>
+            <p className="text-2xl font-bold text-violet-600">{safeTotalScore}%</p>
           </div>
-        )}
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {games
+              .sort((a, b) => {
+                // First sort by status: playing games first, then completed
+                if (a.status !== b.status) {
+                  if (a.status === 'playing') return -1;
+                  if (b.status === 'playing') return 1;
+                  if (a.status === 'completed') return -1;
+                  if (b.status === 'completed') return 1;
+                }
+                // Then sort alphabetically by title within each status
+                return a.title.localeCompare(b.title);
+              })
+              .map((game) => (
+                <GameCard
+                  key={game.id}
+                  game={game}
+                  onStatusChange={handleStatusChange}
+                  onViewDetails={handleViewDetails}
+                  onDeleteGame={handleDeleteGame}
+                />
+              ))}
+          </div>
+        </div>
       </main>
 
       <AddGameModal

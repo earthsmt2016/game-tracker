@@ -948,10 +948,10 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
   })();
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
+    <div className="min-h-screen flex flex-col bg-slate-50 dark:bg-slate-900">
       <Header />
-      
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <main className="flex-grow pt-20">
+        <div className="container mx-auto px-4 py-4">
         {/* Header */}
         <div className="mb-8 flex justify-between items-center">
           <div>
@@ -1362,9 +1362,8 @@ Screenshots: ${gamesThisWeek.reduce((total, game) => total + (Array.isArray(game
           </motion.div>
         )}
 
-        {/* Weekly Summary */}
+        </div>
       </main>
-
       <Footer />
     </div>
   );
