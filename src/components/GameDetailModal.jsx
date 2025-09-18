@@ -17,7 +17,7 @@ const GameDetailModal = ({
   onStatusChange = () => {}, 
   onUpdateGame = () => {} 
 }) => {
-  // Debug: Log game and milestones when they change
+  // Log game and milestones when they change
   useEffect(() => {
     console.log('GameDetailModal received game:', {
       id: game?.id,
@@ -27,8 +27,17 @@ const GameDetailModal = ({
       hasRawgData: !!game?.rawgData,
       rawgAchievements: game?.rawgData?.achievements ? 
         `Found ${game.rawgData.achievements.length} achievements from RAWG` : 
-        'No RAWG achievements'
+        'No RAWG achievements',
+      hasAchievements: game?.rawgData?.hasAchievements
     });
+
+    // Show a toast if achievements aren't available
+    if (game?.rawgData?.hasAchievements === false) {
+      toast.info('Using default milestones. RAWG achievements require a premium API key.', {
+        autoClose: 5000,
+        position: 'top-right'
+      });
+    }
   }, [game]);
   const [milestones, setMilestones] = useState([]);
   const [report, setReport] = useState(null);

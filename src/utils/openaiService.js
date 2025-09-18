@@ -145,355 +145,131 @@ const padMilestones = (milestones, gameTitle) => {
   return milestones;
 };
 
-export const generateMilestones = async (gameTitle, platform = 'PC') => {
-  if (!import.meta.env.VITE_OPENAI_API_KEY) {
-    console.error('OpenAI API key is missing or not configured properly');
-    throw new Error('OpenAI API key is not configured. Please set VITE_OPENAI_API_KEY in your .env file.');
-  }
+// Generate milestones with AI
+const generateMilestonesWithAI = async (gameTitle, platform = 'PC') => {
+  const openai = getOpenAIClient();
+  
+  const systemPrompt = `You are a professional game guide writer with deep knowledge of video games across all platforms. 
+  Your task is to create a comprehensive list of 15-20 engaging and meaningful milestones for the game "${gameTitle}" on ${platform}.
+  
+  For EACH milestone, include:
+  1. A clear, specific title (5-8 words)
+  2. A detailed description (1-2 sentences)
+  3. Category: story, exploration, combat, collection, completion, or multiplayer
+  4. Difficulty: easy, medium, hard, or expert
+  5. Estimated time to complete in minutes
+  6. A fun fact or tip about the milestone
+  
+  Make the milestones:
+  - Varied across different aspects of the game
+  - Progressively more challenging
+  - Include both main story and side content
+  - Reference specific in-game elements when possible
+  - Be specific to ${gameTitle}'s unique mechanics and features
+  
+  Format as a JSON array of objects with these exact keys:
+  [{"title": "", "description": "", "category": "", "difficulty": "", "estimatedTime": number, "tip": ""}, ...]`;
 
   try {
-    const platformDetails = { /* unchanged, left out for brevity */ };
-    const platformInfo = platformDetails[platform] || platformDetails['PC'];
-    
-    let gameSpecificPrompt = '';
-    if (gameTitle.toLowerCase().includes('sonic heroes')) {
-      gameSpecificPrompt = `For Sonic Heroes, ensure you create milestones for all four teams in this order: Team Rose, Team Sonic, Team Dark, Team Chaotix.`;
-    } else if (gameTitle.toLowerCase().includes('spider-man 2')) {
-      gameSpecificPrompt = `For Marvel's Spider-Man 2 (${platform}), include character-specific, story, and villain milestones.`;
-    }
-
-    // Advanced milestone generation system
-    const prompt = `You are a professional game designer creating milestones for "${gameTitle}" (${platform}). 
-
-IMPORTANT: Only include milestones that are specific to this exact game. Do not include any content from sequels, prequels, or other games in the series unless explicitly part of this game. Focus only on the main content of "${gameTitle}".
-
-GENERATION RULES:
-1. Create EXACTLY 15 unique and distinct milestones with clear progression, focusing ONLY on content from "${gameTitle}"
-2. Each milestone must represent a significant, unique event or achievement
-3. Include a balanced mix of:
-   - Main story progression points
-   - Major side quests or optional content
-   - Key item/ability unlocks
-   - Boss battles or major encounters
-   - Exploration milestones
-4. Ensure milestones are specific to "${gameTitle}"'s mechanics, setting, and narrative. Do not reference events, characters, or locations from sequels, DLCs, or other games in the series.
-5. Distribute milestones to represent natural progression through the game
-
-MILESTONE STRUCTURE:
-{
-  "title": "[Specific, unique objective that clearly indicates progress]",
-  "description": "2-3 sentences explaining the challenge, narrative significance, and what makes this milestone unique",
-  "action": "Complete|Defeat|Collect|Achieve|Master|Discover|Unlock|Rescue|Escape|Upgrade",
-  "category": {
-    "primary": "story|exploration|combat|puzzle|boss|collection|upgrade|achievement",
-    "secondary": "[optional secondary category]"
-  },
-  "difficulty": {
-    "rating": 1-5,
-    "factors": ["skill", "time", "knowledge"]
-  },
-  "estimatedTime": 15-120,
-  "prerequisites": ["milestone_id_or_name"],
-  "rewards": ["item_name", "ability_unlock", "story_progression"],
-  "steps": [
-    {
-      "description": "Specific, measurable objective",
-      "metrics": {
-        "type": "count|time|combo|precision",
-        "target": "number or condition"
-      }
-    }
-  ],
-  "metrics": {
-    "primary": {
-      "type": "time|score|combo|collection",
-      "target": "specific target value"
-    },
-    "secondary": [
-      {
-        "type": "damage_taken|items_used|accuracy",
-        "target": "optimal value"
-      }
-    ]
-  },
-  "validation": {
-    "autoTracked": true|false,
-    "manualChecks": ["screenshot_required", "save_file_hash"],
-    "achievementIds": ["related_achievement_ids"]
-  },
-  "tags": ["tutorial", "boss", "story", "side_quest", "exploration", "upgrade", "collection", "achievement", "challenge"]
-}
-
-PROGRESSION FLOW:
-1-3: Introduction & Tutorial (0-20%)
-   - Basic controls and mechanics
-   - First major story beat
-   - First significant challenge or boss
-
-4-7: Early Game (20-45%)
-   - Core gameplay loop established
-   - First major story developments
-   - Introduction to key mechanics
-   - First major side content
-
-8-10: Mid Game (45-70%)
-   - Story midpoint
-   - Major ability/upgrade unlocks
-   - More challenging encounters
-   - Significant side content
-
-11-14: Late Game (70-95%)
-   - Climactic story events
-   - Most challenging content
-   - Final upgrades/abilities
-   - Endgame preparation
-
-15: Finale & Completion (95-100%)
-   - Final story mission/ending
-   - Post-game content
-   - 100% completion (if applicable)
-
-${gameSpecificPrompt}
-
-Return ONLY a valid JSON array with 15 milestone objects, no markdown or additional text.
-
-VERIFICATION: Before finalizing, double-check that all milestones are specific to "${gameTitle}" and do not reference any sequel or DLC content.`;
-
-    console.log(`Generating milestones for: ${gameTitle}`);
-    const openai = getOpenAIClient();
-    
-    // Enhanced system message to ensure proper JSON format
-    const systemMessage = `You are a helpful assistant that generates detailed game milestones in JSON format. 
-    Your response MUST be a valid JSON object with a 'milestones' array containing exactly 15 milestone objects.
-    Each milestone must have a title, description, and progressionOrder field.`;
-
     const response = await openai.chat.completions.create({
-      model: 'gpt-3.5-turbo',
+      model: 'gpt-4',
       messages: [
-        { role: 'system', content: systemMessage },
-        { role: 'user', content: prompt }
+        { role: 'system', content: systemPrompt },
+        { 
+          role: 'user', 
+          content: `Generate 15-20 detailed milestones for ${gameTitle} on ${platform}.
+          Focus on creating a balanced mix of story progression, exploration, and completionist goals.`
+        }
       ],
-      max_tokens: 4000,
       temperature: 0.7,
-      response_format: { type: 'json_object' }
+      max_tokens: 3000,
     });
 
-    console.log('OpenAI API response received successfully');
-    let responseContent = response.choices[0]?.message?.content;
-    if (!responseContent) throw new Error('Empty response from OpenAI API');
+    const content = response.choices[0]?.message?.content;
+    if (!content) throw new Error('No content in response');
 
-    console.log('Raw response content (first 500 chars):', responseContent.substring(0, 500) + '...');
+    // Extract JSON from the response
+    const jsonMatch = content.match(/\[.*\]/s);
+    if (!jsonMatch) throw new Error('Could not find JSON array in response');
 
-    // First try to parse directly
-    let parsed;
-    try {
-      // If the response is already a string that starts with {, try parsing it directly
-      if (typeof responseContent === 'string') {
-        const trimmed = responseContent.trim();
-        if (trimmed.startsWith('{') || trimmed.startsWith('[')) {
-          try {
-            parsed = JSON.parse(trimmed);
-            console.log('Successfully parsed JSON directly');
-          } catch (parseError) {
-            console.warn('Direct JSON parse failed, trying to clean...', parseError);
-            // Try to clean and parse
-            parsed = cleanAndParseJson(responseContent);
-          }
-        } else {
-          // Otherwise, try to clean and parse
-          parsed = cleanAndParseJson(responseContent);
-        }
-      } else {
-        // If not a string, use as is
-        parsed = responseContent;
-      }
-    } catch (err) {
-      console.warn('Initial JSON parse failed, trying to extract JSON...', err);
-      // Try to extract JSON from the response
-      const jsonMatch = responseContent.match(/\{[\s\S]*\}|\[[\s\S]*\]/);
-      if (jsonMatch) {
-        const jsonStr = jsonMatch[0];
-        console.log('Extracted JSON string for parsing (first 200 chars):', jsonStr.substring(0, 200) + '...');
-        try {
-          parsed = JSON.parse(jsonStr);
-          console.log('Successfully parsed extracted JSON');
-        } catch (finalErr) {
-          console.error('Final JSON parse failed:', finalErr.message);
-          // Log more context around the error
-          const position = parseInt(finalErr.message.match(/position (\d+)/)?.[1] || '0');
-          const start = Math.max(0, position - 50);
-          const end = Math.min(jsonStr.length, position + 50);
-          console.error('Problem area:', jsonStr.substring(start, end));
-          console.error('Full response length:', responseContent.length);
-          throw new Error('Failed to parse milestones from API response after multiple attempts');
-        }
-      } else {
-        throw new Error('No valid JSON found in the API response');
-      }
-    }
-
-    let milestones = [];
-    try {
-      // Safely extract milestones from different response formats
-      const extractMilestones = (data) => {
-        if (!data) return [];
-        
-        // Handle array of milestones
-        if (Array.isArray(data)) {
-          return data.slice(0, 15).map(m => ({
-            ...m,
-            // Ensure achievementIds is always a valid array
-            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : [],
-            // Ensure category is a string, not an object
-            category: m.category?.primary || m.category || 'gameplay',
-            // Ensure difficulty is a string
-            difficulty: m.difficulty?.rating ? 
-              (m.difficulty.rating <= 2 ? 'easy' : 
-               m.difficulty.rating <= 3 ? 'medium' : 
-               m.difficulty.rating <= 4 ? 'hard' : 'expert') :
-              m.difficulty || 'medium'
-          }));
-        }
-        
-        // Handle object with milestones array
-        if (data.milestones && Array.isArray(data.milestones)) {
-          return data.milestones.slice(0, 15).map(m => ({
-            ...m,
-            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : [],
-            // Ensure category is a string, not an object
-            category: m.category?.primary || m.category || 'gameplay',
-            // Ensure difficulty is a string
-            difficulty: m.difficulty?.rating ? 
-              (m.difficulty.rating <= 2 ? 'easy' : 
-               m.difficulty.rating <= 3 ? 'medium' : 
-               m.difficulty.rating <= 4 ? 'hard' : 'expert') :
-              m.difficulty || 'medium'
-          }));
-        }
-        
-        // Handle single milestone object
-        if (typeof data === 'object' && data !== null) {
-          return [{
-            ...data,
-            achievementIds: Array.isArray(data.achievementIds) ? data.achievementIds : [],
-            // Ensure category is a string, not an object
-            category: data.category?.primary || data.category || 'gameplay',
-            // Ensure difficulty is a string
-            difficulty: data.difficulty?.rating ? 
-              (data.difficulty.rating <= 2 ? 'easy' : 
-               data.difficulty.rating <= 3 ? 'medium' : 
-               data.difficulty.rating <= 4 ? 'hard' : 'expert') :
-              data.difficulty || 'medium'
-          }];
-        }
-        
-        return [];
-      };
-      
-      milestones = extractMilestones(parsed);
-      
-      if (milestones.length === 0) {
-        console.warn('No valid milestones found in response, attempting to recover...');
-        // Try to find any array that might contain milestones
-        const findNestedArray = (obj) => {
-          if (!obj || typeof obj !== 'object') return null;
-          
-          for (const [key, value] of Object.entries(obj)) {
-            if (Array.isArray(value) && value.length > 0 && value[0].title) {
-              return value;
-            }
-            if (typeof value === 'object') {
-              const found = findNestedArray(value);
-              if (found) return found;
-            }
-          }
-          return null;
-        };
-        
-        const possibleMilestones = findNestedArray(parsed);
-        if (possibleMilestones) {
-          milestones = possibleMilestones.slice(0, 15).map(m => ({
-            ...m,
-            achievementIds: Array.isArray(m.achievementIds) ? m.achievementIds : [],
-            // Ensure category is a string, not an object
-            category: m.category?.primary || m.category || 'gameplay',
-            // Ensure difficulty is a string
-            difficulty: m.difficulty?.rating ? 
-              (m.difficulty.rating <= 2 ? 'easy' : 
-               m.difficulty.rating <= 3 ? 'medium' : 
-               m.difficulty.rating <= 4 ? 'hard' : 'expert') :
-              m.difficulty || 'medium'
-          }));
-        }
-      }
-    } catch (e) {
-      console.error('Error extracting milestones:', e);
-      // If we have some milestones but hit an error, continue with what we have
-      if (milestones.length > 0) {
-        console.warn('Partial milestone data recovered, continuing with', milestones.length, 'milestones');
-      } else {
-        throw new Error('Invalid milestone format received from API');
-      }
-    }
-
-    console.log(`Successfully extracted ${milestones.length} milestones:`, JSON.stringify(milestones, null, 2));
-
-    // 🔑 FIX #2: pad if fewer than 15
-    if (milestones.length < 15) {
-      console.warn(`Only got ${milestones.length}, padding to 15...`);
-      milestones = padMilestones(milestones, gameTitle);
-    }
-
-    // 🔑 FIX #3: relax validation → always regenerate IDs
-    const validatedMilestones = milestones.map((milestone, index) => {
-      const defaultMilestone = {
-        id: `milestone-${Date.now()}-${index}`,
-        title: `Milestone ${index + 1}`,
-        description: `Complete this milestone in ${gameTitle}`,
-        action: `Complete this objective in ${gameTitle}`,
-        team: 'General',
-        gamePercentage: Math.min(100, Math.max(1, Math.round(((index + 1) / 15) * 100))),
-        storyPath: 'Main Story',
-        prerequisites: '',
-        reward: '',
-        category: 'gameplay',
-        difficulty: 'medium',
-        estimatedTime: 30,
-        progressionOrder: index + 1,
-        completed: false,
-        dateCompleted: null,
-        triggeredByNote: null
-      };
-
-      return {
-        ...defaultMilestone,
-        ...milestone,
-        id: `milestone-${Date.now()}-${index}`,
-        title: milestone.title || defaultMilestone.title,
-        description: milestone.description || defaultMilestone.description,
-        gamePercentage: Number.isInteger(milestone.gamePercentage)
-          ? Math.min(100, Math.max(1, milestone.gamePercentage))
-          : defaultMilestone.gamePercentage,
-        progressionOrder: Number.isInteger(milestone.progressionOrder)
-          ? milestone.progressionOrder
-          : index + 1
-      };
-    });
-
-    // Sort by progressionOrder first, then by gamePercentage if progressionOrder is equal
-    return validatedMilestones.sort((a, b) => {
-      const orderDiff = (a.progressionOrder || 0) - (b.progressionOrder || 0);
-      if (orderDiff !== 0) return orderDiff;
-      return (a.gamePercentage || 0) - (b.gamePercentage || 0);
-    });
+    const milestones = JSON.parse(jsonMatch[0]);
+    
+    // Add unique IDs and ensure required fields
+    return milestones.map((milestone, index) => ({
+      id: `milestone-${Date.now()}-${index}`,
+      title: milestone.title || `Milestone ${index + 1}`,
+      description: milestone.description || '',
+      category: milestone.category || 'misc',
+      difficulty: milestone.difficulty || 'medium',
+      estimatedTime: milestone.estimatedTime || 30,
+      tip: milestone.tip || '',
+      completed: false,
+      isAI: true
+    }));
   } catch (error) {
-    console.error('OpenAI API Error in generateMilestones:', error);
+    console.error('Error generating milestones with AI:', error);
     throw error;
   }
 };
 
-// generateGameReport and generateWeeklyReport unchanged
-// (keep your existing versions as they are)
+// Generate milestones for a game
+export const generateMilestones = async (gameTitle, platform = 'PC') => {
+  if (!import.meta.env.VITE_OPENAI_API_KEY) {
+    console.error('OpenAI API key is missing or not configured properly');
+    // Fall through to return default milestones
+  } else {
+    try {
+      const milestones = await generateMilestonesWithAI(gameTitle, platform);
+      return milestones;
+    } catch (error) {
+      console.error('Error in generateMilestones:', error);
+      // Fall through to return default milestones
+    }
+  }
+
+  // Default milestones if AI generation fails or API key is missing
+  return [
+    {
+      id: `milestone-${Date.now()}-1`,
+      title: 'Complete the tutorial',
+      description: 'Finish the introductory section of the game',
+      completed: false,
+      category: 'tutorial',
+      difficulty: 'easy',
+      estimatedTime: 30,
+      tip: 'Pay attention to the tutorial as it teaches core mechanics',
+      isAI: false,
+      gamePercentage: 5,
+      progressionOrder: 1
+    },
+    {
+      id: `milestone-${Date.now()}-2`,
+      title: 'Reach level 10',
+      description: 'Level up your character to level 10',
+      completed: false,
+      category: 'progression',
+      difficulty: 'medium',
+      estimatedTime: 60,
+      tip: 'Complete side quests for extra XP',
+      isAI: false,
+      gamePercentage: 20,
+      progressionOrder: 2
+    },
+    {
+      id: `milestone-${Date.now()}-3`,
+      title: 'Complete the main story',
+      description: 'Finish the main storyline of the game',
+      completed: false,
+      category: 'story',
+      difficulty: 'hard',
+      estimatedTime: 600,
+      tip: 'Make sure to save before the final mission',
+      isAI: false,
+      gamePercentage: 90,
+      progressionOrder: 3
+    }
+  ];
+};
 
 export const generateGameReport = async (gameTitle, milestones, notes, gamesThisWeek) => {
   // Validate API key before making requests

@@ -12,10 +12,45 @@ export const useRawg = () => {
   const [error, setError] = useState(null);
 
   const transformGameData = (gameData, achievements = []) => {
-    // Sort achievements by completion percentage (rarest first)
-    const sortedAchievements = [...achievements].sort((a, b) => 
-      (a.percent || 0) - (b.percent || 0)
-    );
+    // Sort achievements by completion percentage (rarest first) if available
+    const hasAchievements = achievements && achievements.length > 0;
+    const sortedAchievements = hasAchievements 
+      ? [...achievements].sort((a, b) => (a.percent || 0) - (b.percent || 0))
+      : [];
+
+    // Create default milestones if no achievements are available
+    const defaultMilestones = [
+      {
+        id: `milestone-${Date.now()}-1`,
+        title: 'Complete the tutorial',
+        description: 'Finish the introductory section of the game',
+        completed: false,
+        category: 'tutorial',
+        difficulty: 'easy',
+        completionPercentage: 0,
+        estimatedTime: 30
+      },
+      {
+        id: `milestone-${Date.now()}-2`,
+        title: 'Reach level 10',
+        description: 'Level up your character to level 10',
+        completed: false,
+        category: 'progression',
+        difficulty: 'medium',
+        completionPercentage: 0,
+        estimatedTime: 60
+      },
+      {
+        id: `milestone-${Date.now()}-3`,
+        title: 'Complete the main story',
+        description: 'Finish the main storyline of the game',
+        completed: false,
+        category: 'story',
+        difficulty: 'hard',
+        completionPercentage: 0,
+        estimatedTime: 600
+      }
+    ];
 
     return {
       id: `rawg-${gameData.id}`,
@@ -27,22 +62,28 @@ export const useRawg = () => {
       hoursPlayed: 0,
       rating: 0,
       notes: [],
-      milestones: sortedAchievements.map(achievement => ({
-        id: `ach-${achievement.id}`,
-        title: achievement.name,
-        description: achievement.description || 'No description available',
-        completed: false,
-        category: 'achievement',
-        difficulty: (achievement.percent < 10) ? 'expert' :
-                   (achievement.percent < 25) ? 'hard' : 
-                   (achievement.percent < 60) ? 'medium' : 'easy',
-        completionPercentage: achievement.percent || 0,
-        estimatedTime: calculateEstimatedTime(achievement.percent || 0)
-      })),
+      milestones: hasAchievements 
+        ? sortedAchievements.map(achievement => ({
+            id: `ach-${achievement.id}`,
+            title: achievement.name,
+            description: achievement.description || 'No description available',
+            completed: false,
+            category: 'achievement',
+            difficulty: (achievement.percent < 10) ? 'expert' :
+                      (achievement.percent < 25) ? 'hard' : 
+                      (achievement.percent < 60) ? 'medium' : 'easy',
+            completionPercentage: achievement.percent || 0,
+            estimatedTime: calculateEstimatedTime(achievement.percent || 0),
+            isAchievement: true
+          }))
+        : defaultMilestones,
       addedDate: new Date().toISOString(),
       lastPlayed: null,
       rawgId: gameData.id,
-      rawgData: gameData // Store the raw data for future reference
+      rawgData: {
+        ...gameData,
+        hasAchievements: hasAchievements
+      }
     };
   };
 
