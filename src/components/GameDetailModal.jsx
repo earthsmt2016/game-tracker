@@ -56,6 +56,7 @@ const GameDetailModal = ({
   const [showAllMilestones, setShowAllMilestones] = useState(false);
   const [showAllNotes, setShowAllNotes] = useState(true);
   const [isEditingCover, setIsEditingCover] = useState(false);
+  const [isEditingPlatform, setIsEditingPlatform] = useState(false);
   const [newCoverUrl, setNewCoverUrl] = useState('');
   const [milestoneInsights, setMilestoneInsights] = useState({
     totalMilestones: 0,
@@ -885,23 +886,33 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                 <div className="px-4 pb-4 pt-5 sm:p-6">
                   {/* Game Header */}
                   <div className="mb-6">
-                    <div className="aspect-video bg-gradient-to-br from-violet-900 to-indigo-800 rounded-lg overflow-hidden mb-4 relative group flex items-center justify-center">
+                    <div className="aspect-video rounded-lg overflow-hidden mb-4 relative group">
                       {newCoverUrl || game.image ? (
-                        <img
-                          src={newCoverUrl || game.image}
-                          alt={game.title}
-                          className="w-full h-full object-cover"
-                          onError={(e) => {
-                            // Hide the image and show the fallback
-                            e.target.style.display = 'none';
-                            const fallback = e.target.nextElementSibling;
-                            if (fallback) fallback.style.display = 'flex';
-                          }}
-                        />
-                      ) : null}
-                      <div className="flex items-center justify-center text-white text-6xl font-bold p-4 text-center">
-                        {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
-                      </div>
+                        <>
+                          <img
+                            src={newCoverUrl || game.image}
+                            alt={game.title}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              // Hide the image and show the fallback
+                              e.target.style.display = 'none';
+                              const fallback = document.querySelector('.game-initials-fallback');
+                              if (fallback) fallback.classList.remove('hidden');
+                            }}
+                          />
+                          <div className="hidden game-initials-fallback absolute inset-0 bg-gradient-to-br from-violet-900 to-indigo-800 flex items-center justify-center">
+                            <div className="text-white text-6xl font-bold p-4 text-center">
+                              {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+                            </div>
+                          </div>
+                        </>
+                      ) : (
+                        <div className="w-full h-full bg-gradient-to-br from-violet-900 to-indigo-800 flex items-center justify-center">
+                          <div className="text-white text-6xl font-bold p-4 text-center">
+                            {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+                          </div>
+                        </div>
+                      )}
                       {!isEditingCover && (
                         <button
                           onClick={() => setIsEditingCover(true)}
@@ -950,7 +961,39 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                         </h2>
 
                         <div className="flex items-center space-x-4 text-sm text-slate-600 dark:text-slate-400">
-                          <span className="font-medium">Platform: {game.platform}</span>
+                          <div className="flex items-center space-x-2">
+                            <span className="font-medium">Platform:</span>
+                            {isEditingPlatform ? (
+                              <select
+                                value={game.platform || ''}
+                                onChange={(e) => onUpdateGame({ ...game, platform: e.target.value })}
+                                className="bg-transparent border-b border-slate-300 dark:border-slate-600 focus:outline-none focus:border-violet-500"
+                                onBlur={() => setIsEditingPlatform(false)}
+                                autoFocus
+                              >
+                                <option value="">Select Platform</option>
+                                <option value="PC">PC</option>
+                                <option value="PlayStation 5">PlayStation 5</option>
+                                <option value="Xbox Series X|S">Xbox Series X|S</option>
+                                <option value="Nintendo Switch">Nintendo Switch</option>
+                                <option value="PlayStation 4">PlayStation 4</option>
+                                <option value="Xbox One">Xbox One</option>
+                                <option value="Mobile">Mobile</option>
+                                <option value="Other">Other</option>
+                              </select>
+                            ) : (
+                              <div className="flex items-center group">
+                                <span>{game.platform || 'Not specified'}</span>
+                                <button 
+                                  onClick={() => setIsEditingPlatform(true)}
+                                  className="ml-1 p-1 rounded-full hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-500 dark:text-slate-400"
+                                  title="Edit platform"
+                                >
+                                  <Edit className="h-3 w-3" />
+                                </button>
+                              </div>
+                            )}
+                          </div>
                           {game.lastPlayed && (
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-1" />
