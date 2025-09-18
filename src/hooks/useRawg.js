@@ -308,4 +308,4 @@ const useRawg = () => {
   };
 };
 
-export { useRawg };
+export default useRawg;
