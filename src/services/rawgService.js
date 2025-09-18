@@ -12,7 +12,7 @@ if (!API_KEY || API_KEY === 'YOUR_RAWG_API_KEY') {
 
 console.log('RAWG API Key:', import.meta.env.VITE_RAWG_API_KEY);
 console.log('RAWG API Key:', API_KEY);
-onsole.log('Environment:', import.meta.env);
+console.log('Environment:', import.meta.env);
 console.log('API Key from env:', import.meta.env.VITE_RAWG_API_KEY);
 
 const handleResponse = async (response) => {
