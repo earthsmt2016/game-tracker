@@ -44,11 +44,11 @@ function GameCard({ game, onStatusChange, onViewDetails, onDeleteGame, onUpdateP
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -4 }}
-      className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-shadow"
+      className="bg-white dark:bg-slate-800 rounded-xl shadow-sm border border-slate-200 dark:border-slate-700 overflow-hidden hover:shadow-md transition-shadow h-full flex flex-col"
     >
-      <div className="aspect-video bg-gradient-to-br from-violet-600 to-indigo-500 relative overflow-hidden">
-        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-violet-900 to-indigo-800">
-          {game.image ? (
+      <div className="aspect-video relative overflow-hidden">
+        {game.image ? (
+          <>
             <img
               src={game.image}
               alt={game.title}
@@ -56,14 +56,23 @@ function GameCard({ game, onStatusChange, onViewDetails, onDeleteGame, onUpdateP
               loading="lazy"
               onError={(e) => {
                 e.target.style.display = 'none';
-                e.target.nextElementSibling.style.display = 'flex';
+                const fallback = e.target.nextElementSibling;
+                if (fallback) fallback.classList.remove('hidden');
               }}
             />
-          ) : null}
-          <div className="flex items-center justify-center text-white text-4xl font-bold p-4 text-center">
-            {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+            <div className="hidden absolute inset-0 bg-gradient-to-br from-violet-900 to-indigo-800 flex items-center justify-center">
+              <div className="text-white text-4xl font-bold p-4 text-center">
+                {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+              </div>
+            </div>
+          </>
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-violet-900 to-indigo-800 flex items-center justify-center">
+            <div className="text-white text-4xl font-bold p-4 text-center">
+              {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+            </div>
           </div>
-        </div>
+        )}
         <div className="absolute top-3 right-3">
           <span className={`inline-flex items-center space-x-1 px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(game.status)}`}>
             {getStatusIcon(game.status)}
