@@ -258,6 +258,16 @@ const Home = () => {
     return updatedGames;
   };
 
+  const handleUpdatePlatform = (gameId, newPlatform) => {
+    const updatedGames = games.map(game =>
+      game.id === gameId
+        ? { ...game, platform: newPlatform, lastPlayed: new Date().toISOString() }
+        : game
+    );
+    setGames(updatedGames);
+    saveGamesToLocalStorage(updatedGames);
+  };
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -301,6 +311,7 @@ const Home = () => {
                   onStatusChange={handleStatusChange}
                   onViewDetails={handleViewDetails}
                   onDeleteGame={handleDeleteGame}
+                  onUpdatePlatform={handleUpdatePlatform}
                 />
               ))}
           </div>

@@ -1,10 +1,10 @@
 import React from 'react';
-import { Calendar, Trophy, Play, CheckCircle, Clock, Trash2 } from 'lucide-react';
+import { Calendar, Trophy, Play, CheckCircle, Clock, Trash2, ChevronDown } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { format } from 'date-fns';
 import { safeNumber } from '../utils/helpers';
 
-function GameCard({ game, onStatusChange, onViewDetails, onDeleteGame }) {
+function GameCard({ game, onStatusChange, onViewDetails, onDeleteGame, onUpdatePlatform }) {
   const safeProgress = Number.isFinite(game.progress) && !isNaN(game.progress) ? Math.max(safeNumber(0), Math.min(safeNumber(100), Math.round(safeNumber(game.progress) * 100) / 100)) : safeNumber(0);
 
   const getStatusIcon = (status) => {
@@ -83,7 +83,33 @@ function GameCard({ game, onStatusChange, onViewDetails, onDeleteGame }) {
         <div className="space-y-2 mb-4">
           <div className="flex items-center text-sm text-slate-600 dark:text-slate-400">
             <span className="font-medium mr-2">Platform:</span>
-            <span>{game.platform}</span>
+            <div className="relative group">
+              <button 
+                className="flex items-center hover:text-violet-600 dark:hover:text-violet-400 transition-colors"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.target.nextElementSibling?.classList.toggle('hidden');
+                }}
+              >
+                <span>{game.platform}</span>
+                <ChevronDown className="ml-1 h-4 w-4" />
+              </button>
+              <div className="absolute z-10 hidden group-hover:block bg-white dark:bg-slate-800 shadow-lg rounded-md border border-slate-200 dark:border-slate-700 mt-1 py-1 w-40 max-h-60 overflow-y-auto">
+                {['PC', 'PlayStation 5', 'PlayStation 4', 'Xbox Series X/S', 'Xbox One', 'Nintendo Switch', 'Mobile', 'Steam Deck'].map(platform => (
+                  <button
+                    key={platform}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 dark:hover:bg-slate-700 ${game.platform === platform ? 'text-violet-600 dark:text-violet-400' : ''}`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onUpdatePlatform(game.id, platform);
+                      e.target.closest('div').classList.add('hidden');
+                    }}
+                  >
+                    {platform}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
           
           {game.lastPlayed && (
