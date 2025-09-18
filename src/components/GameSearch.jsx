@@ -1,5 +1,7 @@
 import { useState, useCallback } from 'react';
+import { Plus } from 'lucide-react';
 import useRawg from '../hooks/useRawg';
+import { toast } from 'react-toastify';
 
 const GameSearch = ({ onGameSelect }) => {
   const [searchQuery, setSearchQuery] = useState('');
@@ -7,7 +9,7 @@ const GameSearch = ({ onGameSelect }) => {
   const [selectedGame, setSelectedGame] = useState(null);
   const [showDetails, setShowDetails] = useState(false);
   
-  const { loading, error, searchGames, getGameDetails } = useRawg();
+  const { loading, error, searchGames, getGameDetails, trackGame } = useRawg();
 
   const handleSearch = useCallback(async (e) => {
     e.preventDefault();
@@ -21,24 +23,41 @@ const GameSearch = ({ onGameSelect }) => {
     }
   }, [searchQuery, searchGames]);
 
+  const handleTrackGame = useCallback(async (game) => {
+    try {
+      const trackedGame = await trackGame(game.id);
+      if (trackedGame) {
+        toast.success(`${trackedGame.title} has been added to your library!`);
+        if (onGameSelect) {
+          onGameSelect(trackedGame);
+        }
+        setShowDetails(false);
+        setSearchQuery('');
+        setSearchResults([]);
+      }
+    } catch (err) {
+      console.error('Failed to track game:', err);
+      toast.error('Failed to add game to your library');
+    }
+  }, [trackGame, onGameSelect]);
+
   const handleGameSelect = useCallback(async (game) => {
     try {
       const details = await getGameDetails(game.id);
-      setSelectedGame({
+      const gameWithDetails = {
         ...game,
         ...details
-      });
+      };
+      setSelectedGame(gameWithDetails);
       setShowDetails(true);
       
       // Pass the selected game to the parent component if needed
       if (onGameSelect) {
-        onGameSelect({
-          ...game,
-          ...details
-        });
+        onGameSelect(gameWithDetails);
       }
     } catch (err) {
       console.error('Failed to fetch game details:', err);
+      toast.error('Failed to load game details');
     }
   }, [getGameDetails, onGameSelect]);
 
@@ -112,14 +131,23 @@ const GameSearch = ({ onGameSelect }) => {
         <div className="game-details mt-6 p-4 bg-white rounded-lg shadow">
           <div className="flex justify-between items-start mb-4">
             <h3 className="text-xl font-bold">{selectedGame.name}</h3>
-            <button
-              onClick={() => setShowDetails(false)}
-              className="text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
+            <div className="mt-6 flex justify-between items-center border-t pt-4">
+              <button
+                onClick={() => setShowDetails(false)}
+                className="px-4 py-2 bg-gray-200 text-gray-800 rounded hover:bg-gray-300 transition-colors"
+              >
+                Close
+              </button>
+              <button
+                onClick={() => handleTrackGame(selectedGame)}
+                className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 transition-colors flex items-center gap-2"
+                disabled={loading}
+              >
+                <Plus size={16} />
+                {loading ? 'Adding...' : 'Track This Game'}
+              </button>
+            </div>
           </div>
-          
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2">
               {selectedGame.background_image && (

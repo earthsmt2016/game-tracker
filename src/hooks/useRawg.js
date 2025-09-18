@@ -11,6 +11,34 @@ export const useRawg = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  const transformGameData = (gameData, achievements = []) => {
+    return {
+      id: `rawg-${gameData.id}`,
+      title: gameData.name,
+      platform: gameData.platforms?.map(p => p.platform.name).join(', ') || 'Unknown',
+      coverImage: gameData.background_image || '',
+      status: 'not_started',
+      progress: 0,
+      hoursPlayed: 0,
+      rating: 0,
+      notes: [],
+      milestones: achievements.map(achievement => ({
+        id: `ach-${achievement.id}`,
+        title: achievement.name,
+        description: achievement.description,
+        completed: false,
+        category: 'achievement',
+        difficulty: achievement.percent < 25 ? 'hard' : 
+                   achievement.percent < 60 ? 'medium' : 'easy',
+        estimatedTime: 0 // We'll need to estimate this based on the achievement
+      })),
+      addedDate: new Date().toISOString(),
+      lastPlayed: null,
+      rawgId: gameData.id,
+      rawgData: gameData // Store the raw data for future reference
+    };
+  };
+
   const searchGames = useCallback(async (query, page = 1, pageSize = 10) => {
     if (!query) return [];
     
@@ -96,6 +124,38 @@ export const useRawg = () => {
     }
   }, []);
 
+  const trackGame = useCallback(async (gameId) => {
+    if (!gameId) return null;
+    
+    setLoading(true);
+    setError(null);
+    
+    try {
+      // Get game details
+      const details = await getGameDetailsService(gameId);
+      
+      // Get game achievements if available
+      let achievements = [];
+      try {
+        const achievementsData = await getGameAchievementsService(gameId);
+        if (Array.isArray(achievementsData)) {
+          achievements = achievementsData;
+        }
+      } catch (err) {
+        console.warn('Could not fetch achievements:', err);
+      }
+      
+      // Transform the data into our game format
+      return transformGameData(details, achievements);
+    } catch (err) {
+      console.error('Error tracking game:', err);
+      setError(err.message || 'Failed to track game');
+      return null;
+    } finally {
+      setLoading(false);
+    }
+  }, [getGameDetailsService, getGameAchievementsService]);
+
   return {
     loading,
     error,
@@ -104,6 +164,7 @@ export const useRawg = () => {
     getGameAchievements,
     getGameScreenshots,
     getSimilarGames,
+    trackGame,
   };
 };
 
