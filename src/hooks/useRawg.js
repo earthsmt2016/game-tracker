@@ -207,29 +207,48 @@ export const useRawg = () => {
     
     try {
       // Get game details
-      const details = await getGameDetailsService(gameId);
+      const gameDetails = await getGameDetailsService(gameId);
       
-      // Get game achievements if available
-      let achievements = [];
-      try {
-        const achievementsData = await getGameAchievementsService(gameId);
-        if (Array.isArray(achievementsData)) {
-          achievements = achievementsData;
+      // Then, get achievements and screenshots in parallel
+      const [achievements, screenshots] = await Promise.all([
+        getGameAchievementsService(gameId).catch(() => []), // Return empty array if achievements fail
+        getGameScreenshotsService(gameId).catch(() => [])  // Return empty array if screenshots fail
+      ]);
+
+      // Transform the game data with the fetched information
+      const gameData = transformGameData(gameDetails, achievements);
+      
+      // If we have screenshots, use the first one as the cover image
+      if (screenshots && screenshots.length > 0) {
+        // Find the first screenshot that's not a thumbnail
+        const fullSizeScreenshot = screenshots.find(s => s.width > 600);
+        if (fullSizeScreenshot) {
+          gameData.coverImage = fullSizeScreenshot.image || gameData.coverImage;
         }
-      } catch (err) {
-        console.warn('Could not fetch achievements:', err);
       }
-      
-      // Transform the data into our game format
-      return transformGameData(details, achievements);
+
+      // Generate AI milestones if no achievements were found
+      if (!achievements || achievements.length === 0) {
+        try {
+          const platform = gameDetails.platforms?.[0]?.platform?.name || 'PC';
+          const aiMilestones = await generateMilestones(gameDetails.name, platform);
+          if (aiMilestones && aiMilestones.length > 0) {
+            gameData.milestones = aiMilestones;
+          }
+        } catch (aiError) {
+          console.warn('Failed to generate AI milestones, using defaults', aiError);
+        }
+      }
+
+      return gameData;
     } catch (err) {
       console.error('Error tracking game:', err);
-      setError(err.message || 'Failed to track game');
-      return null;
+      setError('Failed to track game. Please try again.');
+      throw err;
     } finally {
       setLoading(false);
     }
-  }, [getGameDetailsService, getGameAchievementsService]);
+  }, [getGameDetailsService, getGameAchievementsService, getGameScreenshotsService]);
 
   return {
     loading,

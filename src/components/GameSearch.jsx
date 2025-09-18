@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import useRawg from '../hooks/useRawg';
 import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import { generateMilestones } from '../utils/openaiService';
 
 const GameSearch = ({ onAddGame }) => {
@@ -26,6 +27,10 @@ const GameSearch = ({ onAddGame }) => {
 
   const handleTrackGame = useCallback(async (game) => {
     try {
+      // Show loading state
+      const toastId = toast.loading(`Adding ${game.name} to your library...`);
+      
+      // Track the game (this will fetch details, screenshots, and generate milestones if needed)
       const trackedGame = await trackGame(game.id);
       
       if (trackedGame && onAddGame) {
@@ -36,19 +41,26 @@ const GameSearch = ({ onAddGame }) => {
           platform: trackedGame.platform,
           status: 'not_started',
           progress: 0,
-          coverImage: trackedGame.coverImage,
+          coverImage: trackedGame.coverImage, // This will now use the RAWG screenshot if available
           lastPlayed: new Date().toISOString(),
           milestones: trackedGame.milestones || [],
           notes: [],
-          rawgData: trackedGame.rawgData, // Store the raw data for reference
-          rawgId: trackedGame.rawgId // Make sure to include rawgId for future reference
+          rawgData: trackedGame.rawgData,
+          rawgId: trackedGame.rawgId,
+          addedDate: new Date().toISOString()
         };
         
         // Add the game to the library and wait for the result
         const result = await onAddGame(newGame);
         
         if (result && result.success) {
-          toast.success(`${trackedGame.title} has been added to your library!`);
+          toast.update(toastId, {
+            render: `${trackedGame.title} has been added to your library!`,
+            type: 'success',
+            isLoading: false,
+            autoClose: 3000
+          });
+          
           setShowDetails(false);
           setSearchQuery('');
           setSearchResults([]);
@@ -60,7 +72,8 @@ const GameSearch = ({ onAddGame }) => {
       return null;
     } catch (err) {
       console.error('Failed to track game:', err);
-      toast.error('Failed to add game to your library');
+      toast.error('Failed to add game to your library. Please try again.');
+      throw err; // Re-throw to allow parent component to handle the error if needed
     }
   }, [trackGame, onAddGame]);
 
