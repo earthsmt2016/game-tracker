@@ -19,6 +19,7 @@ export default function App() {
             <Route path="/" element={<Home />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/game-database" element={<GameDatabase />} />
+            <Route path="/game/:gameId" element={<Home />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
           <ToastContainer

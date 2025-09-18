@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import Header from '../components/Header.jsx';
 import Footer from '../components/Footer.jsx';
 import GameCard from '../components/GameCard.jsx';
@@ -7,11 +8,15 @@ import GameDetailModal from '../components/GameDetailModal.jsx';
 import { safeNumber, safeDivision } from '../utils/helpers';
 
 const Home = () => {
+  const { gameId } = useParams();
+  const navigate = useNavigate();
   const [games, setGames] = useState([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedGame, setSelectedGame] = useState(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
 
+  // Load games from localStorage
   useEffect(() => {
     try {
       const savedGames = localStorage.getItem('gameTracker_games');
@@ -39,6 +44,33 @@ const Home = () => {
       setGames([]);
     }
   }, []);
+
+  // Handle game ID from URL
+  useEffect(() => {
+    if (gameId && games.length > 0) {
+      const game = games.find(g => g.id === gameId);
+      if (game) {
+        setSelectedGame(game);
+        setIsDetailModalOpen(true);
+      } else if (gameId.startsWith('rawg-')) {
+        // If it's a RAWG game, we might need to wait for the game to be added
+        const checkGame = () => {
+          const gameExists = games.some(g => g.id === gameId);
+          if (gameExists) {
+            const foundGame = games.find(g => g.id === gameId);
+            setSelectedGame(foundGame);
+            setIsDetailModalOpen(true);
+          } else if (isInitialLoad) {
+            // Only try for a short time on initial load
+            setTimeout(checkGame, 500);
+          }
+        };
+        
+        checkGame();
+      }
+      setIsInitialLoad(false);
+    }
+  }, [gameId, games, isInitialLoad]);
 
   // New useEffect to sync selectedGame with updated games array
   useEffect(() => {
@@ -91,6 +123,8 @@ const Home = () => {
   const handleViewDetails = (game) => {
     setSelectedGame(game);
     setIsDetailModalOpen(true);
+    // Update the URL to include the game ID
+    navigate(`/game/${game.id}`, { replace: true });
   };
 
   const handleDeleteGame = (gameId) => {
@@ -249,7 +283,11 @@ const Home = () => {
 
       <GameDetailModal
         isOpen={isDetailModalOpen}
-        onClose={() => setIsDetailModalOpen(false)}
+        onClose={() => {
+          setIsDetailModalOpen(false);
+          // Update the URL to remove the game ID when the modal is closed
+          navigate('/');
+        }}
         game={selectedGame}
         onUpdateProgress={handleUpdateProgress}
         onUpdateNotes={handleUpdateNotes}
