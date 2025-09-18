@@ -8,18 +8,12 @@ import {
 } from '../services/rawgService';
 import { generateMilestones } from '../utils/openaiService';
 
-export const useRawg = () => {
+const useRawg = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const transformGameData = async (gameData, achievements = []) => {
-    // Sort achievements by completion percentage (rarest first) if available
-    const hasAchievements = achievements && achievements.length > 0;
-    const sortedAchievements = hasAchievements 
-      ? [...achievements].sort((a, b) => (a.percent || 0) - (b.percent || 0))
-      : [];
-
-    // Function to generate default milestones (moved to a separate function to avoid code duplication)
+    // Function to generate default milestones
     const getDefaultMilestones = () => [
       {
         id: `milestone-${Date.now()}-1`,
@@ -29,7 +23,8 @@ export const useRawg = () => {
         category: 'tutorial',
         difficulty: 'easy',
         completionPercentage: 0,
-        estimatedTime: 30
+        estimatedTime: 30,
+        isAI: false
       },
       {
         id: `milestone-${Date.now()}-2`,
@@ -39,7 +34,8 @@ export const useRawg = () => {
         category: 'progression',
         difficulty: 'medium',
         completionPercentage: 0,
-        estimatedTime: 60
+        estimatedTime: 60,
+        isAI: false
       },
       {
         id: `milestone-${Date.now()}-3`,
@@ -49,59 +45,86 @@ export const useRawg = () => {
         category: 'story',
         difficulty: 'hard',
         completionPercentage: 0,
-        estimatedTime: 600
+        estimatedTime: 600,
+        isAI: false
       }
     ];
-    
-    // If no achievements, try to generate AI milestones
+
+    // Sort achievements by completion percentage (rarest first) if available
+    const hasAchievements = achievements && achievements.length > 0;
     let milestones = [];
-    if (!hasAchievements) {
-      try {
+
+    try {
+      if (hasAchievements) {
+        // If we have achievements, use them as milestones
+        const sortedAchievements = [...achievements].sort((a, b) => (a.percent || 0) - (b.percent || 0));
+        milestones = sortedAchievements.map(achievement => ({
+          id: `ach-${achievement.id}`,
+          title: achievement.name,
+          description: achievement.description || 'No description available',
+          completed: false,
+          category: 'achievement',
+          difficulty: (achievement.percent < 10) ? 'expert' :
+                    (achievement.percent < 25) ? 'hard' : 
+                    (achievement.percent < 60) ? 'medium' : 'easy',
+          completionPercentage: achievement.percent || 0,
+          estimatedTime: calculateEstimatedTime(achievement.percent || 0),
+          isAchievement: true,
+          isAI: false
+        }));
+      } else {
+        // If no achievements, try to generate AI milestones
         const platform = gameData.platforms?.[0]?.platform?.name || 'PC';
         const aiMilestones = await generateMilestones(gameData.name, platform);
-        if (aiMilestones && aiMilestones.length > 0) {
-          milestones = aiMilestones;
-        } else {
-          milestones = getDefaultMilestones();
+        milestones = (aiMilestones && aiMilestones.length > 0) 
+          ? aiMilestones 
+          : getDefaultMilestones();
+      }
+      
+      // Sort milestones by estimated time (shortest first)
+      milestones.sort((a, b) => (a.estimatedTime || 0) - (b.estimatedTime || 0));
+      
+      return {
+        id: `rawg-${gameData.id}`,
+        title: gameData.name,
+        platform: gameData.platforms?.map(p => p.platform.name).join(', ') || 'Unknown',
+        coverImage: gameData.background_image || '',
+        status: 'not_started',
+        progress: 0,
+        hoursPlayed: 0,
+        rating: 0,
+        notes: [],
+        milestones: milestones,
+        addedDate: new Date().toISOString(),
+        lastPlayed: null,
+        rawgId: gameData.id,
+        rawgData: {
+          ...gameData,
+          hasAchievements: hasAchievements
         }
-      } catch (aiError) {
-        console.warn('Failed to generate AI milestones, using defaults', aiError);
-        milestones = getDefaultMilestones();
-      }
-    }
-
-    return {
-      id: `rawg-${gameData.id}`,
-      title: gameData.name,
-      platform: gameData.platforms?.map(p => p.platform.name).join(', ') || 'Unknown',
-      coverImage: gameData.background_image || '',
-      status: 'not_started',
-      progress: 0,
-      hoursPlayed: 0,
-      rating: 0,
-      notes: [],
-      milestones: hasAchievements 
-        ? sortedAchievements.map(achievement => ({
-            id: `ach-${achievement.id}`,
-            title: achievement.name,
-            description: achievement.description || 'No description available',
-            completed: false,
-            category: 'achievement',
-            difficulty: (achievement.percent < 10) ? 'expert' :
-                      (achievement.percent < 25) ? 'hard' : 
-                      (achievement.percent < 60) ? 'medium' : 'easy',
-            completionPercentage: achievement.percent || 0,
-            estimatedTime: calculateEstimatedTime(achievement.percent || 0),
-            isAchievement: true
-          }))
-        : defaultMilestones,
-      addedDate: new Date().toISOString(),
-      lastPlayed: null,
-      rawgId: gameData.id,
-      rawgData: {
-        ...gameData,
-        hasAchievements: hasAchievements
-      }
+      };
+    } catch (error) {
+      console.error('Error in transformGameData:', error);
+      // Return a basic game object with default milestones if anything fails
+      return {
+        id: `rawg-${gameData.id || Date.now()}`,
+        title: gameData.name || 'Unknown Game',
+        platform: gameData.platforms?.map(p => p.platform.name).join(', ') || 'Unknown',
+        coverImage: gameData.background_image || '',
+        status: 'not_started',
+        progress: 0,
+        hoursPlayed: 0,
+        rating: 0,
+        notes: [],
+        milestones: getDefaultMilestones(),
+        addedDate: new Date().toISOString(),
+        lastPlayed: null,
+        rawgId: gameData.id,
+        rawgData: {
+          ...gameData,
+          hasAchievements: false
+        }
+      };
     };
   };
 
@@ -236,12 +259,30 @@ export const useRawg = () => {
       // Transform the game data with the fetched information (this now includes AI milestone generation)
       const gameData = await transformGameData(gameDetails, achievements);
       
-      // If we have screenshots, use the first one as the cover image
+      // If we have screenshots, use the best one as the cover image
       if (screenshots && screenshots.length > 0) {
-        // Find the first screenshot that's not a thumbnail
-        const fullSizeScreenshot = screenshots.find(s => s.width > 600);
-        if (fullSizeScreenshot) {
-          gameData.coverImage = fullSizeScreenshot.image || gameData.coverImage;
+        // Find the best screenshot (prioritize larger images that aren't thumbnails)
+        const bestScreenshot = screenshots.reduce((best, current) => {
+          // Skip thumbnails
+          if (current.width < 600 || current.height < 300) return best;
+          
+          // If we don't have a best yet or this one is larger, use this one
+          if (!best || (current.width * current.height) > (best.width * best.height)) {
+            return current;
+          }
+          return best;
+        }, null);
+
+        // If we found a good screenshot, use it as the cover
+        if (bestScreenshot && bestScreenshot.image) {
+          gameData.coverImage = bestScreenshot.image;
+          
+          // Also store the screenshots in rawgData for potential future use
+          gameData.rawgData = gameData.rawgData || {};
+          gameData.rawgData.screenshots = screenshots;
+        } else if (screenshots[0]?.image) {
+          // Fallback to the first available screenshot if no good one was found
+          gameData.coverImage = screenshots[0].image;
         }
       }
 
@@ -263,8 +304,8 @@ export const useRawg = () => {
     getGameAchievements,
     getGameScreenshots,
     getSimilarGames,
-    trackGame,
+    trackGame
   };
 };
 
-export default useRawg;
+export { useRawg };
