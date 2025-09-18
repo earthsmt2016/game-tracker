@@ -1,12 +1,22 @@
 // RAWG API Service
 // Documentation: https://api.rawg.io/docs/
 
+// Use CORS proxy in development
+const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 const API_BASE_URL = 'https://api.rawg.io/api';
-const API_KEY = import.meta.env.VITE_RAWG_API_KEY;
+const API_KEY = import.meta.env.VITE_RAWG_API_KEY || 'YOUR_RAWG_API_KEY';
 
-if (!API_KEY) {
+if (!API_KEY || API_KEY === 'YOUR_RAWG_API_KEY') {
   console.warn('RAWG API key is not set. Please add VITE_RAWG_API_KEY to your .env file');
 }
+
+const handleResponse = async (response) => {
+  if (!response.ok) {
+    const error = await response.json().catch(() => ({}));
+    throw new Error(error.detail || `RAWG API error: ${response.status}`);
+  }
+  return response.json();
+};
 
 /**
  * Search for games by name
@@ -17,18 +27,28 @@ if (!API_KEY) {
  */
 export const searchGames = async (query, page = 1, pageSize = 10) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/games?key=${API_KEY}&search=${encodeURIComponent(query)}&page=${page}&page_size=${pageSize}`
-    );
+    const params = new URLSearchParams({
+      key: API_KEY,
+      search: query,
+      page: page.toString(),
+      page_size: pageSize.toString()
+    });
+
+    // Use CORS proxy in development
+    const url = import.meta.env.DEV
+      ? `${CORS_PROXY}${API_BASE_URL}/games?${params}`
+      : `${API_BASE_URL}/games?${params}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
-    if (!response.ok) {
-      throw new Error(`RAWG API error: ${response.status}`);
-    }
-    
-    const data = await response.json();
+    const data = await handleResponse(response);
     return data.results || [];
   } catch (error) {
-    console.error('Error searching games:', error);
+    console.error('Error in searchGames:', error);
     throw error;
   }
 };
@@ -40,15 +60,17 @@ export const searchGames = async (query, page = 1, pageSize = 10) => {
  */
 export const getGameDetails = async (gameId) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/games/${gameId}?key=${API_KEY}`
-    );
+    const url = import.meta.env.DEV
+      ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}?key=${API_KEY}`
+      : `${API_BASE_URL}/games/${gameId}?key=${API_KEY}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
-    if (!response.ok) {
-      throw new Error(`Failed to fetch game details: ${response.status}`);
-    }
-    
-    return await response.json();
+    return await handleResponse(response);
   } catch (error) {
     console.error('Error fetching game details:', error);
     throw error;
@@ -62,9 +84,15 @@ export const getGameDetails = async (gameId) => {
  */
 export const getGameAchievements = async (gameId) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/games/${gameId}/achievements?key=${API_KEY}`
-    );
+    const url = import.meta.env.DEV
+      ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}/achievements?key=${API_KEY}`
+      : `${API_BASE_URL}/games/${gameId}/achievements?key=${API_KEY}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
     if (!response.ok) {
       // Some games might not have achievements
@@ -89,9 +117,15 @@ export const getGameAchievements = async (gameId) => {
  */
 export const getGameScreenshots = async (gameId) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/games/${gameId}/screenshots?key=${API_KEY}`
-    );
+    const url = import.meta.env.DEV
+      ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}/screenshots?key=${API_KEY}`
+      : `${API_BASE_URL}/games/${gameId}/screenshots?key=${API_KEY}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
     if (!response.ok) {
       return [];
@@ -113,9 +147,20 @@ export const getGameScreenshots = async (gameId) => {
  */
 export const getSimilarGames = async (gameId, pageSize = 5) => {
   try {
-    const response = await fetch(
-      `${API_BASE_URL}/games/${gameId}/suggested?key=${API_KEY}&page_size=${pageSize}`
-    );
+    const params = new URLSearchParams({
+      key: API_KEY,
+      page_size: pageSize.toString()
+    });
+
+    const url = import.meta.env.DEV
+      ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}/suggested?${params}`
+      : `${API_BASE_URL}/games/${gameId}/suggested?${params}`;
+
+    const response = await fetch(url, {
+      headers: {
+        'X-Requested-With': 'XMLHttpRequest'
+      }
+    });
     
     if (!response.ok) {
       return [];
