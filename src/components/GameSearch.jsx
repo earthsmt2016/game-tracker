@@ -2,8 +2,9 @@ import { useState, useCallback } from 'react';
 import { Plus } from 'lucide-react';
 import useRawg from '../hooks/useRawg';
 import { toast } from 'react-toastify';
+import { generateMilestones } from '../utils/openaiService';
 
-const GameSearch = ({ onGameSelect }) => {
+const GameSearch = ({ onAddGame }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [selectedGame, setSelectedGame] = useState(null);
@@ -26,11 +27,26 @@ const GameSearch = ({ onGameSelect }) => {
   const handleTrackGame = useCallback(async (game) => {
     try {
       const trackedGame = await trackGame(game.id);
-      if (trackedGame) {
+      
+      if (trackedGame && onAddGame) {
+        // Format the game data to match the existing structure
+        const newGame = {
+          id: trackedGame.id,
+          title: trackedGame.title,
+          platform: trackedGame.platform,
+          status: 'not_started',
+          progress: 0,
+          coverImage: trackedGame.coverImage,
+          lastPlayed: new Date().toISOString(),
+          milestones: trackedGame.milestones || [],
+          notes: [],
+          rawgData: trackedGame.rawgData // Store the raw data for reference
+        };
+        
+        // Add the game to the library
+        onAddGame(newGame);
+        
         toast.success(`${trackedGame.title} has been added to your library!`);
-        if (onGameSelect) {
-          onGameSelect(trackedGame);
-        }
         setShowDetails(false);
         setSearchQuery('');
         setSearchResults([]);
@@ -39,7 +55,7 @@ const GameSearch = ({ onGameSelect }) => {
       console.error('Failed to track game:', err);
       toast.error('Failed to add game to your library');
     }
-  }, [trackGame, onGameSelect]);
+  }, [trackGame, onAddGame]);
 
   const handleGameSelect = useCallback(async (game) => {
     try {
@@ -51,10 +67,7 @@ const GameSearch = ({ onGameSelect }) => {
       setSelectedGame(gameWithDetails);
       setShowDetails(true);
       
-      // Pass the selected game to the parent component if needed
-      if (onGameSelect) {
-        onGameSelect(gameWithDetails);
-      }
+      // No need to pass the game up when just viewing details
     } catch (err) {
       console.error('Failed to fetch game details:', err);
       toast.error('Failed to load game details');
