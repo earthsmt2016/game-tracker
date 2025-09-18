@@ -40,17 +40,24 @@ const GameSearch = ({ onAddGame }) => {
           lastPlayed: new Date().toISOString(),
           milestones: trackedGame.milestones || [],
           notes: [],
-          rawgData: trackedGame.rawgData // Store the raw data for reference
+          rawgData: trackedGame.rawgData, // Store the raw data for reference
+          rawgId: trackedGame.rawgId // Make sure to include rawgId for future reference
         };
         
-        // Add the game to the library
-        onAddGame(newGame);
+        // Add the game to the library and wait for the result
+        const result = await onAddGame(newGame);
         
-        toast.success(`${trackedGame.title} has been added to your library!`);
-        setShowDetails(false);
-        setSearchQuery('');
-        setSearchResults([]);
+        if (result && result.success) {
+          toast.success(`${trackedGame.title} has been added to your library!`);
+          setShowDetails(false);
+          setSearchQuery('');
+          setSearchResults([]);
+          
+          // Return the new game ID for potential redirection
+          return result.gameId;
+        }
       }
+      return null;
     } catch (err) {
       console.error('Failed to track game:', err);
       toast.error('Failed to add game to your library');

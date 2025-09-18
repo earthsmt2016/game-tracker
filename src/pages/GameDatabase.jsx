@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import GameSearch from '../components/GameSearch';
 import { toast } from 'react-toastify';
@@ -7,7 +7,7 @@ const GameDatabase = () => {
   const navigate = useNavigate();
   const [selectedGame, setSelectedGame] = useState(null);
 
-  const handleAddGame = useCallback((newGame) => {
+  const handleAddGame = useCallback(async (newGame) => {
     try {
       // Get existing games from localStorage
       const existingGames = JSON.parse(localStorage.getItem('gameTracker_games') || '[]');
@@ -17,7 +17,7 @@ const GameDatabase = () => {
       
       if (gameExists) {
         toast.warning('This game is already in your library!');
-        return;
+        return { success: false, gameId: newGame.id };
       }
       
       // Add the new game
@@ -25,15 +25,24 @@ const GameDatabase = () => {
       localStorage.setItem('gameTracker_games', JSON.stringify(updatedGames));
       
       toast.success(`${newGame.title} has been added to your library!`);
-      setSelectedGame(null);
+      setSelectedGame(newGame);
       
-      // Optionally navigate back to the home page
-      // navigate('/');
+      // Return success and the game ID for potential redirection
+      return { success: true, gameId: newGame.id };
     } catch (error) {
       console.error('Error adding game:', error);
       toast.error('Failed to add game to library');
+      return { success: false, error };
     }
   }, []);
+  
+  // Redirect to game details when a new game is added
+  useEffect(() => {
+    if (selectedGame) {
+      // Navigate to the game details page
+      navigate(`/game/${selectedGame.id}`);
+    }
+  }, [selectedGame, navigate]);
 
   return (
     <div className="container mx-auto px-4 py-8">
