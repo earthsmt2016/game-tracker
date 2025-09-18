@@ -1,5 +1,7 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 import GameSearch from '../components/GameSearch';
 import { toast } from 'react-toastify';
 
@@ -45,18 +47,21 @@ const GameDatabase = () => {
   }, [selectedGame, navigate]);
 
   return (
-    <div className="container mx-auto px-4 pt-24 pb-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Game Database</h1>
-          <p className="text-gray-600">
-            Search for games to track in your collection. Powered by RAWG.io
-          </p>
-        </div>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-grow bg-gray-50">
+        <div className="container mx-auto px-4 py-8">
+          <div className="max-w-4xl mx-auto">
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">Game Database</h1>
+              <p className="text-gray-600">
+                Search for games to track in your collection. Powered by RAWG.io
+              </p>
+            </div>
 
-        <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-          <GameSearch onAddGame={handleAddGame} />
-        </div>
+            <div className="bg-white rounded-xl shadow-md p-6 mb-8">
+              <GameSearch onAddGame={handleAddGame} />
+            </div>
 
         {selectedGame && (
           <div className="bg-white rounded-xl shadow-md p-6">
@@ -164,6 +169,9 @@ const GameDatabase = () => {
         )}
       </div>
     </div>
+  </main>
+  <Footer />
+</div>
   );
 };
 
