@@ -1,25 +1,96 @@
-// RAWG API Service
+// RAWG API Service with rate limiting and retry logic
 // Documentation: https://api.rawg.io/docs/
 
-// Use CORS proxy in development
+// Configuration
 const CORS_PROXY = 'https://cors-anywhere.herokuapp.com/';
 const API_BASE_URL = 'https://api.rawg.io/api';
 const API_KEY = import.meta.env.VITE_RAWG_API_KEY || 'YOUR_RAWG_API_KEY';
+const MAX_RETRIES = 3;
+const RATE_LIMIT_DELAY = 1000; // 1 second delay between requests
 
+// Rate limiting state
+let lastRequestTime = 0;
+let requestQueue = [];
+let isProcessingQueue = false;
+
+// Simple in-memory cache
+const cache = new Map();
+const CACHE_TTL = 5 * 60 * 1000; // 5 minutes cache TTL
+
+// Check API key
 if (!API_KEY || API_KEY === 'YOUR_RAWG_API_KEY') {
   console.warn('RAWG API key is not set. Please add VITE_RAWG_API_KEY to your .env file');
 }
 
-console.log('RAWG API Key:', import.meta.env.VITE_RAWG_API_KEY);
-console.log('RAWG API Key:', API_KEY);
-console.log('Environment:', import.meta.env);
-console.log('API Key from env:', import.meta.env.VITE_RAWG_API_KEY);
+// Process the request queue
+const processQueue = async () => {
+  if (isProcessingQueue || requestQueue.length === 0) return;
+  
+  isProcessingQueue = true;
+  const now = Date.now();
+  const timeSinceLastRequest = now - lastRequestTime;
+  
+  // Enforce rate limiting (1 request per second)
+  if (timeSinceLastRequest < RATE_LIMIT_DELAY) {
+    await new Promise(resolve => setTimeout(resolve, RATE_LIMIT_DELAY - timeSinceLastRequest));
+  }
+  
+  const { request, resolve, reject, retryCount = 0 } = requestQueue.shift();
+  
+  try {
+    const response = await request();
+    lastRequestTime = Date.now();
+    resolve(response);
+  } catch (error) {
+    if (error.status === 429 && retryCount < MAX_RETRIES) {
+      // If rate limited, retry with exponential backoff
+      const backoff = Math.pow(2, retryCount) * 1000;
+      console.warn(`Rate limited. Retrying in ${backoff}ms... (${retryCount + 1}/${MAX_RETRIES})`);
+      
+      requestQueue.unshift({
+        request,
+        resolve,
+        reject,
+        retryCount: retryCount + 1
+      });
+      
+      setTimeout(processQueue, backoff);
+      return;
+    }
+    reject(error);
+  } finally {
+    isProcessingQueue = false;
+    if (requestQueue.length > 0) {
+      processQueue();
+    }
+  }
+};
+
+// Add a request to the queue
+const enqueueRequest = (request) => {
+  return new Promise((resolve, reject) => {
+    requestQueue.push({ request, resolve, reject });
+    processQueue();
+  });
+};
 
 const handleResponse = async (response) => {
   if (!response.ok) {
-    const error = await response.json().catch(() => ({}));
-    throw new Error(error.detail || `RAWG API error: ${response.status}`);
+    const error = new Error(`RAWG API error: ${response.status}`);
+    error.status = response.status;
+    
+    try {
+      const errorData = await response.json();
+      error.message = errorData.detail || error.message;
+      error.data = errorData;
+    } catch (e) {
+      // If we can't parse the error JSON, use the status text
+      error.message = response.statusText || error.message;
+    }
+    
+    throw error;
   }
+  
   return response.json();
 };
 
@@ -31,6 +102,16 @@ const handleResponse = async (response) => {
  * @returns {Promise<Array>} - Array of matching games
  */
 export const searchGames = async (query, page = 1, pageSize = 10) => {
+  const cacheKey = `search_${query}_${page}_${pageSize}`;
+  const now = Date.now();
+  
+  // Check cache first
+  const cached = cache.get(cacheKey);
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    console.log('Returning cached search results for:', query);
+    return cached.data;
+  }
+
   try {
     const params = new URLSearchParams({
       key: API_KEY,
@@ -43,52 +124,106 @@ export const searchGames = async (query, page = 1, pageSize = 10) => {
       ? `${CORS_PROXY}${API_BASE_URL}/games?${params}`
       : `${API_BASE_URL}/games?${params}`;
 
-    const response = await fetch(url, {
+    const fetchData = () => fetch(url, {
       headers: {
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
       }
     });
     
+    const response = await enqueueRequest(fetchData);
     const data = await handleResponse(response);
-    return data.results || [];
+    const results = data.results || [];
+    
+    // Cache the results
+    cache.set(cacheKey, {
+      data: results,
+      timestamp: now
+    });
+    
+    return results;
   } catch (error) {
     console.error('Error in searchGames:', error);
+    
+    // Return cached results if available, even if expired
+    if (cached) {
+      console.warn('Using expired cache due to API error');
+      return cached.data;
+    }
+    
     throw error;
   }
 };
 
 /**
  * Get game details by ID
- * @param {number} gameId - The RAWG game ID
+ * @param {number|string} gameId - The RAWG game ID
  * @returns {Promise<Object>} - Game details
  */
 export const getGameDetails = async (gameId) => {
+  const cacheKey = `game_${gameId}`;
+  const now = Date.now();
+  
+  // Check cache first
+  const cached = cache.get(cacheKey);
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    console.log('Returning cached game details for ID:', gameId);
+    return cached.data;
+  }
+
   try {
     const url = import.meta.env.DEV
       ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}?key=${API_KEY}`
       : `${API_BASE_URL}/games/${gameId}?key=${API_KEY}`;
 
-    const response = await fetch(url, {
+    const fetchData = () => fetch(url, {
       headers: {
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
       }
     });
     
-    return await handleResponse(response);
+    const response = await enqueueRequest(fetchData);
+    const data = await handleResponse(response);
+    
+    // Cache the results
+    cache.set(cacheKey, {
+      data,
+      timestamp: now
+    });
+    
+    return data;
   } catch (error) {
     console.error('Error fetching game details:', error);
+    
+    // Return cached results if available, even if expired
+    if (cached) {
+      console.warn('Using expired cache for game details due to API error');
+      return cached.data;
+    }
+    
     throw error;
   }
 };
 
 /**
  * Get game achievements with pagination support
- * @param {number} gameId - The RAWG game ID
+ * @param {number|string} gameId - The RAWG game ID
  * @param {number} [page=1] - Page number
  * @param {number} [pageSize=40] - Number of results per page (max 40)
  * @returns {Promise<Object>} - Object containing achievements and pagination info
  */
 export const getGameAchievements = async (gameId, page = 1, pageSize = 40) => {
+  const cacheKey = `achievements_${gameId}_${page}_${pageSize}`;
+  const now = Date.now();
+  
+  // Check cache first
+  const cached = cache.get(cacheKey);
+  if (cached && (now - cached.timestamp < CACHE_TTL)) {
+    console.log('Returning cached achievements for game ID:', gameId);
+    return cached.data;
+  }
+
   try {
     const params = new URLSearchParams({
       key: API_KEY,
@@ -100,21 +235,23 @@ export const getGameAchievements = async (gameId, page = 1, pageSize = 40) => {
       ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}/achievements?${params}`
       : `${API_BASE_URL}/games/${gameId}/achievements?${params}`;
 
-    const response = await fetch(url, {
+    const fetchData = () => fetch(url, {
       headers: {
-        'X-Requested-With': 'XMLHttpRequest'
+        'X-Requested-With': 'XMLHttpRequest',
+        'Accept': 'application/json'
       }
     });
     
-    if (!response.ok) {
-      // Some games might not have achievements
-      if (response.status === 404) {
-        return { results: [], next: null, previous: null, count: 0 };
-      }
-      throw new Error(`Failed to fetch achievements: ${response.status}`);
-    }
+    const response = await enqueueRequest(fetchData);
+    const data = await handleResponse(response);
     
-    return await response.json();
+    // Cache the results
+    cache.set(cacheKey, {
+      data,
+      timestamp: now
+    });
+    
+    return data;
   } catch (error) {
     console.error('Error fetching game achievements:', error);
     // Return empty results if achievements can't be fetched
