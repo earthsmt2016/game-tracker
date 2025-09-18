@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, CheckCircle, Circle, Calendar, Trophy, Target, FileText, Plus, Edit, Save, Download, Image, Trash2, RefreshCw, AlertCircle } from 'lucide-react';
+import { X, CheckCircle, Circle, Calendar, Trophy, Target, FileText, Plus, Edit, Save, Download, Image, Trash2, RefreshCw, AlertCircle, Clock } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { format } from 'date-fns';
 import { generateGameReport, generateMilestones } from '../utils/openaiService';
@@ -1082,26 +1082,49 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                                     <h3 className={`text-base font-medium ${milestone.completed ? 'text-gray-600 line-through' : 'text-gray-900'}`}>
                                       {milestone.title}
                                     </h3>
-                                    {milestone.gamePercentage && (
-                                      <span className="px-2 py-0.5 text-xs font-medium bg-purple-100 text-purple-800 rounded-full whitespace-nowrap">
-                                        ~{milestone.gamePercentage}%
-                                      </span>
+                                  </div>
+                                  <div className="flex flex-wrap items-center gap-2 mt-1">
+                                    {/* Completion Percentage */}
+                                    {(milestone.gamePercentage || milestone.completionPercentage) && (
+                                      <div className="flex items-center text-xs text-gray-600 bg-gray-100 px-2 py-0.5 rounded-full">
+                                        <Trophy className="h-3 w-3 mr-1 text-yellow-500" />
+                                        <span>{(milestone.gamePercentage || milestone.completionPercentage)}% of players</span>
+                                      </div>
                                     )}
+                                    
+                                    {/* Difficulty */}
                                     {milestone.difficulty && (
-                                      <span className={`px-2 py-0.5 text-xs font-medium rounded-full whitespace-nowrap ${
-                                        (typeof milestone.difficulty === 'string' ? milestone.difficulty : milestone.difficulty.rating <= 2) ? 'bg-green-100 text-green-800' :
-                                        (typeof milestone.difficulty === 'string' ? milestone.difficulty : milestone.difficulty.rating <= 3) ? 'bg-yellow-100 text-yellow-800' :
-                                        (typeof milestone.difficulty === 'string' ? milestone.difficulty : milestone.difficulty.rating <= 4) ? 'bg-orange-100 text-orange-800' :
+                                      <div className={`flex items-center text-xs px-2 py-0.5 rounded-full whitespace-nowrap ${
+                                        (typeof milestone.difficulty === 'string' ? 
+                                          milestone.difficulty.toLowerCase() === 'easy' : 
+                                          milestone.difficulty.rating <= 2) ? 'bg-green-100 text-green-800' :
+                                        (typeof milestone.difficulty === 'string' ? 
+                                          milestone.difficulty.toLowerCase() === 'medium' : 
+                                          milestone.difficulty.rating <= 3) ? 'bg-blue-100 text-blue-800' :
+                                        (typeof milestone.difficulty === 'string' ? 
+                                          milestone.difficulty.toLowerCase() === 'hard' : 
+                                          milestone.difficulty.rating <= 4) ? 'bg-orange-100 text-orange-800' :
                                         'bg-red-100 text-red-800'
                                       }`}>
-                                        {(() => {
-                                          if (typeof milestone.difficulty === 'string') {
-                                            return milestone.difficulty.charAt(0).toUpperCase() + milestone.difficulty.slice(1);
-                                          } else {
-                                            return `Difficulty: ${milestone.difficulty.rating}/5`;
-                                          }
-                                        })()}
-                                      </span>
+                                        <Target className="h-3 w-3 mr-1" />
+                                        <span>
+                                          {(() => {
+                                            if (typeof milestone.difficulty === 'string') {
+                                              return milestone.difficulty.charAt(0).toUpperCase() + milestone.difficulty.slice(1);
+                                            } else {
+                                              return `Difficulty: ${milestone.difficulty.rating}/5`;
+                                            }
+                                          })()}
+                                        </span>
+                                      </div>
+                                    )}
+                                    
+                                    {/* Estimated Time */}
+                                    {milestone.estimatedTime && (
+                                      <div className="flex items-center text-xs text-gray-600 bg-gray-50 px-2 py-0.5 rounded-full border border-gray-200">
+                                        <Clock className="h-3 w-3 mr-1 text-gray-500" />
+                                        <span>~{milestone.estimatedTime}m</span>
+                                      </div>
                                     )}
                                   </div>
                                   

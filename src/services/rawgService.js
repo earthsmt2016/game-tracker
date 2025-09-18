@@ -82,15 +82,23 @@ export const getGameDetails = async (gameId) => {
 };
 
 /**
- * Get game achievements
+ * Get game achievements with pagination support
  * @param {number} gameId - The RAWG game ID
- * @returns {Promise<Array>} - Array of achievements
+ * @param {number} [page=1] - Page number
+ * @param {number} [pageSize=40] - Number of results per page (max 40)
+ * @returns {Promise<Object>} - Object containing achievements and pagination info
  */
-export const getGameAchievements = async (gameId) => {
+export const getGameAchievements = async (gameId, page = 1, pageSize = 40) => {
   try {
+    const params = new URLSearchParams({
+      key: API_KEY,
+      page: page.toString(),
+      page_size: Math.min(40, pageSize).toString() // Max 40 per page
+    });
+
     const url = import.meta.env.DEV
-      ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}/achievements?key=${API_KEY}`
-      : `${API_BASE_URL}/games/${gameId}/achievements?key=${API_KEY}`;
+      ? `${CORS_PROXY}${API_BASE_URL}/games/${gameId}/achievements?${params}`
+      : `${API_BASE_URL}/games/${gameId}/achievements?${params}`;
 
     const response = await fetch(url, {
       headers: {
@@ -101,16 +109,16 @@ export const getGameAchievements = async (gameId) => {
     if (!response.ok) {
       // Some games might not have achievements
       if (response.status === 404) {
-        return [];
+        return { results: [], next: null, previous: null, count: 0 };
       }
       throw new Error(`Failed to fetch achievements: ${response.status}`);
     }
     
-    const data = await response.json();
-    return data.results || [];
+    return await response.json();
   } catch (error) {
-    console.error('Error fetching achievements:', error);
-    return [];
+    console.error('Error fetching game achievements:', error);
+    // Return empty results if achievements can't be fetched
+    return { results: [], next: null, previous: null, count: 0 };
   }
 };
 

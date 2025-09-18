@@ -12,6 +12,11 @@ export const useRawg = () => {
   const [error, setError] = useState(null);
 
   const transformGameData = (gameData, achievements = []) => {
+    // Sort achievements by completion percentage (rarest first)
+    const sortedAchievements = [...achievements].sort((a, b) => 
+      (a.percent || 0) - (b.percent || 0)
+    );
+
     return {
       id: `rawg-${gameData.id}`,
       title: gameData.name,
@@ -22,21 +27,32 @@ export const useRawg = () => {
       hoursPlayed: 0,
       rating: 0,
       notes: [],
-      milestones: achievements.map(achievement => ({
+      milestones: sortedAchievements.map(achievement => ({
         id: `ach-${achievement.id}`,
         title: achievement.name,
-        description: achievement.description,
+        description: achievement.description || 'No description available',
         completed: false,
         category: 'achievement',
-        difficulty: achievement.percent < 25 ? 'hard' : 
-                   achievement.percent < 60 ? 'medium' : 'easy',
-        estimatedTime: 0 // We'll need to estimate this based on the achievement
+        difficulty: (achievement.percent < 10) ? 'expert' :
+                   (achievement.percent < 25) ? 'hard' : 
+                   (achievement.percent < 60) ? 'medium' : 'easy',
+        completionPercentage: achievement.percent || 0,
+        estimatedTime: calculateEstimatedTime(achievement.percent || 0)
       })),
       addedDate: new Date().toISOString(),
       lastPlayed: null,
       rawgId: gameData.id,
       rawgData: gameData // Store the raw data for future reference
     };
+  };
+
+  // Helper function to estimate time based on achievement rarity
+  const calculateEstimatedTime = (percent) => {
+    if (percent < 5) return 120; // 2+ hours for very rare achievements
+    if (percent < 15) return 60;  // 1 hour for rare achievements
+    if (percent < 40) return 30;  // 30 minutes for uncommon
+    if (percent < 70) return 15;  // 15 minutes for common
+    return 5;                     // 5 minutes for very common
   };
 
   const searchGames = useCallback(async (query, page = 1, pageSize = 10) => {
@@ -80,7 +96,25 @@ export const useRawg = () => {
     setError(null);
     
     try {
-      return await getGameAchievementsService(gameId);
+      let allAchievements = [];
+      let page = 1;
+      let hasMore = true;
+      const pageSize = 40; // Maximum allowed by RAWG API
+      
+      // Fetch all pages of achievements
+      while (hasMore) {
+        const response = await getGameAchievementsService(gameId, page, pageSize);
+        if (response && response.results && response.results.length > 0) {
+          allAchievements = [...allAchievements, ...response.results];
+          // Check if there are more pages
+          hasMore = response.next !== null;
+          page++;
+        } else {
+          hasMore = false;
+        }
+      }
+      
+      return allAchievements;
     } catch (err) {
       console.error('Error in getGameAchievements:', err);
       setError(err.message || 'Failed to fetch game achievements');
