@@ -10,6 +10,9 @@ if (!API_KEY || API_KEY === 'YOUR_RAWG_API_KEY') {
   console.warn('RAWG API key is not set. Please add VITE_RAWG_API_KEY to your .env file');
 }
 
+console.log('RAWG API Key:', import.meta.env.VITE_RAWG_API_KEY);
+console.log('RAWG API Key:', API_KEY);
+
 const handleResponse = async (response) => {
   if (!response.ok) {
     const error = await response.json().catch(() => ({}));
