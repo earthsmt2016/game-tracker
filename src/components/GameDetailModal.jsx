@@ -885,30 +885,23 @@ Screenshots: ${reportScreenshots.length > 0 ? `${reportScreenshots.length} repor
                 <div className="px-4 pb-4 pt-5 sm:p-6">
                   {/* Game Header */}
                   <div className="mb-6">
-                    <div className="aspect-video bg-gradient-to-br from-violet-600 to-indigo-500 rounded-lg overflow-hidden mb-4 relative group">
-                      <img
-                        src={newCoverUrl || game.image || `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title)}`}
-                        alt={game.title}
-                        className="w-full h-full object-cover"
-                        onError={(e) => {
-                          // If the current source is already the fallback, try a different approach
-                          if (e.target.src.includes('source.unsplash.com')) {
-                            e.target.src = `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title + ' ' + game.platform)}`;
-                          } else if (e.target.src.includes('source.unsplash.com') || !game.image) {
-                            // If still failing, use a generic game cover
-                            e.target.src = 'https://images.unsplash.com/photo-1511512578047-dfb367046420?w=800&h=450&fit=crop&crop=center';
-                          } else {
-                            // First fallback: Try the Unsplash API with game title
-                            e.target.src = `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title)}`;
-                          }
-                        }}
-                        onLoad={(e) => {
-                          // If image loads but is too small, try to find a better one
-                          if (e.target.naturalWidth < 200 || e.target.naturalHeight < 100) {
-                            e.target.src = `https://source.unsplash.com/featured/800x450/?${encodeURIComponent(game.title + ' ' + game.platform)}`;
-                          }
-                        }}
-                      />
+                    <div className="aspect-video bg-gradient-to-br from-violet-900 to-indigo-800 rounded-lg overflow-hidden mb-4 relative group flex items-center justify-center">
+                      {newCoverUrl || game.image ? (
+                        <img
+                          src={newCoverUrl || game.image}
+                          alt={game.title}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Hide the image and show the fallback
+                            e.target.style.display = 'none';
+                            const fallback = e.target.nextElementSibling;
+                            if (fallback) fallback.style.display = 'flex';
+                          }}
+                        />
+                      ) : null}
+                      <div className="flex items-center justify-center text-white text-6xl font-bold p-4 text-center">
+                        {game.title.split(' ').map(word => word[0]).join('').toUpperCase()}
+                      </div>
                       {!isEditingCover && (
                         <button
                           onClick={() => setIsEditingCover(true)}
