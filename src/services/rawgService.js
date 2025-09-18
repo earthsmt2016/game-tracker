@@ -12,6 +12,8 @@ if (!API_KEY || API_KEY === 'YOUR_RAWG_API_KEY') {
 
 console.log('RAWG API Key:', import.meta.env.VITE_RAWG_API_KEY);
 console.log('RAWG API Key:', API_KEY);
+onsole.log('Environment:', import.meta.env);
+console.log('API Key from env:', import.meta.env.VITE_RAWG_API_KEY);
 
 const handleResponse = async (response) => {
   if (!response.ok) {
@@ -37,18 +39,10 @@ export const searchGames = async (query, page = 1, pageSize = 10) => {
       page_size: pageSize.toString()
     });
 
-    // Use CORS proxy in development
-    const url = import.meta.env.DEV
-      ? `${CORS_PROXY}${API_BASE_URL}/games?${params}`
-      : `${API_BASE_URL}/games?${params}`;
-
-    const response = await fetch(url, {
-      headers: {
-        'X-Requested-With': 'XMLHttpRequest'
-      }
-    });
+    const url = `${API_BASE_URL}/games?${params}`;
+    const response = await fetch(getUrl(url));
     
-    const data = await handleResponse(response);
+    const data = await response.json();
     return data.results || [];
   } catch (error) {
     console.error('Error in searchGames:', error);
